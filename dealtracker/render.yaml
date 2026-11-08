@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: dealtracker-api
+    runtime: docker
+    plan: free
+    region: singapore
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: ENV
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: MIGRATION_DATABASE_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: RATE_LIMIT_ENABLED
+        sync: false

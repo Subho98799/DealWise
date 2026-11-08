@@ -1,0 +1,3 @@
+gnupg=2.2.40-1.1+deb12u2
+lsb-release=12.0-1
+postgresql-16=16.15-1.pgdg12+2

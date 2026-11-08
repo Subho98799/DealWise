@@ -1,0 +1,9 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	worktree = /app/dealtracker
+[user]
+	name = DealTracker Dev
+	email = dev@dealtracker.local

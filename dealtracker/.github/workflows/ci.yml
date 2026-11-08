@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dealtracker_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      PGPASSWORD: postgres
+      TEST_DATABASE_URL: postgresql+psycopg://app_user:app_user_local_dev@localhost:5432/dealtracker_test
+      TEST_MIGRATION_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dealtracker_test
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Create restricted app_user role
+        run: psql -h localhost -U postgres -d dealtracker_test -v ON_ERROR_STOP=1 -f ../scripts/create_app_role.sql
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+      - run: yarn install --frozen-lockfile
+      - run: yarn typecheck
+      - run: yarn build

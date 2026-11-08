@@ -6,6 +6,7 @@ import App from './App'
 import { isUnauthorized } from './lib/api'
 import { ME_KEY } from './lib/auth'
 import { applyAppearance, readAppearance, readColorTheme } from './lib/appearance'
+import { PwaInstallProvider } from './lib/usePwaInstall'
 import './index.css'
 
 applyAppearance(readAppearance(), readColorTheme())
@@ -35,9 +36,11 @@ const queryClient: QueryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <PwaInstallProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </PwaInstallProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

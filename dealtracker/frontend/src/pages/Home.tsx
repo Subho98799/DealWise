@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, CircleCheck, CircleDollarSign, TrendingUp } from 'lucide-react'
 import { DealCard } from '../components/DealCard'
 import { Avatar } from '../components/Avatar'
+import { HomeInstallBanner } from '../components/InstallPrompt'
 import { Button, Card, Chip, EmptyState, Skeleton, Stat } from '../components/ui'
 import { useDeals, useMediators, useSummary, useToday, useUser, mediatorStats } from '../data/hooks'
 import { dealAction, updateDeal } from '../data/mutations'
@@ -98,6 +99,8 @@ export default function HomePage() {
           <ArrowRight size={16} aria-hidden="true" />
         </Link>}
       </section>
+
+      <HomeInstallBanner />
 
       <section aria-label="Money summary" className="grid grid-cols-3 gap-2.5">
         <Stat label="Paid" value={formatINR(summary.paid)} icon={CircleDollarSign} />

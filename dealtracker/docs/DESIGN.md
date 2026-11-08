@@ -41,6 +41,8 @@ Use the small primitives in `src/components/ui.tsx`: Button, IconButton, Card, C
 - No runtime font, image, or icon CDN. Use bundled fonts, Lucide icons, and inline SVG.
 - Keep offline data, sync, API calls, and business rules in their current layers.
 - Keep horizontally scrolling rows intentional and self-contained; page content must fit without horizontal overflow at 360px and 390px.
+- The shared `usePwaInstall` flow serves Home, Settings, and Login. It uses the native prompt when available, provides iPhone Share and browser-menu steps otherwise, and offers a copy-link action in in-app browsers. Only standalone display mode, `navigator.standalone`, and `appinstalled` determine installed state; dismissal lasts 14 days.
+- The install manifest includes narrow Home screenshots from `docs/screenshots` in the public app shell. Real installation can only be verified on a deployed HTTPS URL on a real phone.
 - Generate PWA icons from the palette with `yarn icons`; do not edit generated PNGs by hand.
 - Deal detail timelines expose only the next action allowed by the shared transition rules. Later incomplete steps stay locked with a reason.
 - Deal cards use three progress segments and show net/deadline chips only when they add useful information. Deadline chips follow the user's alert window.

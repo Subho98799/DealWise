@@ -1,5 +1,11 @@
 # Changelog
 
+## PWA install experience (2026-11)
+### Added
+- Added one shared install hook and native prompt flow across Home, Settings, and Login, with installed detection, 14-day dismissal, iPhone Share instructions, browser-menu steps, and in-app browser link copying.
+- Added app identity and narrow light/dark Home screenshots to the manifest; precached the install assets with the offline app shell.
+- Added hook coverage for prompt outcomes, installed detection, platform/browser detection, and dismissal expiry. Real installation still requires a deployed HTTPS URL and a real phone.
+
 ## Color themes (2026-11)
 ### Added
 - Added persistent Indigo (default), Forest, and Saffron themes with Light, Dark, and System mode support, Settings swatches, and pre-render theme initialization compatible with the same-origin CSP and offline app shell.

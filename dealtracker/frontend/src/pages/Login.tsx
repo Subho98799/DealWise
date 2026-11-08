@@ -1,6 +1,7 @@
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { googleLoginHref, useMe } from '../lib/auth'
 import { APP_NAME } from '../config/app'
+import { LoginInstallLink } from '../components/InstallPrompt'
 
 const ERRORS: Record<string, string> = {
   access_denied: 'Google sign-in was cancelled.',
@@ -45,6 +46,7 @@ export default function LoginPage() {
           <GoogleMark />
           Continue with Google
         </a>
+        <LoginInstallLink />
         <p className="mt-4 text-center text-xs text-muted">Your deals are private to your account.</p>
       </div>
     </div>

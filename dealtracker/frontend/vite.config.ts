@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
-import { APP_DESCRIPTION, APP_NAME, APP_SHORT_NAME } from './src/config/app'
+import { APP_DESCRIPTION, APP_NAME, APP_SHORT_NAME, APP_SLUG } from './src/config/app'
 
 const designTokens = readFileSync(new URL('./src/styles/tokens.css', import.meta.url), 'utf8')
 function token(name: string) {
@@ -26,11 +26,18 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'script',
-        includeAssets: ['icons/apple-touch-icon-180.png', 'favicon.svg', 'theme-init.js'],
+        includeAssets: [
+          'icons/apple-touch-icon-180.png',
+          'favicon.svg',
+          'theme-init.js',
+          'install-screenshots/home-light.png',
+          'install-screenshots/home-dark.png',
+        ],
         manifest: {
           name: APP_NAME,
           short_name: APP_SHORT_NAME,
           description: APP_DESCRIPTION,
+          id: `/${APP_SLUG}`,
           start_url: '/',
           scope: '/',
           display: 'standalone',
@@ -42,6 +49,10 @@ export default defineConfig(({ mode }) => {
             { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
             { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
             { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          ],
+          screenshots: [
+            { src: '/install-screenshots/home-light.png', sizes: '390x844', type: 'image/png', form_factor: 'narrow', label: `${APP_NAME} home, light theme` },
+            { src: '/install-screenshots/home-dark.png', sizes: '390x844', type: 'image/png', form_factor: 'narrow', label: `${APP_NAME} home, dark theme` },
           ],
         },
         workbox: {

@@ -57,12 +57,13 @@ export function Stat({ label, value, icon: Icon, className = '' }: { label: stri
   </Card>
 }
 
-export function Sheet({ open, title, onClose, children, labelledBy }: {
+export function Sheet({ open, title, onClose, children, labelledBy, closeTestId }: {
   open: boolean
   title: string
   onClose: () => void
   children: ReactNode
   labelledBy?: string
+  closeTestId?: string
 }) {
   const generatedId = useId()
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -85,7 +86,7 @@ export function Sheet({ open, title, onClose, children, labelledBy }: {
       <div className="ui-sheet-handle" aria-hidden="true" />
       <header className="mb-4 flex items-center justify-between gap-3">
         <h2 id={titleId} className="font-display text-xl font-bold">{title}</h2>
-        <IconButton label="Close" onClick={onClose}><X size={20} aria-hidden="true" /></IconButton>
+        <IconButton label="Close" onClick={onClose} data-testid={closeTestId}><X size={20} aria-hidden="true" /></IconButton>
       </header>
       {children}
     </section>

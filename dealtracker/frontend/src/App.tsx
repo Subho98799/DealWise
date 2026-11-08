@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes, useLocation, type Location } from 'react-router-dom'
 import { ProtectedLayout } from './components/ProtectedLayout'
-import { InstallPrompt } from './components/InstallPrompt'
 import LoginPage from './pages/Login'
 import HomePage from './pages/Home'
 import DealsPage from './pages/Deals'
@@ -30,7 +29,6 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <InstallPrompt />
     </>
   )
 }

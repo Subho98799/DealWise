@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowRight, Check, Clock3, Monitor, Moon, Palette, Sun, Upload } from 'lucide-react'
 import { Avatar } from '../components/Avatar'
+import { SettingsInstallRow } from '../components/InstallPrompt'
 import { useDeleteAccount, useLogout, useUpdateSettings } from '../lib/auth'
 import { useUser, useSyncStatus } from '../data/hooks'
 import { btn, input, PageTitle, SegmentedControl } from '../components/ui'
@@ -46,6 +47,7 @@ export default function SettingsPage() {
         <Link to="/import" data-testid="settings-import-link" aria-label="Import deals" className="settings-import-link"><ArrowRight size={19} aria-hidden="true" /></Link>
       </section>
 
+      <SettingsInstallRow />
       <AppearanceSettings />
       <Preferences />
       <DeleteAccount />

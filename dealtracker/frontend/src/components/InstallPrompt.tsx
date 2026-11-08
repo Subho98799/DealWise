@@ -1,110 +1,117 @@
-import { useEffect, useState } from 'react'
-import { APP_NAME, APP_SLUG } from '../config/app'
+import { useState } from 'react'
+import { ArrowRight, Check, Download, X } from 'lucide-react'
+import { APP_NAME } from '../config/app'
+import { usePwaInstall } from '../lib/usePwaInstall'
+import { Sheet } from './ui'
 
-// Device-level UI prefs (not user data): kept outside STORAGE_PREFIX so logout does not reset them.
-const ANDROID_DISMISSED = `${APP_SLUG}_install_dismissed`
-const IOS_HINT_SEEN = `${APP_SLUG}_ios_hint_seen`
+type InstallControlVariant = 'home' | 'settings' | 'login'
+type ManualFlow = 'ios' | 'in-app' | 'menu'
 
-function isStandalone() {
-  return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true
-}
+export function HomeInstallBanner() {
+  const { isInstalled, isDismissed, dismiss } = usePwaInstall()
+  if (isInstalled || isDismissed) return null
 
-function isIosSafari() {
-  const ua = navigator.userAgent
-  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  const otherBrowser = /crios|fxios|edgios|opios/i.test(ua)
-  return ios && !otherBrowser && /safari/i.test(ua)
-}
-
-export function InstallPrompt() {
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
-  const [showIos, setShowIos] = useState(false)
-
-  useEffect(() => {
-    if (isStandalone()) return
-    const onPrompt = (e: BeforeInstallPromptEvent) => {
-      e.preventDefault()
-      if (localStorage.getItem(ANDROID_DISMISSED)) return
-      setDeferred(e)
-    }
-    const onInstalled = () => setDeferred(null)
-    window.addEventListener('beforeinstallprompt', onPrompt)
-    window.addEventListener('appinstalled', onInstalled)
-    if (isIosSafari() && !localStorage.getItem(IOS_HINT_SEEN)) setShowIos(true)
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onPrompt)
-      window.removeEventListener('appinstalled', onInstalled)
-    }
-  }, [])
-
-  const dismissAndroid = () => {
-    localStorage.setItem(ANDROID_DISMISSED, '1')
-    setDeferred(null)
-  }
-  const dismissIos = () => {
-    localStorage.setItem(IOS_HINT_SEEN, '1')
-    setShowIos(false)
-  }
-  const install = async () => {
-    if (!deferred) return
-    await deferred.prompt()
-    await deferred.userChoice
-    setDeferred(null)
-  }
-
-  if (deferred) {
-    return (
-      <Banner testId="install-banner" onClose={dismissAndroid}>
-        <p className="flex-1 text-sm font-semibold">Install {APP_NAME} for one-tap access.</p>
-        <button
-          data-testid="install-banner-install-button"
-          onClick={install}
-          className="rounded-pill bg-primary px-4 py-2 text-sm font-bold text-primary-ink transition-transform active:scale-95"
-        >
-          Install app
-        </button>
-      </Banner>
-    )
-  }
-  if (showIos) {
-    return (
-      <Banner testId="ios-install-hint" onClose={dismissIos}>
-        <p className="flex-1 text-sm">
-          <span className="font-semibold">Add to your iPhone:</span> tap <ShareIcon /> <b>Share</b>, then{' '}
-          <b>Add to Home Screen</b>.
-        </p>
-      </Banner>
-    )
-  }
-  return null
-}
-
-function Banner({ children, onClose, testId }: { children: React.ReactNode; onClose: () => void; testId: string }) {
-  return (
-    <div
-      data-testid={testId}
-      role="status"
-      className="rise fixed inset-x-3 bottom-[calc(var(--nav-height)+env(safe-area-inset-bottom)+12px)] z-30 mx-auto flex max-w-md items-center gap-3 rounded-md border border-line bg-surface p-3 pl-4 shadow-card"
-    >
-      {children}
-      <button
-        data-testid={`${testId}-dismiss-button`}
-        onClick={onClose}
-        aria-label="Dismiss"
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-pill text-muted transition-colors hover:bg-surface-2"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" aria-hidden>
-          <path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" />
-        </svg>
-      </button>
+  return <aside data-testid="home-install-banner" className="home-install-banner">
+    <div className="home-install-copy">
+      <span className="home-install-icon" aria-hidden="true"><Download size={19} /></span>
+      <p>Install {APP_NAME} on your phone</p>
     </div>
-  )
+    <InstallAppControl variant="home" />
+    <button type="button" data-testid="home-install-dismiss" aria-label="Dismiss install suggestion" onClick={dismiss} className="home-install-dismiss">
+      <X size={18} aria-hidden="true" />
+    </button>
+  </aside>
+}
+
+export function SettingsInstallRow() {
+  const { isInstalled } = usePwaInstall()
+  if (isInstalled) {
+    return <div data-testid="settings-installed-row" className="settings-install-row is-installed" role="status">
+      <span className="settings-install-icon" aria-hidden="true"><Check size={19} /></span>
+      <span className="settings-install-label">Installed</span>
+    </div>
+  }
+  return <InstallAppControl variant="settings" />
+}
+
+export function LoginInstallLink() {
+  const { isInstalled } = usePwaInstall()
+  return isInstalled ? null : <InstallAppControl variant="login" />
+}
+
+function InstallAppControl({ variant }: { variant: InstallControlVariant }) {
+  const install = usePwaInstall()
+  const [flow, setFlow] = useState<ManualFlow | null>(null)
+  const [outcome, setOutcome] = useState<string | null>(null)
+  const [copyMessage, setCopyMessage] = useState<string | null>(null)
+
+  const openManualFlow = () => {
+    setOutcome(null)
+    setCopyMessage(null)
+    if (install.isInAppBrowser) setFlow('in-app')
+    else if (install.isIOS) setFlow('ios')
+    else setFlow('menu')
+  }
+
+  const handleInstall = async () => {
+    if (install.isInAppBrowser || install.isIOS || !install.canPrompt) {
+      openManualFlow()
+      return
+    }
+    const result = await install.prompt()
+    if (result === 'unavailable' || result === 'error') {
+      setOutcome(result === 'error' ? 'Your browser could not open the install prompt. Try the menu steps.' : null)
+      setFlow('menu')
+      return
+    }
+    setOutcome(result === 'accepted' ? 'Install request accepted.' : 'Install was cancelled. You can add it later from the browser menu.')
+  }
+
+  const handleCopyLink = async () => {
+    setCopyMessage(await install.copyPageLink() ? 'Link copied.' : 'Could not copy the link. Copy it from your browser address bar.')
+  }
+
+  const button = variant === 'home'
+    ? <button type="button" data-testid="home-install-button" onClick={() => void handleInstall()} className="home-install-button">Install</button>
+    : variant === 'settings'
+      ? <button type="button" data-testid="settings-install-button" onClick={() => void handleInstall()} className="settings-install-row">
+        <span className="settings-install-icon" aria-hidden="true"><Download size={19} /></span>
+        <span className="settings-install-label">Install app</span>
+        <ArrowRight size={18} aria-hidden="true" />
+      </button>
+      : <button type="button" data-testid="login-install-link" onClick={() => void handleInstall()} className="login-install-link">Install app</button>
+
+  const title = flow === 'in-app' ? 'Open in your browser to install' : flow === 'ios' ? 'Add to Home Screen' : `Install ${APP_NAME}`
+
+  return <>
+    {button}
+    {outcome && <p data-testid={`${variant}-install-outcome`} className="install-outcome" role="status">{outcome}</p>}
+    <Sheet open={flow !== null} title={title} onClose={() => setFlow(null)} closeTestId={`${variant}-install-sheet-close`}>
+      {flow === 'in-app' ? <div className="install-sheet-content">
+        <p>Open this page in Safari (or Chrome) to install {APP_NAME}.</p>
+        <button type="button" data-testid={`${variant}-copy-install-link`} onClick={() => void handleCopyLink()} className="install-copy-button">Copy link</button>
+        {copyMessage && <p data-testid="install-copy-result" role="status">{copyMessage}</p>}
+      </div> : flow === 'ios' ? <div className="install-sheet-content">
+        <p>Follow these steps on your iPhone:</p>
+        <ol className="install-steps">
+          <li><span className="install-step-number">1</span><span>Tap <ShareIcon /> Share.</span></li>
+          <li><span className="install-step-number">2</span><span>Choose <b>Add to Home Screen</b>.</span></li>
+          <li><span className="install-step-number">3</span><span>Tap <b>Add</b>.</span></li>
+        </ol>
+      </div> : flow === 'menu' ? <div className="install-sheet-content">
+        <p>Your browser can add {APP_NAME} from its menu:</p>
+        <ol className="install-steps">
+          <li><span className="install-step-number">1</span><span>Open the browser menu.</span></li>
+          <li><span className="install-step-number">2</span><span>Tap <b>Install</b> or <b>Add to Home screen</b>.</span></li>
+        </ol>
+        {outcome && <p role="status">{outcome}</p>}
+      </div> : null}
+    </Sheet>
+  </>
 }
 
 function ShareIcon() {
-  return (
-    <svg className="inline -mt-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-label="Share icon">
-      <path d="M12 3v12M7 8l5-5 5 5M5 12v8h14v-8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+  return <svg className="install-share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M12 15V3m-5 5 5-5 5 5M5 12v8h14v-8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
 }

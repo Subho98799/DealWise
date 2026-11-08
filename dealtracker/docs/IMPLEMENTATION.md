@@ -18,6 +18,7 @@
 | P1 scaffold, Google login, sessions, RLS, PWA shell | done |
 | P2 deals/mediators API, sync, summary, settings | done |
 | P2 offline-first UI (Dexie, outbox, sync chip, screens, alerts, badge) | done |
+| PWA installation flow (Home, Settings, Login, native and manual steps) | done; real install not verified locally |
 | P2 tests (pytest, Vitest, Playwright) | done |
 | P3 import normalization, jobs, API, wizard, sync pagination, tests | done |
 | Real Neon / Google / Render / Vercel run | **NOT VERIFIED HERE** (see VERIFY_ON_MY_MACHINE) |
@@ -37,7 +38,8 @@
 | `backend/app/clock.py` | single `now()` (tests monkeypatch) |
 | `backend/scripts/` | `create_role.py`, `check_setup.py`, `check_docs.py` |
 | `frontend/src/config/app.ts` | naming + timeouts |
-| `frontend/src/lib/` | `api.ts` fetch wrapper (same-origin, CSRF, 70 s timeout), `money.ts`, `dates.ts`, `rules.ts`, `auth.ts` |
+| `frontend/src/lib/` | `api.ts` fetch wrapper (same-origin, CSRF, 70 s timeout), `money.ts`, `dates.ts`, `rules.ts`, `auth.ts`, `usePwaInstall.tsx` (shared prompt, detection, dismissal, copy link) |
+| `frontend/src/components/InstallPrompt.tsx` | Shared Home banner, Settings row, Login link, and platform-specific install sheet |
 | `frontend/src/data/` | `db.ts` Dexie + wipe/openFor, `outbox.ts`, `mutations.ts` (all writes), `hooks.ts` (all reads), `types.ts` |
 | `frontend/src/sync/engine.ts` | push outbox → pull changes, backoff, status |
 | `frontend/src/imports/` | SheetJS worker/parser, header mapping, templates, fake fixtures |
@@ -120,6 +122,7 @@ Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2), `0003_
 - Phase 3 verification: 194 backend tests on native PostgreSQL 16 as `app_user`, 26 Vitest tests, TypeScript typecheck, production build, Ruff, ESLint, and `backend/scripts/check_docs.py` passed. No Playwright tests were added or run in Phase 3.
 - Suites: `test_isolation` (RLS at SQL level), `test_deals_api` (endpoints, filters, cursor, summary fixture, isolation, tz boundary), `test_sync` (push/pull, op_id, LWW, isolation), `test_auth` (mocked Google), `test_route_auth` (every private route needs a session), `test_data_access_scan`, `test_rules`, `test_api`.
 - E2E: API running with `DATABASE_URL` = test DB, `yarn build && yarn preview`, `E2E_DATABASE_URL=… yarn e2e`. Sessions are inserted into the DB; there is no login bypass route.
+- PWA installation cannot be fully verified locally: real installation can only be verified on a deployed HTTPS URL on a real phone. The manifest includes the 390×844 light and dark Home screenshots, and Workbox precaches the app shell plus install screenshots.
 
 ## Known issues / tech debt
 - Rate limits are in-memory per instance and trust forwarded headers (TODO in `app/security.py`).

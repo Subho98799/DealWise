@@ -1,11 +1,9 @@
 #!/bin/sh
-# Runs once, on the first start of an empty Postgres volume.
-# Creates the app database and a separate test database, then the restricted app_user role.
+# OPTIONAL Docker path only. Runs once on the first start of an empty volume.
 set -eu
-
+PW="${APP_USER_PASSWORD:?APP_USER_PASSWORD must be set (docker compose reads it from your shell)}"
 for db in dealtracker dealtracker_test; do
-  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres \
-    -c "CREATE DATABASE $db"
-  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$db" \
-    -f /scripts/create_app_role.sql
+  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres -c "CREATE DATABASE $db"
+  sed "s/__APP_USER_PASSWORD__/$PW/" /scripts/create_app_role.sql | \
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$db"
 done

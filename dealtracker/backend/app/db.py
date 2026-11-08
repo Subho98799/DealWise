@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Iterator
+from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy import create_engine, text
@@ -44,3 +45,6 @@ def get_user_db(user: CurrentUser = Depends(current_user)) -> Iterator[Session]:
         raise
     finally:
         session.close()
+
+
+UserDB = Annotated[Session, Depends(get_user_db)]

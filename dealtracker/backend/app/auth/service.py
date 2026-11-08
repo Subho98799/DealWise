@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import delete, func
+from sqlalchemy import delete, func, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.auth.sessions import create_session, delete_session
@@ -46,3 +46,8 @@ def delete_user(user_id: uuid.UUID) -> None:
     """ON DELETE CASCADE removes sessions, mediators and deals."""
     with SessionLocal.begin() as db:
         db.execute(delete(User).where(User.id == user_id))
+
+
+def update_settings(user_id: uuid.UUID, changes: dict) -> None:
+    with SessionLocal.begin() as db:
+        db.execute(update(User).where(User.id == user_id).values(**changes))

@@ -7,14 +7,14 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
 from app.repos import DealRepo, MediatorRepo
-from app.schemas import DealCreate, MediatorCreate
+
 
 
 def _seed(user_ctx, uid):
     with user_ctx(uid) as s:
-        med = MediatorRepo(s).create(MediatorCreate(name="Ravi Deals", contact="+91 90000 00000"))
+        med = MediatorRepo(s).create("Ravi Deals", "+91 90000 00000")
         deal = DealRepo(s).create(
-            DealCreate(
+            dict(
                 product="Boat Airdopes",
                 platform="Amazon",
                 mediator_id=med.id,
@@ -24,7 +24,7 @@ def _seed(user_ctx, uid):
                 commission=Decimal("50.00"),
             )
         )
-        DealRepo(s).create(DealCreate(product="Phone case", date_taken=date(2026, 6, 2)))
+        DealRepo(s).create(dict(product="Phone case", date_taken=date(2026, 6, 2)))
         return med.id, deal.id
 
 
@@ -42,7 +42,7 @@ def test_owner_sees_own_rows_and_money_is_exact(user_ctx, make_user):
     a, _ = make_user("alice")
     _seed(user_ctx, a)
     with user_ctx(a) as s:
-        deals = DealRepo(s).list()
+        deals = DealRepo(s).list()[0]
         assert len(deals) == 2
         assert all(d.user_id == a for d in deals)
         top = next(d for d in deals if d.product == "Boat Airdopes")
@@ -55,7 +55,7 @@ def test_1_other_user_sees_nothing(user_ctx, make_user):
     b, _ = make_user("bob")
     med_id, deal_id = _seed(user_ctx, a)
     with user_ctx(b) as s:
-        assert DealRepo(s).list() == []
+        assert DealRepo(s).list()[0] == []
         assert MediatorRepo(s).list() == []
         assert DealRepo(s).get(deal_id) is None
         assert MediatorRepo(s).get(med_id) is None
@@ -72,7 +72,7 @@ def test_2_no_context_returns_zero_rows(user_ctx, make_user, app_session_factory
     with user_ctx(None) as s:
         assert s.execute(text("SELECT count(*) FROM deals")).scalar_one() == 0
         assert s.execute(text("SELECT count(*) FROM mediators")).scalar_one() == 0
-        assert DealRepo(s).list() == []
+        assert DealRepo(s).list()[0] == []
     with app_session_factory() as s, s.begin():
         s.execute(text("SELECT set_config('app.current_user_id', '', true)"))
         assert s.execute(text("SELECT count(*) FROM deals")).scalar_one() == 0
@@ -88,7 +88,7 @@ def test_2b_no_context_rejects_writes(user_ctx, make_user):
             )
     with pytest.raises(DBAPIError):
         with user_ctx(None) as s:
-            DealRepo(s).create(DealCreate(product="x", date_taken=date(2026, 6, 1)))
+            DealRepo(s).create(dict(product="x", date_taken=date(2026, 6, 1)))
 
 
 def test_3_insert_for_another_user_fails_with_check(user_ctx, make_user):
@@ -120,9 +120,7 @@ def test_3c_cannot_reference_another_users_mediator(user_ctx, make_user):
     a_med, _ = _seed(user_ctx, a)
     with pytest.raises(DBAPIError, match="foreign key"):
         with user_ctx(b) as s:
-            DealRepo(s).create(
-                DealCreate(product="x", date_taken=date(2026, 6, 1), mediator_id=a_med)
-            )
+            DealRepo(s).create(dict(product="x", date_taken=date(2026, 6, 1), mediator_id=a_med))
 
 
 def test_4_update_and_delete_on_other_users_rows_affect_nothing(user_ctx, make_user):
@@ -158,7 +156,7 @@ def test_5_deleting_user_cascades(user_ctx, make_user, app_session_factory):
             text("SELECT count(*) FROM sessions WHERE user_id = :u"), {"u": a}
         ).scalar_one() == 0
     with user_ctx(b) as s:  # the other user is untouched
-        assert len(DealRepo(s).list()) == 2
+        assert len(DealRepo(s).list()[0]) == 2
 
 
 def test_updated_at_trigger_and_soft_delete(user_ctx, make_user):
@@ -172,4 +170,4 @@ def test_updated_at_trigger_and_soft_delete(user_ctx, make_user):
         assert after > before
         s.execute(text("UPDATE deals SET deleted_at = now() WHERE id = :id"), {"id": deal_id})
         assert DealRepo(s).get(deal_id) is None
-        assert len(DealRepo(s).list()) == 1
+        assert len(DealRepo(s).list()[0]) == 1

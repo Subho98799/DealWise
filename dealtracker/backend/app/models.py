@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, Text, func, text
+from sqlalchemy import Date, DateTime, ForeignKey, Numeric, SmallInteger, Text, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -36,6 +36,8 @@ class User(Base):
     role: Mapped[str] = mapped_column(server_default="user")
     created_at: Mapped[datetime] = _created()
     last_active_at: Mapped[datetime | None]
+    alert_days: Mapped[int] = mapped_column(SmallInteger, server_default="2")
+    timezone: Mapped[str] = mapped_column(server_default="Asia/Kolkata")
 
 
 class UserSession(Base):
@@ -58,6 +60,9 @@ class Mediator(Base):
     name: Mapped[str]
     contact: Mapped[str | None]
     created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _created()
+    deleted_at: Mapped[datetime | None]
+    client_updated_at: Mapped[datetime | None]  # last-write-wins clock
 
 
 class Deal(Base):
@@ -70,6 +75,7 @@ class Deal(Base):
     platform: Mapped[str | None]
     # DB enforces a composite FK (mediator_id, user_id) -> mediators(id, user_id).
     mediator_id: Mapped[uuid.UUID | None]
+    mediator_name: Mapped[str | None]  # snapshot, survives mediator soft delete
     deal_type: Mapped[str] = mapped_column(server_default="review")
     date_taken: Mapped[date]
     amount_paid: Mapped[Decimal] = mapped_column(server_default="0")
@@ -85,3 +91,13 @@ class Deal(Base):
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _created()
     deleted_at: Mapped[datetime | None]
+    client_updated_at: Mapped[datetime | None]  # last-write-wins clock
+
+
+class SyncOpRecord(Base):
+    __tablename__ = "sync_ops"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    op_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    record_id: Mapped[uuid.UUID | None]
+    created_at: Mapped[datetime] = _created()

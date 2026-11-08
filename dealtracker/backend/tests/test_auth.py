@@ -5,7 +5,8 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 
 from app.auth.oauth import is_safe_next, oauth
-from app.auth.sessions import COOKIE_NAME, hash_token
+from app.auth.sessions import hash_token
+from app.config import SESSION_COOKIE as COOKIE_NAME
 from tests.conftest import CSRF
 
 FRONTEND = "http://localhost:5173"
@@ -13,7 +14,7 @@ FRONTEND = "http://localhost:5173"
 
 def _google_userinfo(**overrides):
     info = {
-        "sub": "google-sub-123",
+        "sub": "test-google-sub-123",
         "email": "Asha@Example.com",
         "email_verified": True,
         "name": "Asha",
@@ -65,25 +66,25 @@ def test_full_login_flow_sets_cookie_and_me_works(client, mock_google):
     assert me.status_code == 200
     body = me.json()
     assert body["email"] == "asha@example.com" and body["name"] == "Asha"
-    assert set(body) == {"id", "name", "email", "avatar_url", "role"}
+    assert set(body) == {"id", "name", "email", "avatar_url", "role", "alert_days", "timezone"}
     assert body["role"] == "user"
 
 
-def test_cookie_holds_only_opaque_token_and_db_holds_only_hash(client, mock_google, owner_engine):
+def test_cookie_holds_only_opaque_token_and_db_holds_only_hash(client, mock_google, app_engine):
     _login(client)
     raw = client.cookies.get(COOKIE_NAME)
     assert len(raw) >= 43 and "asha" not in raw.lower()
-    with owner_engine.connect() as c:
+    with app_engine.connect() as c:
         stored = c.execute(text("SELECT token_hash FROM sessions")).scalars().all()
     assert stored == [hash_token(raw)]
 
 
-def test_relogin_upserts_by_google_sub(client, mock_google, owner_engine):
+def test_relogin_upserts_by_google_sub(client, mock_google, app_engine):
     _login(client)
     mock_google["set_userinfo"](email="new@example.com", name="Asha K")
     _login(client)
-    with owner_engine.connect() as c:
-        rows = c.execute(text("SELECT email, name FROM users")).all()
+    with app_engine.connect() as c:
+        rows = c.execute(text("SELECT email, name FROM users WHERE google_sub LIKE 'test-%'")).all()
     assert [tuple(r) for r in rows] == [("new@example.com", "Asha K")]
 
 
@@ -98,24 +99,25 @@ def test_garbage_cookie_returns_401(client):
     assert client.get("/api/me").status_code == 401
 
 
-def test_expired_session_returns_401(client, make_user, owner_engine):
+def test_expired_session_returns_401(client, make_user, app_engine):
     _, raw = make_user("alice")
-    with owner_engine.begin() as c:
-        c.execute(text("UPDATE sessions SET expires_at = now() - interval '1 minute'"))
+    with app_engine.begin() as c:
+        c.execute(text("UPDATE sessions SET expires_at = now() - interval '1 minute' WHERE token_hash = :h"),
+                  {"h": hash_token(raw)})
     client.cookies.set(COOKIE_NAME, raw)
     r = client.get("/api/me")
     assert r.status_code == 401
-    with owner_engine.connect() as c:
+    with app_engine.connect() as c:
         assert c.execute(text("SELECT count(*) FROM sessions")).scalar_one() == 0
 
 
-def test_sliding_expiry_touches_at_most_every_10_minutes(client, make_user, owner_engine):
+def test_sliding_expiry_touches_at_most_every_10_minutes(client, make_user, app_engine):
     _, raw = make_user("alice")
     client.cookies.set(COOKIE_NAME, raw)
-    with owner_engine.connect() as c:
+    with app_engine.connect() as c:
         first = c.execute(text("SELECT last_seen_at FROM sessions")).scalar_one()
     assert client.get("/api/me").status_code == 200
-    with owner_engine.begin() as c:
+    with app_engine.begin() as c:
         assert c.execute(text("SELECT last_seen_at FROM sessions")).scalar_one() == first
         c.execute(
             text("UPDATE sessions SET last_seen_at = now() - interval '11 minutes', "
@@ -123,31 +125,31 @@ def test_sliding_expiry_touches_at_most_every_10_minutes(client, make_user, owne
         )
     r = client.get("/api/me")
     assert r.status_code == 200 and COOKIE_NAME in r.headers.get("set-cookie", "")
-    with owner_engine.connect() as c:
+    with app_engine.connect() as c:
         exp = c.execute(text("SELECT expires_at - now() FROM sessions")).scalar_one()
     assert exp > timedelta(days=29)
 
 
-def test_logout_invalidates_session(client, make_user, owner_engine):
+def test_logout_invalidates_session(client, make_user, app_engine):
     _, raw = make_user("alice")
     client.cookies.set(COOKIE_NAME, raw)
     assert client.get("/api/me").status_code == 200
     r = client.post("/api/auth/logout", headers=CSRF)
     assert r.status_code == 204
     assert COOKIE_NAME in r.headers["set-cookie"] and "Max-Age=0" in r.headers["set-cookie"]
-    with owner_engine.connect() as c:
+    with app_engine.connect() as c:
         assert c.execute(text("SELECT count(*) FROM sessions")).scalar_one() == 0
     client.cookies.set(COOKIE_NAME, raw)  # replaying the old token must fail
     assert client.get("/api/me").status_code == 401
 
 
-def test_callback_rejects_unverified_email(client, mock_google, owner_engine):
+def test_callback_rejects_unverified_email(client, mock_google, app_engine):
     mock_google["set_userinfo"](email_verified=False)
     r = _login(client)
     assert r.status_code == 302
     assert r.headers["location"] == f"{FRONTEND}/login?error=email_unverified"
     assert COOKIE_NAME not in r.headers.get("set-cookie", "")
-    with owner_engine.connect() as c:
+    with app_engine.connect() as c:
         assert c.execute(text("SELECT count(*) FROM users")).scalar_one() == 0
 
 
@@ -192,13 +194,13 @@ def test_mutations_without_csrf_header_return_403(client, make_user):
     assert client.get("/api/me").status_code == 200  # session untouched
 
 
-def test_delete_me_removes_everything(client, make_user, owner_engine):
+def test_delete_me_removes_everything(client, make_user, app_engine):
     uid, raw = make_user("alice")
     client.cookies.set(COOKIE_NAME, raw)
     r = client.delete("/api/me", headers=CSRF)
     assert r.status_code == 204
     assert "Max-Age=0" in r.headers["set-cookie"]
-    with owner_engine.connect() as c:
+    with app_engine.connect() as c:
         assert c.execute(text("SELECT count(*) FROM users")).scalar_one() == 0
     client.cookies.set(COOKIE_NAME, raw)
     assert client.get("/api/me").status_code == 401

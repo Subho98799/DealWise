@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { APP_DESCRIPTION, APP_NAME, APP_SHORT_NAME, BACKGROUND_COLOR, THEME_COLOR } from './src/config/app'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -9,20 +10,25 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      {
+        name: 'app-name-html',
+        transformIndexHtml: (html: string) => html.replace(/%APP_NAME%/g, APP_NAME)
+          .replace(/%APP_SHORT_NAME%/g, APP_SHORT_NAME).replace(/%APP_DESCRIPTION%/g, APP_DESCRIPTION),
+      },
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'script',
         includeAssets: ['icons/apple-touch-icon-180.png', 'favicon.svg'],
         manifest: {
-          name: 'DealTracker',
-          short_name: 'Deals',
-          description: 'Track review deals, refunds, mediators and deadlines.',
+          name: APP_NAME,
+          short_name: APP_SHORT_NAME,
+          description: APP_DESCRIPTION,
           start_url: '/',
           scope: '/',
           display: 'standalone',
           orientation: 'portrait',
-          theme_color: '#0f5c4d',
-          background_color: '#f4f1ea',
+          theme_color: THEME_COLOR,
+          background_color: BACKGROUND_COLOR,
           lang: 'en-IN',
           icons: [
             { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

@@ -1,3 +1,4 @@
+# OPTIONAL: local Postgres via Docker. The primary setup is Neon without Docker (README).
 services:
   db:
     image: postgres:16
@@ -6,6 +7,8 @@ services:
       POSTGRES_USER: postgres
       # Local-only owner password. Never reuse it anywhere else.
       POSTGRES_PASSWORD: postgres
+      # app_user password: export APP_USER_PASSWORD=... (bash) / $env:APP_USER_PASSWORD="..." (PowerShell) before `docker compose up`
+      APP_USER_PASSWORD: ${APP_USER_PASSWORD:?set APP_USER_PASSWORD first}
     ports:
       - "5432:5432"
     volumes:

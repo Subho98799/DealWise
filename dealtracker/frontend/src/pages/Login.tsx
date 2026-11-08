@@ -1,5 +1,6 @@
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { googleLoginHref, useMe } from '../lib/auth'
+import { APP_NAME } from '../config/app'
 
 const ERRORS: Record<string, string> = {
   access_denied: 'Google sign-in was cancelled.',
@@ -23,7 +24,7 @@ export default function LoginPage() {
           <span className="h-8 w-8 rounded-pill border-[5px] border-primary-ink" />
         </div>
         <h1 data-testid="login-title" className="rise text-4xl font-extrabold tracking-tight sm:text-5xl" style={{ animationDelay: '60ms' }}>
-          DealTracker
+          {APP_NAME}
         </h1>
         <p data-testid="login-tagline" className="rise mt-3 text-base text-muted" style={{ animationDelay: '120ms' }}>
           Every review deal, refund and deadline in one place, so no rupee slips through.

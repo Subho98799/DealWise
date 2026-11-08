@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { APP_NAME, APP_SLUG } from '../config/app'
 
-const ANDROID_DISMISSED = 'dt_install_dismissed'
-const IOS_HINT_SEEN = 'dt_ios_hint_seen'
+// Device-level UI prefs (not user data): kept outside STORAGE_PREFIX so logout does not reset them.
+const ANDROID_DISMISSED = `${APP_SLUG}_install_dismissed`
+const IOS_HINT_SEEN = `${APP_SLUG}_ios_hint_seen`
 
 function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true
@@ -53,7 +55,7 @@ export function InstallPrompt() {
   if (deferred) {
     return (
       <Banner testId="install-banner" onClose={dismissAndroid}>
-        <p className="flex-1 text-sm font-semibold">Install DealTracker for one-tap access.</p>
+        <p className="flex-1 text-sm font-semibold">Install {APP_NAME} for one-tap access.</p>
         <button
           data-testid="install-banner-install-button"
           onClick={install}

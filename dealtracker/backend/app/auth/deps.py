@@ -1,17 +1,18 @@
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from typing import Annotated
 
-from fastapi import Request, Response
+from fastapi import Depends, Request, Response
 from sqlalchemy import delete, select, update
 
 from app.auth.sessions import (
-    COOKIE_NAME,
     SESSION_TTL,
     TOUCH_INTERVAL,
     hash_token,
     set_session_cookie,
     utcnow,
 )
+from app.config import SESSION_COOKIE
 from app.errors import AppError
 from app.models import User, UserSession
 
@@ -24,6 +25,11 @@ class CurrentUser:
     name: str | None
     avatar_url: str | None
     role: str
+    alert_days: int
+    timezone: str
+
+    def with_settings(self, **changes) -> "CurrentUser":
+        return replace(self, **changes)
 
 
 def _unauthorized(message: str = "Please log in.") -> AppError:
@@ -31,7 +37,7 @@ def _unauthorized(message: str = "Please log in.") -> AppError:
 
 
 def current_user(request: Request, response: Response) -> CurrentUser:
-    raw = request.cookies.get(COOKIE_NAME)
+    raw = request.cookies.get(SESSION_COOKIE)
     if not raw:
         raise _unauthorized()
 
@@ -69,4 +75,9 @@ def current_user(request: Request, response: Response) -> CurrentUser:
         name=user.name,
         avatar_url=user.avatar_url,
         role=user.role,
+        alert_days=user.alert_days,
+        timezone=user.timezone,
     )
+
+
+Me = Annotated[CurrentUser, Depends(current_user)]

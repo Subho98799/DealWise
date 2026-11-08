@@ -1,22 +1,34 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, isUnauthorized } from './api'
+import { api, ApiError, isUnauthorized } from './api'
+import { local, wipeLocal } from '../data/db'
+import { engine } from '../sync/engine'
+import type { Me } from '../data/types'
 
-export type Me = {
-  id: string
-  name: string | null
-  email: string
-  avatar_url: string | null
-  role: 'user' | 'admin'
-}
-
+export type { Me }
 export const ME_KEY = ['me'] as const
+
+/** /api/me, with a cached copy so the app opens offline. A 401 clears the cache and means "logged out". */
+export async function fetchMe(): Promise<Me> {
+  try {
+    const me = await api<Me>('/api/me', { timeoutMs: 70_000 })
+    local.set('me', JSON.stringify(me))
+    return me
+  } catch (e) {
+    if (e instanceof ApiError) {
+      if (e.status === 401) local.remove('me')
+      throw e
+    }
+    const cached = local.get('me')
+    if (cached) return JSON.parse(cached) as Me
+    throw e
+  }
+}
 
 export function useMe() {
   return useQuery({
     queryKey: ME_KEY,
-    queryFn: () => api<Me>('/api/me'),
+    queryFn: fetchMe,
     staleTime: 5 * 60 * 1000,
-    // A 401 is an answer (logged out), not a failure worth retrying. Other errors may be a cold start.
     retry: (count, err) => !isUnauthorized(err) && count < 3,
     retryDelay: (n) => Math.min(2000 * 2 ** n, 15000),
   })
@@ -26,26 +38,33 @@ export function googleLoginHref(next = '/') {
   return `/api/auth/google/login?next=${encodeURIComponent(next)}`
 }
 
-function useSignedOut() {
-  const qc = useQueryClient()
-  return () => {
-    qc.clear()
-    window.location.assign('/login')
-  }
+/** Stops sync and deletes ALL local data, then leaves for /login. */
+export async function signOutLocally() {
+  engine.stop()
+  await wipeLocal()
+  window.location.assign('/login')
 }
 
 export function useLogout() {
-  const signedOut = useSignedOut()
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => api<void>('/api/auth/logout', { method: 'POST' }),
-    onSuccess: signedOut,
+    mutationFn: () => api<void>('/api/auth/logout', { method: 'POST', timeoutMs: 20_000 }),
+    onSuccess: async () => { qc.clear(); await signOutLocally() },
   })
 }
 
 export function useDeleteAccount() {
-  const signedOut = useSignedOut()
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: () => api<void>('/api/me', { method: 'DELETE' }),
-    onSuccess: signedOut,
+    onSuccess: async () => { qc.clear(); await signOutLocally() },
+  })
+}
+
+export function useUpdateSettings() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Partial<Pick<Me, 'alert_days' | 'timezone'>>) => api<Me>('/api/me/settings', { method: 'PATCH', json: body }),
+    onSuccess: (me) => { local.set('me', JSON.stringify(me)); qc.setQueryData(ME_KEY, me) },
   })
 }

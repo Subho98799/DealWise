@@ -1,11 +1,17 @@
 import { useState } from 'react'
 import { Avatar } from '../components/Avatar'
-import { useDeleteAccount, useLogout, useMe } from '../lib/auth'
+import { useDeleteAccount, useLogout, useUpdateSettings } from '../lib/auth'
+import { useUser, useSyncStatus } from '../data/hooks'
+import { input } from '../components/ui'
 
 export default function SettingsPage() {
-  const { data: me } = useMe()
+  const me = useUser()
   const logout = useLogout()
-  if (!me) return null
+  const sync = useSyncStatus()
+  const doLogout = () => {
+    if (sync.pending && !window.confirm(`${sync.pending} change(s) are not synced yet and will be lost. Log out anyway?`)) return
+    logout.mutate()
+  }
 
   return (
     <div data-testid="settings-page" className="space-y-6">
@@ -21,13 +27,15 @@ export default function SettingsPage() {
 
       <button
         data-testid="logout-button"
-        onClick={() => logout.mutate()}
+        onClick={doLogout}
         disabled={logout.isPending}
         className="h-12 w-full rounded-pill border border-line bg-surface text-sm font-bold transition-transform active:scale-[0.98] disabled:opacity-60"
       >
         {logout.isPending ? 'Logging out…' : 'Log out'}
       </button>
+      {logout.isError && <p data-testid="logout-error" role="alert" className="text-sm font-semibold text-danger">You need a connection to log out. Your data stays on this device until then.</p>}
 
+      <Preferences />
       <DeleteAccount />
     </div>
   )
@@ -99,6 +107,33 @@ function DeleteAccount() {
           </div>
         </form>
       )}
+    </section>
+  )
+}
+
+const ZONES: string[] = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf?.('timeZone') ?? ['Asia/Kolkata', 'UTC']
+
+function Preferences() {
+  const me = useUser()
+  const save = useUpdateSettings()
+  return (
+    <section data-testid="preferences" className="space-y-4 rounded-lg bg-surface p-5 shadow-card">
+      <h2 className="text-base font-bold md:text-lg">Deadline alerts</h2>
+      <label className="block text-sm">
+        <span className="mb-1 block font-semibold">Warn me this many days before a deadline</span>
+        <select data-testid="settings-alert-days-select" value={me.alert_days} className={input}
+          onChange={(e) => save.mutate({ alert_days: Number(e.target.value) })}>
+          {Array.from({ length: 15 }, (_, i) => <option key={i} value={i}>{i === 0 ? 'Only on the day' : `${i} day${i > 1 ? 's' : ''}`}</option>)}
+        </select>
+      </label>
+      <label className="block text-sm">
+        <span className="mb-1 block font-semibold">Time zone</span>
+        <select data-testid="settings-timezone-select" value={me.timezone} className={input} onChange={(e) => save.mutate({ timezone: e.target.value })}>
+          {(ZONES.includes(me.timezone) ? ZONES : [me.timezone, ...ZONES]).map((z) => <option key={z} value={z}>{z}</option>)}
+        </select>
+      </label>
+      {save.isError && <p data-testid="settings-error" role="alert" className="text-sm font-semibold text-danger">Could not save (are you online?). {save.error.message}</p>}
+      {save.isSuccess && <p data-testid="settings-saved" className="text-sm text-primary">Saved.</p>}
     </section>
   )
 }

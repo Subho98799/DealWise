@@ -7,10 +7,9 @@ from sqlalchemy import delete, insert
 from sqlalchemy.orm import Session
 from starlette.responses import Response
 
-from app.config import get_settings
+from app.config import SESSION_COOKIE, get_settings
 from app.models import UserSession
 
-COOKIE_NAME = "dt_session"
 SESSION_TTL = timedelta(days=30)
 TOUCH_INTERVAL = timedelta(minutes=10)
 
@@ -48,7 +47,7 @@ def delete_session(db: Session, raw: str) -> None:
 
 def set_session_cookie(response: Response, raw: str) -> None:
     response.set_cookie(
-        COOKIE_NAME,
+        SESSION_COOKIE,
         raw,
         max_age=int(SESSION_TTL.total_seconds()),
         path="/",
@@ -60,5 +59,5 @@ def set_session_cookie(response: Response, raw: str) -> None:
 
 def clear_session_cookie(response: Response) -> None:
     response.delete_cookie(
-        COOKIE_NAME, path="/", httponly=True, secure=get_settings().is_prod, samesite="lax"
+        SESSION_COOKIE, path="/", httponly=True, secure=get_settings().is_prod, samesite="lax"
     )

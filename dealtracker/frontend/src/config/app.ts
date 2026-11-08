@@ -1,0 +1,12 @@
+// Single source of truth for naming on the frontend (rename = edit this file + backend app/config.py).
+export const APP_NAME = 'DealTracker'
+export const APP_SHORT_NAME = 'Deals'
+export const APP_DESCRIPTION = 'Track review deals, refunds, mediators and deadlines.'
+export const APP_SLUG = 'dealtracker'
+export const CSRF_HEADER = 'X-Requested-With'
+export const CSRF_HEADER_VALUE = APP_SLUG // must equal backend CSRF_HEADER_VALUE
+export const STORAGE_PREFIX = `${APP_SLUG}:`
+export const LOCAL_DB_NAME = `${APP_SLUG}-local`
+export const THEME_COLOR = '#0f5c4d'
+export const BACKGROUND_COLOR = '#f4f1ea'
+export const REQUEST_TIMEOUT_MS = 70_000 // Render free tier can take ~60 s to wake

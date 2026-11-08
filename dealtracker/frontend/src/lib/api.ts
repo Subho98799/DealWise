@@ -1,25 +1,39 @@
+import { CSRF_HEADER, CSRF_HEADER_VALUE, REQUEST_TIMEOUT_MS } from '../config/app'
+
 export class ApiError extends Error {
-  constructor(
-    public status: number,
-    public code: string,
-    message: string,
-  ) {
+  constructor(public status: number, public code: string, message: string) {
     super(message)
   }
 }
+export class TimeoutError extends Error {}
+export class NetworkError extends Error {}
 
 const SAFE_METHODS = new Set(['GET', 'HEAD'])
 
-// The ONLY way the app talks to the backend: same-origin /api paths, first-party cookies.
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  if (!path.startsWith('/api/')) throw new Error(`api() only calls same-origin /api paths, got ${path}`)
-  const method = (init.method ?? 'GET').toUpperCase()
-  const headers = new Headers(init.headers)
-  headers.set('Accept', 'application/json')
-  if (!SAFE_METHODS.has(method)) headers.set('X-Requested-With', 'dealtracker')
-  if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+type Init = RequestInit & { timeoutMs?: number; json?: unknown }
 
-  const res = await fetch(path, { ...init, method, headers, credentials: 'same-origin' })
+// The ONLY way the app talks to the backend: same-origin /api paths, first-party cookies.
+export async function api<T>(path: string, init: Init = {}): Promise<T> {
+  if (!path.startsWith('/api/')) throw new Error(`api() only calls same-origin /api paths, got ${path}`)
+  const { timeoutMs = REQUEST_TIMEOUT_MS, json, ...rest } = init
+  const method = (rest.method ?? 'GET').toUpperCase()
+  const headers = new Headers(rest.headers)
+  headers.set('Accept', 'application/json')
+  if (!SAFE_METHODS.has(method)) headers.set(CSRF_HEADER, CSRF_HEADER_VALUE)
+  const body = json !== undefined ? JSON.stringify(json) : rest.body
+  if (body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+  let res: Response
+  try {
+    res = await fetch(path, { ...rest, body, method, headers, credentials: 'same-origin', signal: ctrl.signal })
+  } catch (e) {
+    if (ctrl.signal.aborted) throw new TimeoutError('The server took too long to answer.')
+    throw new NetworkError((e as Error).message)
+  } finally {
+    clearTimeout(timer)
+  }
   if (res.status === 204) return undefined as T
   const data = await res.json().catch(() => null)
   if (!res.ok) {
@@ -29,3 +43,4 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const isUnauthorized = (e: unknown) => e instanceof ApiError && e.status === 401
+export const isOfflineError = (e: unknown) => e instanceof NetworkError || e instanceof TimeoutError

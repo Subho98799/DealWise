@@ -6,8 +6,8 @@ from fastapi.responses import RedirectResponse
 
 from app.auth import service
 from app.auth.oauth import is_safe_next, oauth, redirect_uri
-from app.auth.sessions import COOKIE_NAME, clear_session_cookie, set_session_cookie
-from app.config import get_settings
+from app.auth.sessions import clear_session_cookie, set_session_cookie
+from app.config import SESSION_COOKIE, get_settings
 from app.errors import AppError
 from app.security import AUTH_RATE_LIMIT, limiter
 
@@ -67,7 +67,7 @@ async def google_callback(request: Request):
 @router.post("/logout", status_code=204)
 @limiter.limit(AUTH_RATE_LIMIT)
 async def logout(request: Request):
-    raw = request.cookies.get(COOKIE_NAME)
+    raw = request.cookies.get(SESSION_COOKIE)
     if raw:
         service.logout(raw)
     response = Response(status_code=204)

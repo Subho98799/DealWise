@@ -1,22 +1,18 @@
--- Creates the restricted runtime role "app_user".
--- Run this as the database OWNER role (the same role that runs Alembic migrations),
--- connected to the app database. It is safe to run more than once.
---
--- PLACEHOLDER PASSWORD: 'app_user_local_dev' is for local Docker only.
--- On Neon / any shared host, replace it with a long random password BEFORE running,
--- or run afterwards:  ALTER ROLE app_user PASSWORD '<long-random-password>';
+-- Creates the restricted runtime role "app_user". TEMPLATE: never put a real password in this file.
+-- Preferred: run `scripts/dt.sh create-role` / `scripts\dt.ps1 create-role`, which fills the placeholder
+-- from APP_USER_PASSWORD (or a prompt) and runs this as the OWNER role (MIGRATION_DATABASE_URL).
+-- Manual (e.g. Neon SQL editor, as the owner): replace __APP_USER_PASSWORD__ in your copy only, then run.
+-- Safe to run more than once; run it on every database the app uses (app and test).
 
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_user') THEN
-    CREATE ROLE app_user LOGIN PASSWORD 'app_user_local_dev'
-      NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
+    CREATE ROLE app_user LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
   END IF;
 END
 $$;
 
--- Re-assert the restrictions in case the role already existed with other attributes.
-ALTER ROLE app_user NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
+ALTER ROLE app_user WITH LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD '__APP_USER_PASSWORD__';
 
 GRANT USAGE ON SCHEMA public TO app_user;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;

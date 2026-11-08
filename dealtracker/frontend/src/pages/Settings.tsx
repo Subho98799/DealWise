@@ -3,6 +3,7 @@ import { Avatar } from '../components/Avatar'
 import { useDeleteAccount, useLogout, useUpdateSettings } from '../lib/auth'
 import { useUser, useSyncStatus } from '../data/hooks'
 import { input } from '../components/ui'
+import { Link } from 'react-router-dom'
 
 export default function SettingsPage() {
   const me = useUser()
@@ -34,6 +35,12 @@ export default function SettingsPage() {
         {logout.isPending ? 'Logging out…' : 'Log out'}
       </button>
       {logout.isError && <p data-testid="logout-error" role="alert" className="text-sm font-semibold text-danger">You need a connection to log out. Your data stays on this device until then.</p>}
+
+      <section data-testid="settings-import" className="rounded-lg bg-surface p-5 shadow-card">
+        <h2 className="text-base font-bold md:text-lg">Bring in past deals</h2>
+        <p className="mt-1 text-sm text-muted">Import an Excel or CSV file, review the rows, and undo the import if needed.</p>
+        <Link to="/import" data-testid="settings-import-link" className="mt-4 inline-flex min-h-[48px] items-center rounded-pill bg-primary px-5 text-sm font-bold text-primary-ink">Import deals</Link>
+      </section>
 
       <Preferences />
       <DeleteAccount />

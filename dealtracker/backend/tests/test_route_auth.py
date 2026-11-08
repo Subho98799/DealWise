@@ -27,7 +27,8 @@ def test_private_routes_return_401_without_cookie(client):
     for r in app.routes:
         if isinstance(r, APIRoute) and not r.path.startswith(PUBLIC_PREFIXES):
             path = r.path.replace("{deal_id}", "00000000-0000-0000-0000-000000000000").replace(
-                "{mediator_id}", "00000000-0000-0000-0000-000000000000")
+                "{mediator_id}", "00000000-0000-0000-0000-000000000000").replace(
+                "{job_id}", "00000000-0000-0000-0000-000000000000")
             for m in r.methods:
                 resp = client.request(m, path, headers={"X-Requested-With": "dealtracker"})
                 assert resp.status_code == 401, (m, path, resp.status_code)

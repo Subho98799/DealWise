@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
-type Toast = { id: number; message: string; action?: { label: string; run: () => void } }
+type Toast = { id: number; message: string; action?: { label: string; run: () => void }; link?: { label: string; to: string } }
 const Ctx = createContext<(t: Omit<Toast, 'id'>) => void>(() => {})
 export const useToast = () => useContext(Ctx)
 
@@ -24,6 +25,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               onClick={() => { toast.action!.run(); setToast(null) }}>
               {toast.action.label}
             </button>
+          )}
+          {toast.link && (
+            <Link data-testid="toast-link" to={toast.link.to} onClick={() => setToast(null)}
+              className="flex min-h-[44px] items-center px-2 font-extrabold text-accent">
+              {toast.link.label}
+            </Link>
           )}
         </div>
       )}

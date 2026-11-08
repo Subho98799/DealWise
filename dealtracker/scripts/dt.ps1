@@ -1,5 +1,5 @@
 # DealTracker helper for Windows PowerShell. Usage: .\scripts\dt.ps1 <command>
-# Commands: install, create-role, create-role-test, migrate, migrate-test, test, backend, frontend, check, docs
+# Commands: install, create-role, create-role-test, migrate, migrate-test, test, lint, backend, frontend, check, docs
 # (same meaning as scripts/dt.sh). If scripts are blocked: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 param([string]$Command = "help")
 $ErrorActionPreference = "Stop"
@@ -33,6 +33,10 @@ switch ($Command) {
   "test" {
     Run $Py @("-m", "pytest", "-q")
     Set-Location (Join-Path $Root "frontend"); Run "yarn" @("typecheck"); Run "yarn" @("test")
+  }
+  "lint" {
+    Run (Join-Path $Root "backend\.venv\Scripts\ruff.exe") @("check", "app", "tests", "scripts")
+    Set-Location (Join-Path $Root "frontend"); Run "corepack" @("yarn", "lint")
   }
   "backend" { Run $Py @("-m", "uvicorn", "app.main:app", "--reload", "--port", "8000") }
   "frontend" { Set-Location (Join-Path $Root "frontend"); Run "yarn" @("dev") }

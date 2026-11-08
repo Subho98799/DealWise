@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0"
   },
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "icons": "node scripts/generate-icons.mjs",
+    "fixtures:import": "node scripts/generate-import-fixtures.mjs",
+    "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "e2e": "playwright test"
   },
@@ -22,9 +24,11 @@
     "dexie-react-hooks": "^1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0"
+    "react-router-dom": "^6.28.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@eslint/js": "^10",
     "@playwright/test": "^1.48",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16",
@@ -35,13 +39,17 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.6.2",
     "fake-indexeddb": "^6",
+    "eslint": "^10",
     "jsdom": "^25",
+    "globals": "^15",
     "pg": "^8.23.1",
     "postcss": "^8.5.32",
     "tailwindcss": "^3.4.16",
+    "typescript-eslint": "^8",
     "typescript": "~5.6.3",
     "vite": "^5.4.11",
     "vite-plugin-pwa": "^0.21.1",
     "vitest": "^2"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

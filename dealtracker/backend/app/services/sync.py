@@ -1,4 +1,8 @@
 """Offline sync: pull changes since a cursor, push a batch of idempotent ops (last-write-wins)."""
+import base64
+import binascii
+import json
+import uuid
 from datetime import datetime, timedelta
 
 from pydantic import ValidationError
@@ -14,19 +18,55 @@ from app.services import deals as svc
 # Pull re-sends rows changed in the last minute before the cursor, so a write whose transaction
 # started before the previous pull but committed after it is never missed. Clients upsert, so repeats are harmless.
 PULL_OVERLAP = timedelta(seconds=60)
+MAX_PULL_PAGE = 500
 
 
-def changes(s: Session, since: datetime | None, ctx: svc.Ctx) -> SyncChangesOut:
+def _decode_pull_cursor(value: str | None) -> tuple[datetime, str, uuid.UUID] | None:
+    if not value:
+        return None
+    try:
+        raw = base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+        data = json.loads(raw)
+        timestamp = datetime.fromisoformat(data["updated_at"])
+        kind = data["kind"]
+        record_id = uuid.UUID(data["id"])
+        if timestamp.tzinfo is None or kind not in {"deal", "mediator"}:
+            raise ValueError
+        return timestamp, kind, record_id
+    except (binascii.Error, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        raise AppError(400, "invalid_cursor", "The sync cursor is invalid; restart the pull.") from None
+
+
+def _encode_pull_cursor(timestamp: datetime, kind: str, record_id: uuid.UUID) -> str:
+    raw = json.dumps({"updated_at": timestamp.isoformat(), "kind": kind, "id": str(record_id)},
+                     separators=(",", ":")).encode()
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def changes(s: Session, since: datetime | None, ctx: svc.Ctx, cursor: str | None = None,
+            limit: int = MAX_PULL_PAGE) -> SyncChangesOut:
+    if limit < 1 or limit > MAX_PULL_PAGE:
+        raise AppError(400, "invalid_limit", "Sync pages must be between 1 and 500 rows.")
     server_time = SyncRepo(s).db_now()
     after = since - PULL_OVERLAP if since else None
-    deals = DealRepo(s).changed_since(after)
-    meds = MediatorRepo(s).changed_since(after)
+    decoded = _decode_pull_cursor(cursor)
+    deals = DealRepo(s).changed_page(after, decoded, limit + 1)
+    meds = MediatorRepo(s).changed_page(after, decoded, limit + 1)
+    items = [(deal.updated_at, "deal", deal.id, deal) for deal in deals]
+    items.extend((mediator.updated_at, "mediator", mediator.id, mediator) for mediator in meds)
+    items.sort(key=lambda item: (item[0], item[1], item[2]))
+    has_more = len(items) > limit
+    page = items[:limit]
+    next_cursor = _encode_pull_cursor(*page[-1][:3]) if has_more and page else None
+    page_deals = [item[3] for item in page if item[1] == "deal"]
+    page_mediators = [item[3] for item in page if item[1] == "mediator"]
     return SyncChangesOut(
         server_time=server_time,
-        deals=[svc.present(d, ctx) for d in deals if d.deleted_at is None],
-        mediators=[MediatorOut.model_validate(m) for m in meds if m.deleted_at is None],
-        deleted=SyncDeleted(deals=[d.id for d in deals if d.deleted_at is not None],
-                            mediators=[m.id for m in meds if m.deleted_at is not None]),
+        deals=[svc.present(d, ctx) for d in page_deals if d.deleted_at is None],
+        mediators=[MediatorOut.model_validate(m) for m in page_mediators if m.deleted_at is None],
+        deleted=SyncDeleted(deals=[d.id for d in page_deals if d.deleted_at is not None],
+                            mediators=[m.id for m in page_mediators if m.deleted_at is not None]),
+        next_cursor=next_cursor,
     )
 
 
@@ -94,6 +134,7 @@ def _apply_mediator(s: Session, op: SyncOp) -> SyncResult:
 
 def push(s: Session, ops: list[SyncOp], ctx: svc.Ctx) -> list[SyncResult]:
     sync = SyncRepo(s)
+    sync.delete_old_applied_ops()
     results = []
     for op in ops:
         prev = sync.get_op(op.op_id)

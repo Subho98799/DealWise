@@ -1,0 +1,6 @@
+﻿Deal history export,,,,,,,,,,
+Item name,Marketplace,Agent,Deal type,Order Date,Price Paid,Refunded Amount,Review Status,Form Status,Payment Status,Remarks
+Wireless mouse,Amazon,Priya Deals,Review,08/11/2025,"₹1,299.50","Rs. 1,299/-",waiting,submitted,pending,Fake example row
+,,,,,,,,,,
+Wireless mouse,Amazon,priya-deals,Review,08/11/2025,"₹1,299.50","Rs. 1,299/-",waiting,submitted,pending,Duplicate example row
+Phone stand,Flipkart,New Agent,Video review,"November 8, 2025","1,29,900",0,mystery,not yet,disputed,Fake status value

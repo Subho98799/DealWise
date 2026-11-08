@@ -133,10 +133,18 @@ class DealRepo:
         nxt = _encode(rows[limit - 1][1:]) if len(rows) > limit else None
         return [r[0] for r in rows[:limit]], nxt
 
-    def changed_since(self, since: datetime | None) -> list[Deal]:
+    def changed_page(self, since: datetime | None, cursor: tuple[datetime, str, uuid.UUID] | None,
+                     limit: int) -> list[Deal]:
         stmt = select(Deal).where(OWN)
         stmt = stmt.where(Deal.updated_at > since) if since else stmt.where(ACTIVE)
-        return list(self._s.scalars(stmt.order_by(Deal.updated_at)))
+        if cursor:
+            timestamp, kind, record_id = cursor
+            if kind == "deal":
+                stmt = stmt.where(or_(Deal.updated_at > timestamp,
+                                      and_(Deal.updated_at == timestamp, Deal.id > record_id)))
+            else:
+                stmt = stmt.where(Deal.updated_at > timestamp)
+        return list(self._s.scalars(stmt.order_by(Deal.updated_at, Deal.id).limit(limit)))
 
     def summary(self, today: date, alert_days: int) -> dict:
         not_received = Deal.payment_status != "received"

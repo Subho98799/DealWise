@@ -11,7 +11,7 @@ import { engine } from '../sync/engine'
 import { BottomNav } from './BottomNav'
 import { Splash } from './Splash'
 import { SyncChip } from './SyncChip'
-import { ToastProvider } from './Toast'
+import { ToastProvider, useToast } from './Toast'
 import type { Me } from '../data/types'
 
 export function ProtectedLayout() {
@@ -55,6 +55,7 @@ function Shell({ me }: { me: Me }) {
   return (
     <UserContext.Provider value={me}>
       <ToastProvider>
+        <SyncConflictNotices />
         <div className="mx-auto flex min-h-dvh max-w-md flex-col">
           <header className="safe-top sticky top-0 z-10 flex items-center justify-end bg-bg/90 px-gutter py-2 backdrop-blur-md">
             <SyncChip />
@@ -67,4 +68,13 @@ function Shell({ me }: { me: Me }) {
       </ToastProvider>
     </UserContext.Provider>
   )
+}
+
+function SyncConflictNotices() {
+  const toast = useToast()
+  useEffect(() => engine.subscribeSuperseded(({ product, dealId }) => toast({
+    message: `Your edit to ${product} was replaced by a newer version`,
+    link: { label: 'View deal', to: `/deals/${dealId}` },
+  })), [toast])
+  return null
 }

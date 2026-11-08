@@ -5,10 +5,10 @@
 - Users sign in with Google (own Authlib flow, no third-party auth service). Multi-user; **per-user isolation is the #1 requirement**.
 - Backend: FastAPI + SQLAlchemy 2 + Alembic + PostgreSQL (Neon) with row-level security; runtime connects as restricted `app_user`.
 - Frontend: React 18 + TS + Vite + Tailwind PWA; reads a local IndexedDB replica (Dexie), writes via an outbox synced to `/api/sync`.
-- Status: Phases 1–2 done. Next: Phase 3 (Excel import). See [docs/ROADMAP.md](docs/ROADMAP.md).
+- Status: Phases 1–3 done. Next: Phase 4 (admin and audit). See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Stack
-Python 3.12, FastAPI, SQLAlchemy 2, Alembic, psycopg 3, Authlib, pydantic v2, slowapi, pytest · Node 20, Vite 5, React 18, TS 5, Tailwind 3, React Router 6, TanStack Query 5, Dexie 4, vite-plugin-pwa, Vitest, Playwright · Postgres 16 / Neon · Render (API) + Vercel (SPA + `/api` rewrite).
+Python 3.12, FastAPI, SQLAlchemy 2, Alembic, psycopg 3, Authlib, pydantic v2, slowapi, pytest · Node 20.19+, Vite 5, React 18, TS 5, Tailwind 3, React Router 6, TanStack Query 5, Dexie 4, vite-plugin-pwa, Vitest, ESLint, Playwright · Postgres 16 / Neon · Render (API) + Vercel (SPA + `/api` rewrite).
 
 ## Commands
 `dt` = `scripts/dt.sh <cmd>` (bash/macOS/Linux) or `.\scripts\dt.ps1 <cmd>` (Windows PowerShell). Same commands on both.
@@ -24,7 +24,9 @@ Python 3.12, FastAPI, SQLAlchemy 2, Alembic, psycopg 3, Authlib, pydantic v2, sl
 | E2E (needs API on a TEST DB + `yarn build && yarn preview`) | `cd frontend && yarn e2e` |
 | Doc freshness | `dt docs` |
 | New migration | `cd backend && .venv/bin/alembic revision -m "msg"` (Windows: `.venv\Scripts\alembic`) then hand-write SQL |
-| Lint/format | not configured yet (keep style consistent; see conventions) |
+| Lint (backend) | `cd backend && ruff check app tests scripts` |
+| Lint (frontend) | `cd frontend && yarn lint` |
+| Lint (both) | `dt lint` |
 
 ## NON-NEGOTIABLE INVARIANTS
 1. **User identity comes only from the server-side session** (`current_user` / `Me`). Never read a user id from body, query or path. Request schemas use `extra="forbid"`.

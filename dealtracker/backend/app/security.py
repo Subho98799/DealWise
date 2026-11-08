@@ -1,10 +1,15 @@
 import logging
 import time
+from collections import defaultdict, deque
+from threading import Lock
+from typing import Hashable
+from uuid import UUID
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.config import CSRF_HEADER, CSRF_HEADER_VALUE, get_settings
 from app.errors import error_response
@@ -32,6 +37,82 @@ limiter = Limiter(
 )
 
 access_log = logging.getLogger("dealtracker.access")
+
+
+class UserWindowRateLimiter:
+    """Small per-process sliding window keyed by authenticated user and operation."""
+
+    def __init__(self):
+        self._events: dict[tuple[Hashable, str], deque[float]] = defaultdict(deque)
+        self._lock = Lock()
+
+    def consume(self, user_id: UUID, operation: str, limit: int, window: float,
+                now: float | None = None) -> None:
+        current = time.monotonic() if now is None else now
+        key = (user_id, operation)
+        with self._lock:
+            events = self._events[key]
+            while events and current - events[0] >= window:
+                events.popleft()
+            if len(events) >= limit:
+                from app.errors import AppError
+
+                raise AppError(429, "rate_limited", "Too many import requests, slow down.")
+            events.append(current)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._events.clear()
+
+
+import_rate_limiter = UserWindowRateLimiter()
+
+
+class ImportBodyLimitMiddleware:
+    def __init__(self, app: ASGIApp, max_bytes: int = 5 * 1024 * 1024):
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or not scope.get("path", "").startswith("/api/import"):
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers", []))
+        try:
+            if int(headers.get(b"content-length", b"0")) > self.max_bytes:
+                await self._too_large(scope, receive, send)
+                return
+        except ValueError:
+            pass
+
+        size = 0
+
+        async def limited_receive() -> Message:
+            nonlocal size
+            message = await receive()
+            if message["type"] == "http.request":
+                size += len(message.get("body", b""))
+                if size > self.max_bytes:
+                    raise OverflowError("import request body too large")
+            return message
+
+        try:
+            await self.app(scope, limited_receive, send)
+        except OverflowError as exc:
+            if str(exc) != "import request body too large":
+                raise
+            await self._too_large(scope, receive, send)
+
+    @staticmethod
+    async def _too_large(scope: Scope, receive: Receive, send: Send) -> None:
+        from starlette.responses import JSONResponse
+
+        response = JSONResponse(
+            status_code=413,
+            content={"error": {"code": "request_too_large", "message": "Import requests are limited to 5 MB."}},
+        )
+        await response(scope, receive, send)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):

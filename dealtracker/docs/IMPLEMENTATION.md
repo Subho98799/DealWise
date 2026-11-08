@@ -1,13 +1,13 @@
 # IMPLEMENTATION
 
 **TL;DR**
-- Phases 1–2 are built and tested; Phases 3–6 are not started ([ROADMAP](ROADMAP.md)).
+- Phases 1–3 are built and tested; Phases 4–6 are not started ([ROADMAP](ROADMAP.md)).
 - This file is the reference for: status, file map, API table, schema, env vars, change recipes, testing, tech debt.
 - The API table and migration list are machine-checked by `backend/scripts/check_docs.py` (CI) — keep them exact.
 - Invariants live in [AGENTS.md](../AGENTS.md); design reasons in [ARCHITECTURE.md](ARCHITECTURE.md).
 - Setup values: [SETUP_CREDENTIALS.md](SETUP_CREDENTIALS.md). Manual checks: [VERIFY_ON_MY_MACHINE.md](VERIFY_ON_MY_MACHINE.md).
-- Backend tests: 78 (pytest, real Postgres, as `app_user`). Frontend: 18 Vitest + 3 Playwright.
-- Not verified against real Neon/Google/Render/Vercel from the build workspace (no credentials there).
+- Backend: 194 pytest tests on local PostgreSQL 16 as `app_user`; frontend: 26 Vitest tests, typecheck and production build; Ruff and ESLint pass. No Playwright tests were added or run in Phase 3.
+- Real Neon, Google OAuth, Render, and Vercel integrations are **NOT VERIFIED HERE** (no credentials were provided).
 - Money = decimal strings; dates = `YYYY-MM-DD`; timestamps ISO-8601 UTC.
 - All errors: `{"error": {"code": "...", "message": "..."}}`.
 - Every private route needs the `dt_session` cookie; mutations need `X-Requested-With: dealtracker`.
@@ -19,8 +19,9 @@
 | P2 deals/mediators API, sync, summary, settings | done |
 | P2 offline-first UI (Dexie, outbox, sync chip, screens, alerts, badge) | done |
 | P2 tests (pytest, Vitest, Playwright) | done |
-| Real Neon / Google / Render / Vercel run | not verified here (see VERIFY_ON_MY_MACHINE) |
-| P3 Excel import, P4 admin/audit/support access, P5 polish, P6 push | not started |
+| P3 import normalization, jobs, API, wizard, sync pagination, tests | done |
+| Real Neon / Google / Render / Vercel run | **NOT VERIFIED HERE** (see VERIFY_ON_MY_MACHINE) |
+| P4 admin/audit/support access, P5 polish, P6 push | not started |
 
 ## File map
 | File | Purpose |
@@ -29,6 +30,7 @@
 | `backend/app/db.py` | engine, `SessionLocal`, `set_user_context`, `get_user_db`, `UserDB` |
 | `backend/app/auth/` | `oauth.py` Google client + safe `next`; `routes.py` login/callback/logout; `deps.py` `current_user`/`Me`; `sessions.py` tokens+cookies; `service.py` users table writes |
 | `backend/app/repos/` | `deals.py`, `mediators.py`, `sync.py` — the only access to per-user tables (filter `CURRENT_USER_ID` + RLS) |
+| `backend/app/import_normalization.py`, `backend/app/services/imports.py`, `backend/app/repos/imports.py` | pure row normalization and repository-backed import preview/commit/undo |
 | `backend/app/services/` | `deals.py` create/update/action/mediator use-cases + `present()`; `sync.py` pull/push/LWW |
 | `backend/app/rules.py` | pure rules: urgency, overdue, completed, transitions, validation |
 | `backend/app/routes/` | `health`, `me`, `mediators`, `deals`, `sync` (incl. `/api/summary`) |
@@ -38,7 +40,8 @@
 | `frontend/src/lib/` | `api.ts` fetch wrapper (same-origin, CSRF, 70 s timeout), `money.ts`, `dates.ts`, `rules.ts`, `auth.ts` |
 | `frontend/src/data/` | `db.ts` Dexie + wipe/openFor, `outbox.ts`, `mutations.ts` (all writes), `hooks.ts` (all reads), `types.ts` |
 | `frontend/src/sync/engine.ts` | push outbox → pull changes, backoff, status |
-| `frontend/src/pages/` | Login, Home, Deals, DealForm, DealDetail, Mediators (+detail), Settings |
+| `frontend/src/imports/` | SheetJS worker/parser, header mapping, templates, fake fixtures |
+| `frontend/src/pages/` | Login, Home, Deals, DealForm, DealDetail, Mediators (+detail), Settings, ImportPage |
 | `frontend/e2e/` | Playwright specs + DB-backed session helper (no backdoor route) |
 
 ## API reference
@@ -62,8 +65,14 @@
 | PATCH | `/api/deals/{deal_id}` | session | partial DealIn → Deal |
 | DELETE | `/api/deals/{deal_id}` | session | soft delete → 204 |
 | POST | `/api/deals/{deal_id}/action` | session | `{action, payment_received_on?}` → Deal (409 `invalid_transition`) |
-| GET | `/api/sync/changes` | session | `?since=ISO` → `{server_time, deals, mediators, deleted:{deals,mediators}}` |
+| GET | `/api/sync/changes` | session | `?since=ISO&cursor=…&limit=1..500` → `{server_time, deals, mediators, deleted:{deals,mediators}, next_cursor}`; follow pages before advancing the saved sync time |
 | POST | `/api/sync/push` | session | `{ops:[≤100 {op_id,type,op,id,client_id?,data,client_updated_at}]}` → `{results:[{op_id,status,reason?,id?}]}` |
+| POST | `/api/import/preview` | session | mapped rows and import options → normalized rows, duplicate matches, errors, and reconciliation totals; does not write |
+| POST | `/api/import/commit` | session | import id, filename, options, and a batch of up to 500 mapped rows → import job and batch results |
+| GET | `/api/import/jobs` | session | → current user's import history |
+| GET | `/api/import/jobs/{job_id}` | session | → import job status, counts, totals, and errors |
+| GET | `/api/import/jobs/{job_id}/errors.csv` | session | → formula-safe CSV error report |
+| POST | `/api/import/jobs/{job_id}/undo` | session | → undo counts and rows that could not be undone because they were edited |
 | GET | `/api/summary` | session | → totals (strings), `open_deals, urgent_count, overdue_count, top_mediators[5]` |
 
 Deal response = all columns except `user_id`, plus `net_amount`, `is_urgent`, `is_overdue`, `urgency_reason` (`review_overdue|form_overdue|review_due_soon|form_due_soon|null`).
@@ -71,15 +80,16 @@ Action order: `review_done` → `form_submitted` (needs review done) → `paymen
 Status filters: `open` = not completed; `payment_pending` = payment ≠ received; `completed` = review done + form submitted + payment received. `urgent_count` includes overdue.
 
 ## Database schema
-Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2).
+Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2), `0003_import_jobs.py` (Phase 3).
 
 | Table | RLS | Key columns / constraints | Indexes |
 |---|---|---|---|
 | users | no (auth module only) | `google_sub` unique, `role` ∈ user/admin, `alert_days` 0–14 default 2, `timezone` default Asia/Kolkata | pk, unique google_sub |
 | sessions | no (auth module only) | `token_hash` unique (SHA-256), `expires_at`, FK users cascade | user_id, expires_at |
 | mediators | ENABLE+FORCE | `name` non-blank, `updated_at` trigger, `deleted_at`, `client_updated_at`, unique `(id,user_id)` | unique `(user_id, lower(name)) WHERE deleted_at IS NULL`; `(user_id, updated_at)` |
-| deals | ENABLE+FORCE | money `numeric(12,2) ≥ 0`; CHECKs on deal_type/statuses; FK `(mediator_id,user_id)→mediators(id,user_id) ON DELETE SET NULL (mediator_id)`; `mediator_name` snapshot; `updated_at` trigger; `deleted_at`; `client_updated_at` | `(user_id,payment_status)`, `(user_id,review_deadline) WHERE review pending`, `(user_id,refund_form_deadline) WHERE form pending`, `(user_id,date_taken DESC)`, unique `(user_id,client_id) WHERE client_id NOT NULL`, `(user_id,updated_at)`, mediator_id |
-| sync_ops | ENABLE+FORCE | pk `(user_id, op_id)`, `record_id` — applied push ops (idempotency) | pk |
+| deals | ENABLE+FORCE | money `numeric(12,2) ≥ 0`; CHECKs on deal_type/statuses; FK `(mediator_id,user_id)→mediators(id,user_id) ON DELETE SET NULL (mediator_id)`; optional composite FK `(import_job_id,user_id)→import_jobs(id,user_id)`; `mediator_name` snapshot; `updated_at` trigger; `deleted_at`; `client_updated_at` | `(user_id,payment_status)`, `(user_id,review_deadline) WHERE review pending`, `(user_id,refund_form_deadline) WHERE form pending`, `(user_id,date_taken DESC)`, unique `(user_id,client_id) WHERE client_id NOT NULL`, `(user_id,updated_at)`, `(user_id,import_job_id)`, mediator_id |
+| sync_ops | ENABLE+FORCE | pk `(user_id, op_id)`, `record_id` — applied push ops (idempotency); old rows are opportunistically removed, up to 500 per push, after 30 days | pk |
+| import_jobs | ENABLE+FORCE | `import_id` unique per user; status, row counts, totals, options, errors, created/undone timestamps; composite unique `(id,user_id)` for deal ownership FK | `(user_id,created_at DESC)` |
 
 ## Environment variables
 | Var | Required | Used by | Value |
@@ -107,12 +117,13 @@ Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2).
 
 ## Testing
 - `dt test` → pytest (refuses unless `TEST_DATABASE_URL` DB name contains `test`; asserts `current_user = app_user`; deletes its `test-%` users before/after) + typecheck + Vitest.
+- Phase 3 verification: 194 backend tests on native PostgreSQL 16 as `app_user`, 26 Vitest tests, TypeScript typecheck, production build, Ruff, ESLint, and `backend/scripts/check_docs.py` passed. No Playwright tests were added or run in Phase 3.
 - Suites: `test_isolation` (RLS at SQL level), `test_deals_api` (endpoints, filters, cursor, summary fixture, isolation, tz boundary), `test_sync` (push/pull, op_id, LWW, isolation), `test_auth` (mocked Google), `test_route_auth` (every private route needs a session), `test_data_access_scan`, `test_rules`, `test_api`.
 - E2E: API running with `DATABASE_URL` = test DB, `yarn build && yarn preview`, `E2E_DATABASE_URL=… yarn e2e`. Sessions are inserted into the DB; there is no login bypass route.
 
 ## Known issues / tech debt
 - Rate limits are in-memory per instance and trust forwarded headers (TODO in `app/security.py`).
 - LWW uses device clocks (offset-corrected by server time on each pull); concurrent edits on two devices: last writer wins per record.
-- `sync_ops` rows are never purged; initial pull is unpaginated (fine for thousands of deals).
+- `sync_ops` cleanup is opportunistic: pushes remove at most 500 rows older than 30 days, so quiet accounts can retain older entries. Sync pulls are paginated at 500 rows.
 - Settings changes need a connection (not queued offline). Logout needs a connection (keeps local data otherwise).
-- No linter configured. Lighthouse no longer has a PWA category; installability is checked manually.
+- Ruff and ESLint run in CI and through `dt lint`. Lighthouse no longer has a PWA category; installability is checked manually.

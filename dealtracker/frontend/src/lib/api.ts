@@ -42,5 +42,30 @@ export async function api<T>(path: string, init: Init = {}): Promise<T> {
   return data as T
 }
 
+export async function apiBlob(path: string): Promise<Blob> {
+  if (!path.startsWith('/api/')) throw new Error(`apiBlob() only calls same-origin /api paths, got ${path}`)
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS)
+  let res: Response
+  try {
+    res = await fetch(path, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { Accept: 'text/csv' },
+      signal: ctrl.signal,
+    })
+  } catch (e) {
+    if (ctrl.signal.aborted) throw new TimeoutError('The server took too long to answer.')
+    throw new NetworkError((e as Error).message)
+  } finally {
+    clearTimeout(timer)
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => null)
+    throw new ApiError(res.status, data?.error?.code ?? 'http_error', data?.error?.message ?? res.statusText)
+  }
+  return res.blob()
+}
+
 export const isUnauthorized = (e: unknown) => e instanceof ApiError && e.status === 401
 export const isOfflineError = (e: unknown) => e instanceof NetworkError || e instanceof TimeoutError

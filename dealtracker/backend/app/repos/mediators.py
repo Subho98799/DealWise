@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import and_, func, insert, literal, select, update
+from sqlalchemy import and_, func, insert, literal, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.models import Deal, Mediator
@@ -56,7 +56,14 @@ class MediatorRepo:
             stmt.order_by(func.lower(Mediator.name))
         return [tuple(r) for r in self._s.execute(stmt).all()]
 
-    def changed_since(self, since) -> list[Mediator]:
+    def changed_page(self, since, cursor, limit: int) -> list[Mediator]:
         stmt = select(Mediator).where(OWN)
         stmt = stmt.where(Mediator.updated_at > since) if since else stmt.where(ACTIVE)
-        return list(self._s.scalars(stmt.order_by(Mediator.updated_at)))
+        if cursor:
+            timestamp, kind, record_id = cursor
+            if kind == "deal":
+                stmt = stmt.where(Mediator.updated_at >= timestamp)
+            else:
+                stmt = stmt.where(or_(Mediator.updated_at > timestamp,
+                                      and_(Mediator.updated_at == timestamp, Mediator.id > record_id)))
+        return list(self._s.scalars(stmt.order_by(Mediator.updated_at, Mediator.id).limit(limit)))

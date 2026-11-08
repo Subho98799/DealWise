@@ -1,5 +1,14 @@
 # Changelog
 
+## Phase 3 — import, sync pagination, and linting (2026-11)
+### Added
+- Migration `0003_import_jobs.py` adds RLS-protected import history and a composite deal-to-import foreign key; sync push opportunistically removes up to 500 applied operations older than 30 days.
+- Server-side import normalization, preview, duplicate detection, idempotent commit, reconciliation totals, formula-safe error CSV, history, and 30-day undo.
+- Mobile-friendly spreadsheet wizard for `.xlsx`, `.xls`, and `.csv`, parsed in a browser worker with SheetJS CE 0.20.3 from the official distribution. Added mapping memory, generated templates, server validation, history, and undo.
+- Paginated sync pull and a linked notice for offline edits replaced by newer server versions.
+- Ruff and ESLint checks in CI, with `dt lint` documented in AGENTS.md.
+- Generated fake messy spreadsheet fixtures and backend/API plus Vitest coverage. Verified locally against PostgreSQL 16 as `app_user`; real Neon, Google OAuth, Render, and Vercel integrations are **NOT VERIFIED HERE**.
+
 ## Phase 2 — deals, mediators, offline sync (2026-06)
 ### Added
 - Migration `0002_phase2_sync.py`: `users.alert_days`, `users.timezone`; `deals.mediator_name` snapshot, `deals.client_updated_at`, index `(user_id, updated_at)`; `mediators.updated_at` (trigger), `deleted_at`, `client_updated_at`, partial unique name; `sync_ops` (RLS).

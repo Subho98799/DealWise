@@ -2,8 +2,9 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, SmallInteger, Text, func, text
+from sqlalchemy import Date, DateTime, ForeignKey, ForeignKeyConstraint, Numeric, SmallInteger, Text, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -92,6 +93,40 @@ class Deal(Base):
     updated_at: Mapped[datetime] = _created()
     deleted_at: Mapped[datetime | None]
     client_updated_at: Mapped[datetime | None]  # last-write-wins clock
+    import_job_id: Mapped[uuid.UUID | None]
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["import_job_id", "user_id"],
+            ["import_jobs.id", "import_jobs.user_id"],
+            ondelete="SET NULL (import_job_id)",
+        ),
+    )
+
+
+class ImportJob(Base):
+    __tablename__ = "import_jobs"
+    __table_args__ = (
+        UniqueConstraint("id", "user_id"),
+        UniqueConstraint("user_id", "import_id"),
+    )
+
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    import_id: Mapped[uuid.UUID]
+    filename: Mapped[str | None]
+    status: Mapped[str]
+    rows_total: Mapped[int]
+    rows_imported: Mapped[int]
+    rows_skipped_duplicate: Mapped[int]
+    rows_failed: Mapped[int]
+    mediators_created: Mapped[int]
+    total_paid: Mapped[Decimal]
+    total_refund: Mapped[Decimal]
+    errors: Mapped[list] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
+    options: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    created_at: Mapped[datetime] = _created()
+    undone_at: Mapped[datetime | None]
 
 
 class SyncOpRecord(Base):

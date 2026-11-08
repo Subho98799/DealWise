@@ -192,6 +192,7 @@ class SyncChangesOut(BaseModel):
     deals: list[DealOut]
     mediators: list[MediatorOut]
     deleted: SyncDeleted
+    next_cursor: str | None
 
 
 class TopMediator(BaseModel):
@@ -210,3 +211,128 @@ class SummaryOut(BaseModel):
     urgent_count: int
     overdue_count: int
     top_mediators: list[TopMediator]
+
+
+IMPORT_FIELDS = {
+    "product", "platform", "mediator", "deal_type", "date_taken", "amount_paid", "refund_amount",
+    "commission", "review_deadline", "refund_form_deadline", "review_status", "form_status",
+    "payment_status", "payment_received_on", "notes",
+}
+
+
+class ImportStatusDefaults(Strict):
+    review_status: Literal["pending", "done"] | None = None
+    form_status: Literal["pending", "submitted"] | None = None
+    payment_status: Literal["pending", "received", "disputed"] | None = None
+
+
+class ImportDefaults(Strict):
+    platform: str | None = Field(default=None, max_length=100)
+    mediator: str | None = Field(default=None, max_length=100)
+    deal_type: str | None = Field(default=None, max_length=100)
+    date_taken: str | None = Field(default=None, max_length=100)
+    review_status: Literal["pending", "done"] | None = None
+    form_status: Literal["pending", "submitted"] | None = None
+    payment_status: Literal["pending", "received", "disputed"] | None = None
+    statuses: ImportStatusDefaults | None = None
+
+
+class ImportOptions(Strict):
+    date_order: Literal["dmy", "mdy"] = "dmy"
+    duplicate_policy: Literal["skip", "import"] = "skip"
+    value_maps: dict[str, dict[str, str]] = Field(default_factory=dict)
+    defaults: ImportDefaults = Field(default_factory=ImportDefaults)
+
+    @field_validator("value_maps")
+    @classmethod
+    def _status_maps(cls, maps: dict[str, dict[str, str]]) -> dict[str, dict[str, str]]:
+        allowed = {
+            "review_status": {"pending", "done"},
+            "form_status": {"pending", "submitted"},
+            "payment_status": {"pending", "received", "disputed"},
+        }
+        if any(field not in allowed or any(value not in allowed[field] for value in field_maps.values())
+               for field, field_maps in maps.items()):
+            raise ValueError("value_maps must map known status fields to allowed statuses")
+        return maps
+
+
+class ImportRequest(Strict):
+    rows: list[dict[str, str | None]] = Field(min_length=1, max_length=5000)
+    options: ImportOptions = Field(default_factory=ImportOptions)
+
+    @field_validator("rows")
+    @classmethod
+    def _mapped_fields(cls, rows: list[dict[str, str | None]]) -> list[dict[str, str | None]]:
+        if any(field not in IMPORT_FIELDS for row in rows for field in row):
+            raise ValueError("rows may contain only mapped import target fields")
+        return rows
+
+
+class ImportCommitIn(ImportRequest):
+    import_id: uuid.UUID
+    filename: str | None = Field(default=None, max_length=255)
+
+
+class ImportPreviewRow(BaseModel):
+    row_number: int
+    status: Literal["ok", "duplicate", "error"]
+    will_import: bool
+    duplicate_of: int | None = None
+    duplicate_reason: str | None = None
+    values: dict[str, Any]
+    errors: list[dict[str, str]]
+    warnings: list[dict[str, str]]
+
+
+class ImportPreviewCounts(BaseModel):
+    total: int
+    will_import: int
+    duplicates: int
+    errors: int
+
+
+class ImportMediatorMatch(BaseModel):
+    input_name: str
+    existing_name: str
+
+
+class ImportReconciliation(BaseModel):
+    total_paid: str
+    total_refund: str
+    pending_refund: str
+
+
+class ImportPreviewOut(BaseModel):
+    rows: list[ImportPreviewRow]
+    counts: ImportPreviewCounts
+    unrecognized_status_values: dict[str, list[str]]
+    mediators_to_create: list[str]
+    existing_mediators: list[ImportMediatorMatch]
+    reconciliation: ImportReconciliation
+
+
+class ImportJobOut(BaseModel):
+    id: uuid.UUID
+    import_id: uuid.UUID
+    filename: str | None
+    status: Literal["committed", "undone", "failed"]
+    rows_total: int
+    rows_imported: int
+    rows_skipped_duplicate: int
+    rows_failed: int
+    mediators_created: int
+    total_paid: MoneyOut
+    total_refund: MoneyOut
+    errors: list[dict[str, Any]]
+    options: dict[str, Any]
+    created_at: datetime
+    undone_at: datetime | None
+
+
+class ImportUndoOut(BaseModel):
+    job: ImportJobOut
+    deleted_deals: int
+    deleted_mediators: int
+    edited_deals_warning: int
+    warning: str

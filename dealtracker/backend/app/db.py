@@ -23,7 +23,22 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 def ping() -> None:
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
+# def ping() -> None:
+#     with engine.connect() as conn:
+#         result = conn.execute(text("""
+#             SELECT
+#                 current_user,
+#                 to_regclass('public.users'),
+#                 has_table_privilege(
+#                     current_user,
+#                     'public.users',
+#                     'INSERT'
+#                 )
+#         """))
 
+#         print("DB DIAGNOSTIC:", result.fetchone())
+
+#         conn.execute(text("SELECT 1"))
 
 def set_user_context(session: Session, user_id: uuid.UUID) -> None:
     # is_local=true: the setting dies with the transaction, so a pooled connection never leaks it.

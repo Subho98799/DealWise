@@ -4,6 +4,7 @@ import { useDeals, useToday, useUser } from '../data/hooks'
 import { DealCard } from '../components/DealCard'
 import { Empty, PageTitle, Skeleton, input } from '../components/ui'
 import { CHIPS, matchesChip, sortDeals, type Chip, type Sort } from '../lib/rules'
+import { Link } from 'react-router-dom'
 
 export default function DealsPage() {
   const me = useUser()
@@ -45,7 +46,7 @@ export default function DealsPage() {
       <div className="mt-4 space-y-3" data-testid="deals-list">
         {!list ? <Skeleton /> : list.length ? list.map((d) => <DealCard key={d.id} deal={d} />) : (
           <Empty title={deals?.length ? 'No deals match' : 'No deals yet'} testId="deals-empty">
-            {deals?.length ? 'Try another filter or search.' : 'Tap + to add your first deal.'}
+            {deals?.length ? 'Try another filter or search.' : <><span>Tap + to add your first deal, or </span><Link to="/import" data-testid="deals-import-link" className="font-bold text-primary">import a spreadsheet</Link><span>.</span></>}
           </Empty>
         )}
       </div>

@@ -16,14 +16,20 @@ _ts = TypeAdapter(AwareDatetime)
 
 
 @router.get("/sync/changes", response_model=SyncChangesOut)
-def sync_changes(user: Me, db: UserDB, since: str | None = Query(default=None, max_length=64)):
+def sync_changes(
+    user: Me,
+    db: UserDB,
+    since: str | None = Query(default=None, max_length=64),
+    cursor: str | None = Query(default=None, max_length=500),
+    limit: int = Query(default=500, ge=1, le=500),
+):
     parsed: datetime | None = None
     if since:
         try:
             parsed = _ts.validate_python(since)
         except ValidationError:
             raise AppError(400, "invalid_since", "since must be an ISO timestamp with timezone.") from None
-    return sync_svc.changes(db, parsed, svc.Ctx.of(user))
+    return sync_svc.changes(db, parsed, svc.Ctx.of(user), cursor, limit)
 
 
 @router.post("/sync/push", response_model=SyncPushOut)

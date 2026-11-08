@@ -8,6 +8,7 @@ import DealFormPage from './pages/DealForm'
 import DealDetailPage from './pages/DealDetail'
 import { MediatorDetailPage, MediatorsPage } from './pages/Mediators'
 import SettingsPage from './pages/Settings'
+import ImportPage from './pages/ImportPage'
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="mediators" element={<MediatorsPage />} />
           <Route path="mediators/:id" element={<MediatorDetailPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="import" element={<ImportPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

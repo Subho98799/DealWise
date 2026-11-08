@@ -6,6 +6,7 @@
 #   migrate       alembic upgrade head as the owner (MIGRATION_DATABASE_URL)
 #   migrate-test  alembic upgrade head on the test database (TEST_MIGRATION_DATABASE_URL)
 #   test          backend pytest (TEST_DATABASE_URL) + frontend typecheck/vitest
+#   lint          Ruff backend + ESLint frontend
 #   backend       run the API on :8000        frontend   run the app on :5173
 #   check         run check_setup             docs       doc-freshness check
 set -euo pipefail
@@ -24,6 +25,7 @@ case "${1:-help}" in
     MIGRATION_DATABASE_URL="$("$PY" -c 'import sys; sys.path.insert(0,"scripts"); from _common import env; print(env("TEST_MIGRATION_DATABASE_URL") or "")')" \
       "$PY" -m alembic upgrade head ;;
   test) "$PY" -m pytest -q && cd "$ROOT/frontend" && yarn typecheck && yarn test ;;
+  lint) "$PY" -m ruff check app tests scripts && cd "$ROOT/frontend" && yarn lint ;;
   backend) "$PY" -m uvicorn app.main:app --reload --port 8000 ;;
   frontend) cd "$ROOT/frontend" && yarn dev ;;
   check) "$PY" scripts/check_setup.py ;;

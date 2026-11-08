@@ -44,7 +44,7 @@ flowchart LR
 
 ## Isolation model
 - `app_user`: LOGIN, NOSUPERUSER, NOBYPASSRLS, DML only. On Neon the owner role has BYPASSRLS, so it is used **only** for migrations.
-- Per-user tables (`deals`, `mediators`, `sync_ops`): ENABLE + FORCE RLS, policy `user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid` for USING and WITH CHECK. Missing setting → zero rows, writes rejected.
+- Per-user tables (`deals`, `mediators`, `sync_ops`, `import_jobs`): ENABLE + FORCE RLS, policy `user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid` for USING and WITH CHECK. Missing setting → zero rows, writes rejected.
 - `get_user_db` opens one transaction and runs `set_config('app.current_user_id', uid, true)`; `true` = transaction-local, so it is safe through PgBouncer (Neon pooled) and never leaks to the next request.
 - Repos also filter by the same setting and set `user_id` from it (defence in depth; never from input).
 - `users`, `sessions` are not under RLS: they must be read before a user context exists (cookie lookup, login upsert). Only `app/auth/` touches them.
@@ -56,7 +56,8 @@ flowchart LR
 - **Engine triggers:** app start, `online`, tab visible, 800 ms after a write, every 60 s while visible. One cycle = push outbox in order (batches ≤ 100) → pull.
 - **Push results:** `applied`/`duplicate` → op removed. `rejected` with `stale:`/`deleted:` → server wins, op removed, full re-pull. Other `rejected` → op kept as "needs attention" with the reason (Fix or Discard in the UI). Network errors/timeouts never change an op.
 - **Idempotency:** applied `op_id`s are stored in `sync_ops`; repeats return `duplicate`. `POST /api/deals` with an existing `client_id` returns the existing deal (200).
-- **Pull:** `GET /api/sync/changes?since=<cursor>` returns rows with `updated_at > since − 60 s` (overlap covers transactions that committed late) plus soft-deleted ids; the client upserts, skipping records with unsynced local ops, and stores `server_time` as the next cursor. Empty `since` = full snapshot.
+- **Pull:** `GET /api/sync/changes?since=<time>&cursor=<page>&limit=<1..500>` returns stable pages, ordered by update time and record id. The overlap covers transactions that committed late; the client applies all pages, skipping records with unsynced local ops, before saving `server_time`. Empty `since` = paginated full snapshot.
+- **Superseded edits:** when a pull returns a newer server version over a pending local edit, the UI keeps the server copy and shows a notice linked to that deal.
 - **Conflict policy:** last-write-wins per record using `client_updated_at` (device clock, corrected by the server-time offset learned on each pull) compared to the record's last accepted write time. **Limitation:** concurrent edits of the same record on two devices — the later writer overwrites the earlier one entirely for the fields it sent; large clock errors can mis-order writes.
 - **Cold start:** request timeout 70 s; chip shows "Waking server…" after 4 s; exponential backoff 2 s → 60 s.
 - **Account safety:** the local DB records its owner; a different user → wipe. Logout and account deletion wipe IndexedDB and app localStorage keys.
@@ -68,13 +69,22 @@ erDiagram
   users ||--o{ mediators : owns
   users ||--o{ deals : owns
   users ||--o{ sync_ops : owns
+  users ||--o{ import_jobs : owns
+  import_jobs ||--o{ deals : imports
   mediators ||--o{ deals : "(mediator_id,user_id)"
   users { uuid id PK; text google_sub UK; text email; text role; smallint alert_days; text timezone }
   sessions { uuid id PK; uuid user_id FK; text token_hash UK; timestamptz expires_at }
   mediators { uuid id PK; uuid user_id FK; text name; timestamptz updated_at; timestamptz deleted_at }
-  deals { uuid id PK; uuid user_id FK; uuid client_id; uuid mediator_id; text mediator_name; date date_taken; numeric amount_paid; numeric refund_amount; numeric commission; date review_deadline; date refund_form_deadline; text review_status; text form_status; text payment_status; timestamptz updated_at; timestamptz deleted_at }
+  deals { uuid id PK; uuid user_id FK; uuid client_id; uuid mediator_id; uuid import_job_id FK; text mediator_name; date date_taken; numeric amount_paid; numeric refund_amount; numeric commission; date review_deadline; date refund_form_deadline; text review_status; text form_status; text payment_status; timestamptz updated_at; timestamptz deleted_at }
   sync_ops { uuid user_id PK; uuid op_id PK; uuid record_id }
+  import_jobs { uuid id PK; uuid user_id FK; uuid import_id; text status; int rows_imported; numeric total_paid; numeric total_refund; jsonb errors; timestamptz created_at; timestamptz undone_at }
 ```
+
+## Spreadsheet import
+- The browser parses `.xlsx`, `.xls`, and `.csv` in a Web Worker with SheetJS CE 0.20.3, pinned from the official SheetJS distribution. The file stays on the device; only mapped cell values and import options go to the API. The parser handles workbook formats and keeps large parsing work off the UI thread.
+- The user selects a sheet and header row, maps columns, sets date order and status mappings, and previews the server's normalized values, validation errors, duplicates, and reconciliation totals. Preview does not write data. Mapping preferences are stored per user and header set.
+- Commit sends online batches of at most 500 rows. The server normalizes and validates again, detects existing and within-file duplicates, and uses a per-user import ID plus deterministic row client IDs for retry-safe writes. Each batch returns counts and amount totals; the `import_jobs` record provides history and an error CSV.
+- `import_jobs` has FORCE RLS. Deals reference jobs through `(import_job_id,user_id)`, so a job cannot be attached across users. Undo within 30 days soft-deletes unchanged imported deals, removes mediators created by that import only when now orphaned, and reports rows that changed since import.
 
 ## Security model
 Session cookie (opaque, hashed at rest) · CSRF header on mutations · CSP/X-Frame-Options/nosniff/Referrer-Policy (API + Vercel) · HSTS in prod · open-redirect-safe `next` · rate limits (auth 20/min, others 120/min per IP) · strict schemas (`extra="forbid"`, floats rejected) · logs without query strings, tokens or emails · no CORS.
@@ -96,8 +106,9 @@ Session cookie (opaque, hashed at rest) · CSRF header on mutations · CSP/X-Fra
 | Client-generated ids | offline creates | UUID v4 | server ids + mapping | no remap needed; collisions rejected |
 | Money as strings/paise | exactness | numeric + strings | floats | no rounding errors |
 | Text + CHECK | easy migrations | CHECK constraints | Postgres enums | add values with a simple migration |
+| Spreadsheet parsing | `.xlsx`, `.xls`, `.csv` in browser | SheetJS CE 0.20.3 in a Web Worker from the official distribution | server upload/parsing | local file stays on-device; worker keeps parsing off the UI thread |
 
 ## Known limitations
 - **Rate limiting is per instance and trusts forwarded headers** (`X-Forwarded-For` via `--forwarded-allow-ips='*'`), so it can be spoofed and resets on restart. Marked TODO in `backend/app/security.py`; not fixed in Phase 2.
-- LWW limits above; settings and logout need a connection; initial pull is unpaginated; `sync_ops` grows unbounded.
-- Not verified against real Neon/Google/Render/Vercel in the build workspace.
+- LWW limits above; settings and logout need a connection. `sync_ops` cleanup runs opportunistically on pushes (at most 500 rows older than 30 days), so quiet accounts can retain old rows.
+- Real Neon, Google OAuth, Render, and Vercel integrations are **NOT VERIFIED HERE**.

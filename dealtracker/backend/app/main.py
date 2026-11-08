@@ -7,9 +7,10 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.auth.routes import router as auth_router
 from app.config import APP_NAME, OAUTH_COOKIE, get_settings
 from app.errors import register_error_handlers
-from app.routes import deals, health, me, mediators, sync
+from app.routes import deals, health, imports, me, mediators, sync
 from app.schemas import ErrorOut
-from app.security import AccessLogMiddleware, CSRFMiddleware, SecurityHeadersMiddleware, limiter
+from app.security import (AccessLogMiddleware, CSRFMiddleware, ImportBodyLimitMiddleware,
+                          SecurityHeadersMiddleware, limiter)
 
 settings = get_settings()  # fail fast on missing configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -39,6 +40,7 @@ app.add_middleware(
 app.add_middleware(CSRFMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(AccessLogMiddleware)
+app.add_middleware(ImportBodyLimitMiddleware)
 
 app.include_router(health.router)
 app.include_router(auth_router)
@@ -46,3 +48,4 @@ app.include_router(me.router)
 app.include_router(mediators.router)
 app.include_router(deals.router)
 app.include_router(sync.router)
+app.include_router(imports.router)

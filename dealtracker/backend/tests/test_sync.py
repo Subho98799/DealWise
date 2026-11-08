@@ -1,6 +1,8 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import text
+
 
 FUTURE = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
 PAST = "2000-01-01T00:00:00+00:00"
@@ -81,6 +83,41 @@ def test_changes_since_returns_newer_rows_and_deleted_ids(api):
     assert datetime.fromisoformat(ch["server_time"])
 
 
+def test_changes_pages_more_than_1200_rows_and_validates_cursor(api, user_ctx):
+    a, user_id = api("alice")
+    rows = [{
+        "user_id": user_id,
+        "client_id": uuid.uuid4(),
+        "product": f"Imported test deal {index}",
+        "date_taken": "2026-11-08",
+    } for index in range(1201)]
+    with user_ctx(user_id) as session:
+        session.execute(text("""
+            INSERT INTO deals (user_id, client_id, product, date_taken)
+            VALUES (:user_id, :client_id, :product, :date_taken)
+        """), rows)
+
+    params = {"limit": 500}
+    ids = []
+    page_sizes = []
+    for _ in range(5):
+        response = a.get("/api/sync/changes", params=params)
+        assert response.status_code == 200, response.text
+        page = response.json()
+        ids.extend(deal["id"] for deal in page["deals"])
+        size = len(page["deals"]) + len(page["mediators"]) \
+            + len(page["deleted"]["deals"]) + len(page["deleted"]["mediators"])
+        page_sizes.append(size)
+        cursor = page["next_cursor"]
+        if not cursor:
+            break
+        params["cursor"] = cursor
+    assert page_sizes == [500, 500, 201]
+    assert len(ids) == 1201 and len(set(ids)) == 1201
+    assert a.get("/api/sync/changes", params={"cursor": "invalid"}).status_code == 400
+    assert a.get("/api/sync/changes", params={"limit": 501}).status_code == 422
+
+
 def test_mediator_name_collision_returns_existing_id(api):
     a, _ = api("alice")
     existing = a.post("/api/mediators", json={"name": "Ravi"}).json()
@@ -110,6 +147,30 @@ def test_sync_isolation(api):
     oid = uuid.uuid4()
     push(a, op(id=uuid.uuid4(), op_id=oid, data={"product": "a2"}))
     assert push(b, op(id=uuid.uuid4(), op_id=oid, data={"product": "b2"}))[0]["status"] == "applied"
+
+
+def test_push_cleans_at_most_500_old_ops_for_the_current_user(api, user_ctx):
+    a, a_id = api("alice")
+    b, b_id = api("bob")
+    old = datetime.now(timezone.utc) - timedelta(days=31)
+    rows_a = [{"user_id": a_id, "op_id": uuid.uuid4(), "record_id": None, "created_at": old}
+              for _ in range(501)]
+    rows_b = [{"user_id": b_id, "op_id": uuid.uuid4(), "record_id": None, "created_at": old}
+              for _ in range(2)]
+    for user_id, rows in ((a_id, rows_a), (b_id, rows_b)):
+        with user_ctx(user_id) as session:
+            session.execute(text("""
+                INSERT INTO sync_ops (user_id, op_id, record_id, created_at)
+                VALUES (:user_id, :op_id, :record_id, :created_at)
+            """), rows)
+
+    assert push(a) == []
+    with user_ctx(a_id) as session:
+        remaining_a = session.execute(text("SELECT count(*) FROM sync_ops")).scalar_one()
+    with user_ctx(b_id) as session:
+        remaining_b = session.execute(text("SELECT count(*) FROM sync_ops")).scalar_one()
+    assert remaining_a == 1
+    assert remaining_b == 2
 
 
 def test_offline_create_then_edit_in_one_batch_and_across_batches(api):

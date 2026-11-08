@@ -1,18 +1,17 @@
 # ROADMAP
 
 **TL;DR**
-- Phases 1–2 are done. Phases 3–6 below are short specs, not built.
+- Phases 1–3 are done. Phases 4–6 below are short specs, not built.
 - Each phase lists prerequisites from the current code so work can start without re-reading everything.
 - All phases must keep the invariants in [AGENTS.md](../AGENTS.md) (RLS on every per-user table, repos only, money as strings).
 - Status per feature: [IMPLEMENTATION.md](IMPLEMENTATION.md#status).
 
-## Phase 3 — Excel import with column mapping and dedupe
-- Upload `.xlsx`/`.csv` on the device; parse in the browser (e.g. SheetJS) so files never leave the phone unless confirmed.
-- Mapping screen: detect headers, suggest a mapping to deal fields (product, platform, mediator, dates, amounts, statuses), remember the last mapping per user.
-- Preview with per-row validation (same rules as `app/rules.py`/`lib/rules.ts`), INR parsing ("₹1,23,456.00", "1.2k" rejected), date formats (DD/MM/YYYY first).
-- Dedupe: deterministic `client_id` = UUIDv5(user_id, normalized product + date_taken + amount_paid + mediator) so re-imports are idempotent; show "already imported".
-- Write through the existing outbox in batches of 100 (`/api/sync/push`), so import works offline and reuses idempotency.
-- Prerequisites: `client_id` unique per user (exists), `mediator_name` find-or-create (exists), batch limit 100 (exists).
+## Phase 3 — Excel/CSV import with mapping and undo (done)
+- `.xlsx`, `.xls`, and `.csv` files up to 5 MB are parsed in a browser Web Worker with SheetJS CE 0.20.3 from its official tarball; the file itself stays on the device.
+- Users choose a sheet/header, map columns, correct date order/status values, preview validation and duplicate policy, then send mapped cell values to the server for authoritative normalization and validation.
+- Imports commit online in batches of 500, with per-user idempotency, deterministic deal client IDs, reconciliation totals, error reports, history, and a 30-day undo that soft-deletes imported deals and orphaned created mediators.
+- Sync changes are paginated at 500 rows; the client finishes pulling all pages before marking itself synced and shows a linked notice when a newer server edit replaces a local edit.
+- Covered by backend PostgreSQL tests as `app_user`, Vitest fixture/parser/wizard tests, Ruff, ESLint, typecheck, and production build. Hosted Neon/Google/Render/Vercel checks remain **NOT VERIFIED HERE**.
 
 ## Phase 4 — admin, self-test, support access, audit log
 - Admin dashboard (`role='admin'`, seeded from `ADMIN_EMAILS` at login): **aggregates only** (user count, deals per day, sync errors) via SECURITY DEFINER SQL functions that return counts, never rows.

@@ -418,14 +418,14 @@ export default function ImportPage() {
   const pageRows = activeRows.slice(previewPage * 50, (previewPage + 1) * 50)
 
   return (
-    <div data-testid="import-page" className="space-y-5">
+    <div data-testid="import-page" className="import-page">
       <PageTitle right={<Link to="/settings" className="text-sm font-bold text-primary">Settings</Link>}>Import deals</PageTitle>
       <p className="-mt-3 text-sm text-muted">Bring in your past deals from a spreadsheet. Your file is read on this device; only mapped cell values are sent for preview.</p>
       {!online && <p data-testid="import-offline-notice" role="status" className="rounded-sm bg-danger-soft p-3 text-sm font-semibold text-danger">You are offline. You can choose a file, but preview and import need a connection.</p>}
       {pageError && <p role="alert" data-testid="import-error" className="rounded-sm bg-danger-soft p-3 text-sm font-semibold text-danger">{pageError}</p>}
 
       {step !== 'result' && <StepBar step={step} />}
-      {(step === 'upload' || step === 'sheet') && <section data-testid="import-upload-step" className="space-y-4 rounded-lg bg-surface p-4 shadow-card">
+      {(step === 'upload' || step === 'sheet') && <section data-testid="import-upload-step" className="import-stage-card">
         <h2 className="text-lg font-bold">{step === 'upload' ? '1. Choose a spreadsheet' : '2. Choose worksheet and header row'}</h2>
         <label className="block text-sm font-semibold">
           Excel or CSV file (up to 5 MB)
@@ -459,7 +459,7 @@ export default function ImportPage() {
         </div>}
       </section>}
 
-      {step === 'map' && <section data-testid="import-map-step" className="space-y-4 rounded-lg bg-surface p-4 shadow-card">
+      {step === 'map' && <section data-testid="import-map-step" className="import-stage-card">
         <div><h2 className="text-lg font-bold">3. Match your columns</h2><p className="text-sm text-muted">{fileName} · {header.length} columns · {dataRows.length} deal rows</p></div>
         {!mappedRequiredFields && <p role="alert" className="rounded-sm bg-danger-soft p-3 text-sm font-semibold text-danger">Map Product and Amount paid to continue. Date taken can use a default on the next step.</p>}
         <div className="space-y-3">
@@ -474,7 +474,7 @@ export default function ImportPage() {
         <div className="flex gap-2"><button type="button" className={btn.ghost} onClick={() => setStep('sheet')}>Back</button><button type="button" data-testid="import-continue-fix" className={btn.primary} disabled={!mappedRequiredFields} onClick={() => setStep('fix')}>Continue to values</button></div>
       </section>}
 
-      {step === 'fix' && <section data-testid="import-fix-step" className="space-y-4 rounded-lg bg-surface p-4 shadow-card">
+      {step === 'fix' && <section data-testid="import-fix-step" className="import-stage-card">
         <div><h2 className="text-lg font-bold">4. Check dates and values</h2><p className="text-sm text-muted">The server validates these values when it previews and commits your import.</p></div>
         <fieldset className="space-y-2"><legend className="text-sm font-bold">Date order</legend>
         <div className="flex gap-2"><button type="button" data-testid="import-date-order-dmy" aria-pressed={dateOrder === 'dmy'} className={`${btn.ghost} flex-1 ${dateOrder === 'dmy' ? 'border-primary text-primary' : ''}`} onClick={() => { setPendingImportId(null); setDateOrder('dmy') }}>Day first (DD/MM/YYYY)</button><button type="button" data-testid="import-date-order-mdy" aria-pressed={dateOrder === 'mdy'} className={`${btn.ghost} flex-1 ${dateOrder === 'mdy' ? 'border-primary text-primary' : ''}`} onClick={() => { setPendingImportId(null); setDateOrder('mdy') }}>Month first (MM/DD/YYYY)</button></div>
@@ -506,7 +506,7 @@ export default function ImportPage() {
         <div className="flex gap-2"><button type="button" className={btn.ghost} onClick={() => setStep('map')}>Back</button><button type="button" data-testid="import-continue-review" className={btn.primary} disabled={!online || previewBusy || !preview || (!!(mapping.date_taken === null && !defaults.date_taken))} onClick={() => { setPreviewTab('ok'); setPreviewPage(0); setStep('review') }}>Review validation</button></div>
       </section>}
 
-      {step === 'review' && <section data-testid="import-review-step" className="space-y-4 rounded-lg bg-surface p-4 shadow-card">
+      {step === 'review' && <section data-testid="import-review-step" className="import-stage-card">
         <div><h2 className="text-lg font-bold">5. Preview and validate</h2><p className="text-sm text-muted">The file has not been uploaded. Review every row before importing.</p></div>
         {previewBusy && <p role="status" className="text-sm text-muted">Refreshing validation…</p>}
         {previewError && <div data-testid="import-preview-error" role="alert" className="space-y-2 text-sm font-semibold text-danger"><p>{previewError}</p><button type="button" className="font-bold underline" disabled={!online || previewBusy} onClick={() => setPreviewReload((value) => value + 1)}>Retry preview</button></div>}
@@ -540,7 +540,7 @@ export default function ImportPage() {
         {committing && <p data-testid="import-progress" role="status" className="text-sm text-muted">Saving deals in the background… Keep this page open.</p>}
       </section>}
 
-      {step === 'result' && <section data-testid="import-result-step" className="space-y-4 rounded-lg bg-surface p-4 shadow-card">
+      {step === 'result' && <section data-testid="import-result-step" className="import-stage-card">
         {job ? <>
           <div><h2 className="text-lg font-bold">{job.status === 'undone' ? 'Import undone' : job.status === 'failed' ? 'Import finished with errors' : 'Import complete'}</h2><p className="text-sm text-muted">{job.filename || 'Spreadsheet import'} · {new Date(job.created_at).toLocaleString('en-IN')}</p></div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4"><Summary label="Imported" value={job.rows_imported} /><Summary label="Duplicates skipped" value={job.rows_skipped_duplicate} /><Summary label="Rows with errors" value={job.rows_failed} /><Summary label="Mediators created" value={job.mediators_created} /></div>
@@ -563,7 +563,8 @@ export default function ImportPage() {
 
 function StepBar({ step }: { step: Step }) {
   const items: [Step, string][] = [['upload', 'Upload'], ['sheet', 'Sheet'], ['map', 'Map'], ['fix', 'Fix values'], ['review', 'Preview']]
-  return <ol aria-label="Import steps" className="grid grid-cols-4 gap-1 text-center text-xs font-bold text-muted">{items.map(([id, label], index) => <li key={id} aria-current={id === step ? 'step' : undefined} className={`rounded-sm p-2 ${id === step ? 'bg-primary text-primary-ink' : 'bg-surface-2'}`}>{index + 1}. {label}</li>)}</ol>
+  const current = items.findIndex(([id]) => id === step)
+  return <div className="import-stepper-scroll"><ol aria-label="Import steps" className="import-stepper">{items.map(([id, label], index) => <li key={id} aria-current={id === step ? 'step' : undefined} className={`import-step ${index === current ? 'is-current' : index < current ? 'is-complete' : ''}`}><span>{index < current ? '✓' : index + 1}</span>{label}</li>)}</ol></div>
 }
 
 function TextDefault({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
@@ -589,7 +590,7 @@ function ListSummary({ title, items, empty }: { title: string; items: string[]; 
 }
 
 function ImportHistory({ items, loading, error, online, onRefresh, onOpen }: { items: ImportJob[]; loading: boolean; error: string; online: boolean; onRefresh: () => void; onOpen: (item: ImportJob) => void }) {
-  return <section data-testid="import-history" className="space-y-3 rounded-lg border border-line p-4">
+  return <section data-testid="import-history" className="import-history-card">
     <div className="flex items-center justify-between"><h2 className="text-lg font-bold">Import history</h2><button type="button" className="text-sm font-bold text-primary" disabled={!online || loading} onClick={onRefresh}>Refresh</button></div>
     {loading ? <p role="status" className="text-sm text-muted">Loading imports…</p> : error ? <p role="alert" className="text-sm text-danger">{error}</p> : !online ? <p className="text-sm text-muted">Connect to view import history.</p> : items.length === 0 ? <p className="text-sm text-muted">No imports yet.</p> : <ul className="divide-y divide-line">{items.map((item) => <li key={item.id} className="py-2"><button type="button" data-testid="import-history-item" className="flex w-full items-center justify-between gap-3 text-left" onClick={() => onOpen(item)}><span className="min-w-0"><span className="block truncate text-sm font-bold">{item.filename || 'Spreadsheet import'}</span><span className="text-xs text-muted">{new Date(item.created_at).toLocaleDateString('en-IN')} · {item.rows_imported} imported · {item.status}</span></span><span aria-hidden className="text-primary">›</span></button></li>)}</ul>}
   </section>

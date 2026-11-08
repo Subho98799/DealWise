@@ -1,10 +1,11 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDeal, useMediators, useToday } from '../data/hooks'
-import { createDeal, updateDeal } from '../data/mutations'
+import { createDeal, deleteDeal, updateDeal } from '../data/mutations'
 import { local } from '../data/db'
-import { btn, input, PageTitle, Skeleton } from '../components/ui'
-import { isValidMoney } from '../lib/money'
+import { btn, input, PageTitle, Sheet, Skeleton } from '../components/ui'
+import { useToast } from '../components/Toast'
+import { formatINR, isValidMoney, toPaise } from '../lib/money'
 import type { Deal } from '../data/types'
 
 type Form = Record<'product' | 'mediator_name' | 'amount_paid' | 'refund_amount' | 'platform' | 'deal_type' | 'commission' | 'date_taken' |
@@ -19,8 +20,8 @@ const fromDeal = (d: Deal): Form => ({
 function validate(f: Form): string | null {
   if (!f.product.trim()) return 'Product is required.'
   if (f.product.length > 200) return 'Product is too long (max 200 characters).'
-  for (const k of ['amount_paid', 'refund_amount', 'commission'] as const)
-    if (f[k] && !isValidMoney(f[k])) return 'Amounts must be 0 to 1,00,00,000 with up to 2 decimals.'
+  for (const key of ['amount_paid', 'refund_amount', 'commission'] as const)
+    if (f[key] && !isValidMoney(f[key])) return 'Amounts must be 0 to 1,00,00,000 with up to 2 decimals.'
   if (f.review_deadline && f.review_deadline < f.date_taken) return 'Review deadline cannot be before the date taken.'
   if (f.refund_form_deadline && f.refund_form_deadline < f.date_taken) return 'Form deadline cannot be before the date taken.'
   if (f.notes.length > 2000) return 'Notes are too long (max 2000 characters).'
@@ -28,7 +29,7 @@ function validate(f: Form): string | null {
 }
 
 function toDeal(f: Form): Partial<Deal> & { product: string; date_taken: string } {
-  const money = (s: string) => (s ? (s.includes('.') ? s : `${s}.00`) : '0.00')
+  const money = (value: string) => (value ? (value.includes('.') ? value : `${value}.00`) : '0.00')
   return {
     product: f.product.trim(), mediator_name: f.mediator_name.trim() || null, amount_paid: money(f.amount_paid),
     refund_amount: money(f.refund_amount), commission: money(f.commission), platform: f.platform.trim() || null,
@@ -39,102 +40,114 @@ function toDeal(f: Form): Partial<Deal> & { product: string; date_taken: string 
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="block"><span className="mb-1 block text-xs font-bold text-muted">{label}</span>{children}</label>
+  return <label className="form-field"><span className="form-field-label">{label}</span>{children}</label>
 }
 
-export default function DealFormPage() {
+export default function DealFormPage({ modal = false, onClose }: { modal?: boolean; onClose?: () => void }) {
   const { id } = useParams()
+  const navigate = useNavigate()
   const existing = useDeal(id)
+  const close = onClose ?? (() => navigate(-1))
   if (id && existing === undefined) return <Skeleton rows={4} />
+  if (modal) return <Sheet open title="Quick add deal" onClose={close}>
+    <DealForm key={id ?? 'quick-add'} deal={existing ?? null} modal onClose={close} />
+  </Sheet>
   return <DealForm key={id ?? 'new'} deal={existing ?? null} />
 }
 
-function DealForm({ deal }: { deal: Deal | null }) {
+function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?: boolean; onClose?: () => void }) {
   const today = useToday()
   const navigate = useNavigate()
+  const toast = useToast()
   const mediators = useMediators() ?? []
+  const lastMediator = local.get('last_mediator') ?? ''
+  const suggestions = useMemo(() => [...mediators].sort((a, b) => {
+    if (a.name === lastMediator) return -1
+    if (b.name === lastMediator) return 1
+    return a.name.localeCompare(b.name)
+  }), [mediators, lastMediator])
   const blank: Form = {
-    product: '', mediator_name: local.get('last_mediator') ?? '', amount_paid: '', refund_amount: '', platform: local.get('last_platform') ?? '',
+    product: '', mediator_name: lastMediator, amount_paid: '', refund_amount: '', platform: local.get('last_platform') ?? '',
     deal_type: 'review', commission: '', date_taken: today, review_deadline: '', refund_form_deadline: '', payment_status: 'pending', notes: '',
   }
-  const [f, setF] = useState<Form>(deal ? fromDeal(deal) : blank)
+  const [form, setForm] = useState<Form>(deal ? fromDeal(deal) : blank)
   const [more, setMore] = useState(!!deal)
   const [error, setError] = useState<string | null>(null)
-  const [saved, setSaved] = useState<string | null>(null)
-  const on = (k: keyof Form) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value })
+  const [saved, setSaved] = useState<{ id: string; product: string } | null>(null)
+  const on = (key: keyof Form) => (event: { target: { value: string } }) => setForm((current) => ({ ...current, [key]: event.target.value }))
+  const net = toPaise(form.refund_amount) + toPaise(form.commission) - toPaise(form.amount_paid)
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    const err = validate(f)
-    setError(err)
-    if (err) return
-    const data = toDeal(f)
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    const validation = validate(form)
+    setError(validation)
+    if (validation) return
+    const data = toDeal(form)
     if (deal) {
       const payment = data.payment_status === 'received' ? deal.payment_received_on ?? today : null
       await updateDeal(deal.id, { ...data, payment_received_on: payment })
       navigate(`/deals/${deal.id}`, { replace: true })
     } else {
       if (data.payment_status === 'received') data.payment_received_on = today
-      const d = await createDeal(data)
-      setSaved(d.product)
-      setF({ ...blank, platform: f.platform, mediator_name: f.mediator_name })
+      const created = await createDeal(data)
+      setSaved({ id: created.id, product: created.product })
+      setForm({ ...blank, platform: form.platform, mediator_name: form.mediator_name })
+      toast({
+        message: `Saved ${created.product}`,
+        action: { label: 'Undo', run: () => { void deleteDeal(created.id); setSaved(null) } },
+        secondaryAction: { label: 'Add another', run: () => setSaved(null) },
+      })
     }
   }
 
-  if (saved) {
-    return (
-      <div data-testid="deal-saved" className="rise space-y-4 pt-10 text-center">
-        <p className="text-xl font-extrabold">Saved “{saved}”</p>
-        <p className="text-sm text-muted">It will sync automatically.</p>
-        <div className="flex gap-3">
-          <button data-testid="add-another-button" className={`${btn.primary} flex-1`} onClick={() => setSaved(null)}>Add another</button>
-          <button data-testid="saved-done-button" className={`${btn.ghost} flex-1`} onClick={() => navigate('/deals')}>Done</button>
-        </div>
-      </div>
-    )
-  }
+  const done = () => { if (modal) onClose?.(); else navigate('/deals') }
+  if (saved) return <div data-testid="deal-saved" className="deal-saved-state">
+    <span className="saved-mark" aria-hidden="true">✓</span>
+    <p className="font-display text-xl font-bold">Saved “{saved.product}”</p>
+    <p className="text-sm text-muted">It’s on your list and will sync automatically.</p>
+    <div className="mt-4 flex gap-2">
+      <button data-testid="add-another-button" className={`${btn.primary} flex-1`} onClick={() => setSaved(null)}>Add another</button>
+      <button data-testid="saved-done-button" className={`${btn.ghost} flex-1`} onClick={done}>{modal ? 'Done' : 'See deals'}</button>
+    </div>
+  </div>
 
-  return (
-    <form data-testid="deal-form" onSubmit={submit} className="space-y-4" noValidate>
-      <PageTitle>{deal ? 'Edit deal' : 'Add deal'}</PageTitle>
-      <Field label="Product *"><input data-testid="deal-product-input" autoFocus={!deal} value={f.product} onChange={on('product')} className={input} maxLength={200} /></Field>
-      <Field label="Mediator">
-        <input data-testid="deal-mediator-input" list="mediator-names" value={f.mediator_name} onChange={on('mediator_name')} className={input} placeholder="Type to search or add new" />
-        <datalist id="mediator-names">{mediators.map((m) => <option key={m.id} value={m.name} />)}</datalist>
-      </Field>
+  return <form data-testid="deal-form" onSubmit={submit} className={`deal-form ${modal ? 'deal-form-quick' : ''}`} noValidate>
+    {!modal && <PageTitle>{deal ? 'Edit deal' : 'Add deal'}</PageTitle>}
+    {modal && <p className="mb-4 text-sm text-muted">Capture the essentials now. You can add deadlines and notes later.</p>}
+    <Field label="Product *"><input data-testid="deal-product-input" autoFocus={!deal} value={form.product} onChange={on('product')} className={`${input} form-product-input`} maxLength={200} placeholder="What did you buy?" /></Field>
+    <Field label="Mediator">
+      <input data-testid="deal-mediator-input" list="mediator-names" value={form.mediator_name} onChange={on('mediator_name')} className={input} placeholder="Search or add a name" />
+      <datalist id="mediator-names">{suggestions.map((mediator) => <option key={mediator.id} value={mediator.name} />)}</datalist>
+    </Field>
+    <div className="grid grid-cols-2 gap-3">
+      <Field label="Amount paid"><input data-testid="deal-amount-paid-input" inputMode="decimal" value={form.amount_paid} onChange={on('amount_paid')} className={`${input} money-field-input`} placeholder="₹ 0" /></Field>
+      <Field label="Refund expected"><input data-testid="deal-refund-input" inputMode="decimal" value={form.refund_amount} onChange={on('refund_amount')} className={`${input} money-field-input`} placeholder="₹ 0" /></Field>
+    </div>
+    <p className="deal-net-preview" aria-live="polite">Net: <span className="money font-bold">{formatINR(net)}</span></p>
+
+    <button type="button" data-testid="deal-more-toggle" aria-expanded={more} onClick={() => setMore((value) => !value)} className="more-details-toggle">
+      <span>{more ? 'Hide details' : 'More details'}</span><span aria-hidden="true">{more ? '−' : '+'}</span>
+    </button>
+    {more && <div className="more-details rise" data-testid="deal-more-section">
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Paid ₹"><input data-testid="deal-amount-paid-input" inputMode="decimal" value={f.amount_paid} onChange={on('amount_paid')} className={input} placeholder="0" /></Field>
-        <Field label="Refund ₹"><input data-testid="deal-refund-input" inputMode="decimal" value={f.refund_amount} onChange={on('refund_amount')} className={input} placeholder="0" /></Field>
+        <Field label="Platform"><input data-testid="deal-platform-input" value={form.platform} onChange={on('platform')} className={input} placeholder="Amazon" /></Field>
+        <Field label="Date taken"><input data-testid="deal-date-input" type="date" value={form.date_taken} onChange={on('date_taken')} className={input} /></Field>
+        <Field label="Deal type"><select data-testid="deal-type-select" value={form.deal_type} onChange={on('deal_type')} className={input}>
+          <option value="review">Review</option><option value="rating_only">Rating only</option><option value="review_photo">Review + photo</option>
+          <option value="review_video">Review + video</option><option value="other">Other</option>
+        </select></Field>
+        <Field label="Commission"><input data-testid="deal-commission-input" inputMode="decimal" value={form.commission} onChange={on('commission')} className={input} placeholder="₹ 0" /></Field>
+        <Field label="Review deadline"><input data-testid="deal-review-deadline-input" type="date" value={form.review_deadline} onChange={on('review_deadline')} className={input} /></Field>
+        <Field label="Form deadline"><input data-testid="deal-form-deadline-input" type="date" value={form.refund_form_deadline} onChange={on('refund_form_deadline')} className={input} /></Field>
       </div>
-
-      <button type="button" data-testid="deal-more-toggle" onClick={() => setMore(!more)} className="min-h-[44px] text-sm font-bold text-primary">
-        {more ? 'Hide details' : 'More details'}
-      </button>
-      {more && (
-        <div className="space-y-4" data-testid="deal-more-section">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Platform"><input data-testid="deal-platform-input" value={f.platform} onChange={on('platform')} className={input} placeholder="Amazon" /></Field>
-            <Field label="Date taken"><input data-testid="deal-date-input" type="date" value={f.date_taken} onChange={on('date_taken')} className={input} /></Field>
-            <Field label="Deal type">
-              <select data-testid="deal-type-select" value={f.deal_type} onChange={on('deal_type')} className={input}>
-                <option value="review">Review</option><option value="rating_only">Rating only</option><option value="review_photo">Review + photo</option>
-                <option value="review_video">Review + video</option><option value="other">Other</option>
-              </select>
-            </Field>
-            <Field label="Commission ₹"><input data-testid="deal-commission-input" inputMode="decimal" value={f.commission} onChange={on('commission')} className={input} placeholder="0" /></Field>
-            <Field label="Review deadline"><input data-testid="deal-review-deadline-input" type="date" value={f.review_deadline} onChange={on('review_deadline')} className={input} /></Field>
-            <Field label="Form deadline"><input data-testid="deal-form-deadline-input" type="date" value={f.refund_form_deadline} onChange={on('refund_form_deadline')} className={input} /></Field>
-          </div>
-          <Field label="Payment status">
-            <select data-testid="deal-payment-status-select" value={f.payment_status} onChange={on('payment_status')} className={input}>
-              <option value="pending">Pending</option><option value="received">Received</option><option value="disputed">Disputed</option>
-            </select>
-          </Field>
-          <Field label="Notes"><textarea data-testid="deal-notes-input" value={f.notes} onChange={on('notes')} rows={3} maxLength={2000} className={`${input} py-3`} /></Field>
-        </div>
-      )}
-      {error && <p data-testid="deal-form-error" role="alert" className="rounded-sm bg-danger-soft px-4 py-3 text-sm font-semibold text-danger">{error}</p>}
-      <button data-testid="deal-save-button" type="submit" className={`${btn.primary} w-full`}>Save deal</button>
-    </form>
-  )
+      <Field label="Payment status"><select data-testid="deal-payment-status-select" value={form.payment_status} onChange={on('payment_status')} className={input}>
+        <option value="pending">Pending</option><option value="received">Received</option><option value="disputed">Disputed</option>
+      </select></Field>
+      <Field label="Notes"><textarea data-testid="deal-notes-input" value={form.notes} onChange={on('notes')} rows={3} maxLength={2000} className={`${input} py-3`} /></Field>
+    </div>}
+    {error && <p data-testid="deal-form-error" role="alert" className="form-error">{error}</p>}
+    <div className={`deal-form-submit ${modal ? 'is-sticky' : ''}`}>
+      <button data-testid="deal-save-button" type="submit" className={`${btn.primary} w-full`}>{deal ? 'Save changes' : 'Save deal'}</button>
+    </div>
+  </form>
 }

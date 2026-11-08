@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { isUnauthorized } from '../lib/api'
 import { ME_KEY, useMe } from '../lib/auth'
@@ -12,9 +12,12 @@ import { BottomNav } from './BottomNav'
 import { Splash } from './Splash'
 import { SyncChip } from './SyncChip'
 import { ToastProvider, useToast } from './Toast'
+import { Avatar } from './Avatar'
 import type { Me } from '../data/types'
+import { APP_NAME } from '../config/app'
+import DealFormPage from '../pages/DealForm'
 
-export function ProtectedLayout() {
+export function ProtectedLayout({ quickAddModal = false }: { quickAddModal?: boolean }) {
   const me = useMe()
   const location = useLocation()
   const qc = useQueryClient()
@@ -36,10 +39,12 @@ export function ProtectedLayout() {
       action={{ label: 'Try again', onClick: () => me.refetch() }} />
   }
   if (readyFor !== uid) return <Splash message="Opening your deals…" />
-  return <Shell me={me.data} />
+  return <Shell me={me.data} quickAddModal={quickAddModal} />
 }
 
-function Shell({ me }: { me: Me }) {
+function Shell({ me, quickAddModal }: { me: Me; quickAddModal: boolean }) {
+  const location = useLocation()
+  const navigate = useNavigate()
   const deals = useDeals()
   const alertCount = useMemo(() => {
     const today = todayIn(me.timezone)
@@ -56,14 +61,21 @@ function Shell({ me }: { me: Me }) {
     <UserContext.Provider value={me}>
       <ToastProvider>
         <SyncConflictNotices />
-        <div className="mx-auto flex min-h-dvh max-w-md flex-col">
-          <header className="safe-top sticky top-0 z-10 flex items-center justify-end bg-bg/90 px-gutter py-2 backdrop-blur-md">
+        <div className="app-stage min-h-dvh">
+        <div className="app-frame mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
+          <header className="app-topbar safe-top sticky top-0 z-10 px-gutter py-2">
+            <Link to="/" aria-label={`${APP_NAME} home`} className="app-wordmark">{APP_NAME}</Link>
             <SyncChip />
+            <Link to="/settings" className="account-avatar-link" aria-label="Account and settings">
+              <Avatar name={me.name} url={me.avatar_url} size={38} />
+            </Link>
           </header>
-          <main className="flex-1 px-gutter pb-[calc(var(--nav-height)+env(safe-area-inset-bottom)+32px)] pt-2">
-            <Outlet />
+          <main className="flex-1 px-gutter pb-[calc(var(--nav-height)+env(safe-area-inset-bottom)+24px)] pt-3">
+            <div key={location.pathname} className="page-transition"><Outlet /></div>
           </main>
           <BottomNav alertCount={alertCount} />
+        </div>
+        {quickAddModal && <DealFormPage modal onClose={() => navigate(-1)} />}
         </div>
       </ToastProvider>
     </UserContext.Provider>

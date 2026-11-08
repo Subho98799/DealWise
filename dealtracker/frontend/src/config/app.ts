@@ -7,6 +7,4 @@ export const CSRF_HEADER = 'X-Requested-With'
 export const CSRF_HEADER_VALUE = APP_SLUG // must equal backend CSRF_HEADER_VALUE
 export const STORAGE_PREFIX = `${APP_SLUG}:`
 export const LOCAL_DB_NAME = `${APP_SLUG}-local`
-export const THEME_COLOR = '#0f5c4d'
-export const BACKGROUND_COLOR = '#f4f1ea'
 export const REQUEST_TIMEOUT_MS = 70_000 // Render free tier can take ~60 s to wake

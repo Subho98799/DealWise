@@ -5,7 +5,18 @@ import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-qu
 import App from './App'
 import { isUnauthorized } from './lib/api'
 import { ME_KEY } from './lib/auth'
+import { applyAppearance, readAppearance, readColorTheme } from './lib/appearance'
 import './index.css'
+
+applyAppearance(readAppearance(), readColorTheme())
+const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+const syncThemeColor = () => {
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim()
+  if (color) themeColor?.setAttribute('content', color)
+}
+syncThemeColor()
+new MutationObserver(syncThemeColor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-mode'] })
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeColor)
 
 const queryClient: QueryClient = new QueryClient({
   queryCache: new QueryCache({

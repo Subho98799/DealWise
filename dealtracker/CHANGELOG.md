@@ -1,5 +1,26 @@
 # Changelog
 
+## Color themes (2026-11)
+### Added
+- Added persistent Indigo (default), Forest, and Saffron themes with Light, Dark, and System mode support, Settings swatches, and pre-render theme initialization compatible with the same-origin CSP and offline app shell.
+- The PWA theme-color meta tag now follows palette and mode changes. Added preference persistence and invalid-storage Vitest coverage.
+- Added the three theme palettes and extension guidance to the design system. Adjusted only tokens that missed WCAG AA for required text and chip pairs.
+
+## Polish pass 2 — UI detail refinement (2026-11)
+### Changed
+- Deal detail timelines enable only the next forward transition allowed by backend rules; later steps display lock reasons without controls.
+- Deal cards use a three-step progress indicator, concise next-step text, conditional net/deadline chips, and 280px Needs Action cards with wrapped titles.
+- Appearance guidance now follows the selected mode, Settings rows use distinct icons, and bottom-dock clearance is 24px plus safe-area spacing.
+- Hero count-up always settles on its exact value and skips animation under reduced motion. Negative net-return heroes use a muted danger surface.
+- Recaptured the 390 × 844 light/dark screens after hero animation completion. The only demo seeding and capture helper is dev-only and refuses production environments; no login bypass route was added.
+
+## Phase 5 — visual design and interaction polish (2026-11)
+### Added
+- A token-based light/dark design system with bundled Inter and Plus Jakarta Sans fonts, shared accessible UI primitives, Lucide icons, and a persistent System/Light/Dark appearance choice.
+- A 480px centered desktop shell, mobile bottom navigation, dashboard summaries, deal cards and filters, quick-add sheet, deal progress timeline, mediator overview, WhatsApp reminder drafts for phone contacts, and a visually guided import wizard.
+- PWA icons generated from the design palette, a source check preventing raw hex colors outside the token file, and twelve 390 × 844 light/dark screenshots in `docs/screenshots/`.
+- Responsive layout capture checks at 360px, 390px, 768px, and 1280px. Frontend typecheck, 27 Vitest tests, lint, and production build passed for each numbered Phase 5 step.
+
 ## Phase 3 — import, sync pagination, and linting (2026-11)
 ### Added
 - Migration `0003_import_jobs.py` adds RLS-protected import history and a composite deal-to-import foreign key; sync push opportunistically removes up to 500 applied operations older than 30 days.

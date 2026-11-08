@@ -49,7 +49,7 @@ Python 3.12, FastAPI, SQLAlchemy 2, Alembic, psycopg 3, Authlib, pydantic v2, sl
 ## Conventions
 - Backend: thin routes → `services/` → `repos/`. Raise `AppError(status, code, message)`; errors are `{"error":{"code","message"}}`. Business rules in `app/rules.py` (pure), mirrored in `frontend/src/lib/rules.ts`; change both + tests.
 - Migrations: raw SQL via `op.execute`, text + CHECK instead of enums, always a `downgrade`.
-- Frontend: UI reads Dexie via hooks in `data/hooks.ts`; writes via `data/mutations.ts` only (never `fetch` directly; use `lib/api.ts`). Styling via CSS variables in `src/index.css` + Tailwind tokens. Every interactive element has a `data-testid`.
+- Frontend: UI reads Dexie via hooks in `data/hooks.ts`; writes via `data/mutations.ts` only (never `fetch` directly; use `lib/api.ts`). Styling uses CSS variables from `src/styles/tokens.css` and the shared UI components. Keep raw hex colors in `tokens.css`; `yarn lint` enforces this. Inter and Plus Jakarta Sans are bundled; use Lucide for icons. The app column is 480px maximum on desktop and supports System, Light, and Dark appearance modes. Every interactive element has a `data-testid`.
 - Small components, no comments beyond one-liners, no new dependency without need.
 
 ## Definition of done

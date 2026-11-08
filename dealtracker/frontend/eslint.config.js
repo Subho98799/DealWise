@@ -11,11 +11,15 @@ export default tseslint.config(
     languageOptions: { globals: globals.browser },
   },
   {
+    files: ['public/**/*.js'],
+    languageOptions: { globals: globals.browser },
+  },
+  {
     files: ['src/**/*.test.{ts,tsx}', 'e2e/**/*.{ts,tsx}'],
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
   {
-    files: ['*.config.js', '*.config.ts', 'scripts/**/*.mjs'],
+    files: ['*.config.js', '*.config.ts', 'scripts/**/*.mjs', 'dev-only/**/*.mjs'],
     languageOptions: { globals: globals.node },
   },
   {

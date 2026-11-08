@@ -1,7 +1,15 @@
 import { defineConfig, loadEnv } from 'vite'
+import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
-import { APP_DESCRIPTION, APP_NAME, APP_SHORT_NAME, BACKGROUND_COLOR, THEME_COLOR } from './src/config/app'
+import { APP_DESCRIPTION, APP_NAME, APP_SHORT_NAME } from './src/config/app'
+
+const designTokens = readFileSync(new URL('./src/styles/tokens.css', import.meta.url), 'utf8')
+function token(name: string) {
+  const value = designTokens.match(new RegExp(`${name}:\\s*(#[\\da-fA-F]{6})`))?.[1]
+  if (!value) throw new Error(`Missing ${name} in src/styles/tokens.css`)
+  return value
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -18,7 +26,7 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'script',
-        includeAssets: ['icons/apple-touch-icon-180.png', 'favicon.svg'],
+        includeAssets: ['icons/apple-touch-icon-180.png', 'favicon.svg', 'theme-init.js'],
         manifest: {
           name: APP_NAME,
           short_name: APP_SHORT_NAME,
@@ -27,8 +35,8 @@ export default defineConfig(({ mode }) => {
           scope: '/',
           display: 'standalone',
           orientation: 'portrait',
-          theme_color: THEME_COLOR,
-          background_color: BACKGROUND_COLOR,
+          theme_color: token('--color-brand'),
+          background_color: token('--color-bg'),
           lang: 'en-IN',
           icons: [
             { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

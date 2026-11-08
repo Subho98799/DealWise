@@ -1,14 +1,21 @@
 // Generates simple placeholder PNG icons with no dependencies (zlib + a tiny PNG encoder).
 // Run: yarn icons   -> writes public/icons/*.png
 import { deflateSync } from 'node:zlib'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons')
-const BG = [0x0f, 0x5c, 0x4d]
-const RING = [0xf4, 0xf1, 0xea]
-const DOT = [0xf2, 0xb8, 0x4b]
+const TOKEN_FILE = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'styles', 'tokens.css')
+const TOKENS = readFileSync(TOKEN_FILE, 'utf8')
+const token = (name) => {
+  const hex = TOKENS.match(new RegExp(`${name}:\\s*(#[\\da-fA-F]{6})`))?.[1]
+  if (!hex) throw new Error(`Missing ${name} in src/styles/tokens.css`)
+  return [1, 3, 5].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16))
+}
+const BG = token('--color-brand')
+const RING = token('--color-brand-ink')
+const DOT = token('--color-success')
 
 const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
   let c = n

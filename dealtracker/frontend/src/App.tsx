@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, type Location } from 'react-router-dom'
 import { ProtectedLayout } from './components/ProtectedLayout'
 import { InstallPrompt } from './components/InstallPrompt'
 import LoginPage from './pages/Login'
@@ -11,11 +11,13 @@ import SettingsPage from './pages/Settings'
 import ImportPage from './pages/ImportPage'
 
 export default function App() {
+  const location = useLocation()
+  const backgroundLocation = (location.state as { backgroundLocation?: Location } | null)?.backgroundLocation
   return (
     <>
-      <Routes>
+      <Routes location={backgroundLocation ?? location}>
         <Route path="/login" element={<LoginPage />} />
-        <Route element={<ProtectedLayout />}>
+        <Route element={<ProtectedLayout quickAddModal={!!backgroundLocation} />}>
           <Route index element={<HomePage />} />
           <Route path="deals" element={<DealsPage />} />
           <Route path="deals/new" element={<DealFormPage />} />

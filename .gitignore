@@ -35,3 +35,6 @@ yarn-error.log*
 frontend/test-results/
 frontend/playwright-report/
 frontend/e2e-qa/
+
+# Bundled repository archaeology
+*.bundle

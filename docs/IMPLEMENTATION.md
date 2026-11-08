@@ -6,7 +6,7 @@
 - The API table and migration list are machine-checked by `backend/scripts/check_docs.py` (CI) — keep them exact.
 - Invariants live in [AGENTS.md](../AGENTS.md); design reasons in [ARCHITECTURE.md](ARCHITECTURE.md).
 - Setup values: [SETUP_CREDENTIALS.md](SETUP_CREDENTIALS.md). Manual checks: [VERIFY_ON_MY_MACHINE.md](VERIFY_ON_MY_MACHINE.md).
-- Backend: 194 pytest tests on local PostgreSQL 16 as `app_user`; frontend: 26 Vitest tests, typecheck and production build; Ruff and ESLint pass. No Playwright tests were added or run in Phase 3.
+- Backend: 194 pytest tests on local PostgreSQL 16 as `app_user`; frontend: 26 Vitest tests, typecheck and production build; Ruff and ESLint pass. No new Playwright tests were added or run in Phase 3.
 - Real Neon, Google OAuth, Render, and Vercel integrations are **NOT VERIFIED HERE** (no credentials were provided).
 - Money = decimal strings; dates = `YYYY-MM-DD`; timestamps ISO-8601 UTC.
 - All errors: `{"error": {"code": "...", "message": "..."}}`.

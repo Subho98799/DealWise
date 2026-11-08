@@ -2,7 +2,7 @@
 
 Track **review deals** on your phone: what you bought, what you paid, which mediator owes you a refund, and which review or refund-form deadline is coming up. Works offline, syncs when you're back online, money in ₹ with Indian grouping. Each account's data is isolated in the database itself (Postgres row-level security).
 
-Status: Phases 1–2 done (login, deals, mediators, offline sync, alerts). Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
+Status: Phases 1–3 done (login, deals, mediators, offline sync, alerts, import). Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Quick start (no Docker; free Neon database)
 Needs Python 3.12, Node 20 + Yarn (`corepack enable`), Git. Get your values first: [docs/SETUP_CREDENTIALS.md](docs/SETUP_CREDENTIALS.md).
@@ -18,7 +18,7 @@ Needs Python 3.12, Node 20 + Yarn (`corepack enable`), Git. Get your values firs
 | 7. Start API (terminal 1) | `scripts/dt.sh backend` | `.\scripts\dt.ps1 backend` |
 | 8. Start app (terminal 2) | `scripts/dt.sh frontend` | `.\scripts\dt.ps1 frontend` |
 
-Open <http://localhost:5173>. Optional local Postgres instead of Neon: `docker compose up -d` (see `docker-compose.yml`).
+Open <http://localhost:5173>.
 
 ## Deploy
 - **API → Render (free):** New → Blueprint → this repo (`render.yaml`). Set the env vars listed in [SETUP_CREDENTIALS](docs/SETUP_CREDENTIALS.md) (`ENV=prod`, `FRONTEND_URL=https://<app>.vercel.app`). It migrates on start. Render sleeps after 15 min idle; optionally ping `/api/health` every 10–14 min.

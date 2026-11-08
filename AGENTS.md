@@ -44,7 +44,7 @@ Python 3.12, FastAPI, SQLAlchemy 2, Alembic, psycopg 3, Authlib, pydantic v2, sl
 - `backend/app/` FastAPI app: `config` settings+names, `db` engine+`get_user_db`, `auth/` Google login+sessions, `repos/` only table access, `services/` use-cases, `routes/` HTTP, `rules.py` pure business rules, `schemas.py` pydantic I/O.
 - `backend/alembic/versions/` hand-written SQL migrations. `backend/tests/` pytest on real Postgres as `app_user`. `backend/scripts/` setup/check/docs scripts.
 - `frontend/src/` `config/` names, `lib/` api/money/dates/rules, `data/` Dexie db+outbox+mutations+hooks, `sync/` engine, `components/`, `pages/`. `frontend/e2e/` Playwright.
-- `scripts/` `dt.sh`, `dt.ps1`, `check_setup.*`, `create_app_role.sql` template. `docs/` architecture, implementation, roadmap, setup guides.
+- `scripts/` `dt.sh`, `dt.ps1`, `check_setup.*`, `create_app_role.sql` template. `docs/` architecture, implementation, roadmap, design, setup guides.
 
 ## Conventions
 - Backend: thin routes → `services/` → `repos/`. Raise `AppError(status, code, message)`; errors are `{"error":{"code","message"}}`. Business rules in `app/rules.py` (pure), mirrored in `frontend/src/lib/rules.ts`; change both + tests.

@@ -21,7 +21,7 @@
 - Prerequisites: `users.role` (exists), `ADMIN_EMAILS` (exists), RLS policy pattern (exists; update all policies in one migration).
 
 ## Phase 5 — distinctive UI polish
-- Redesign via the tokens in `frontend/src/index.css` and `tailwind.config.js` (colors, radius, spacing, fonts) — no component logic changes needed.
+- Redesign via the tokens in `frontend/src/styles/tokens.css` and `tailwind.config.js` (colors, radius, spacing, fonts) — no component logic changes needed.
 - Motion for one-tap actions, better empty states/illustrations, swipe actions on cards, haptics where supported.
 - Prerequisites: all screens use tokens and `data-testid`s (exists); Playwright e2e guards behavior.
 

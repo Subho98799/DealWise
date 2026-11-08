@@ -17,8 +17,8 @@ export function MediatorsPage() {
     const clean = name.trim()
     if (!clean) return setError('Enter a name.')
     if (meds?.some((m) => m.name.toLowerCase() === clean.toLowerCase())) return setError('That mediator already exists.')
-    await createMediator(clean)
     setName(''); setError(null)
+    await createMediator(clean)
   }
   return (
     <div data-testid="mediators-page">
@@ -55,6 +55,7 @@ export function MediatorDetailPage() {
   const m = meds?.find((x) => x.id === id)
   const [name, setName] = useState<string | null>(null)
   const [confirm, setConfirm] = useState(false)
+  const [renameError, setRenameError] = useState<string | null>(null)
   if (!meds) return <Skeleton />
   if (!m) return <Empty title="Mediator not found" testId="mediator-not-found"><Link to="/mediators" className="font-bold text-primary">Back</Link></Empty>
   const theirs = (deals ?? []).filter((d) => d.mediator_id === m.id)
@@ -63,10 +64,18 @@ export function MediatorDetailPage() {
     <div data-testid="mediator-detail" className="space-y-5">
       <PageTitle><span data-testid="mediator-detail-name">{m.name}</span></PageTitle>
       <p className="text-sm text-muted">{formatINR(s?.pendingPaise ?? 0)} pending · {s?.openCount ?? 0} open deals</p>
-      <form className="flex gap-2" onSubmit={async (e) => { e.preventDefault(); if (name?.trim()) { await renameMediator(m.id, name.trim()); setName(null) } }}>
+      <form className="flex gap-2" onSubmit={async (e) => {
+        e.preventDefault()
+        const clean = name?.trim()
+        if (!clean) return
+        if (meds.some((x) => x.id !== m.id && x.name.toLowerCase() === clean.toLowerCase())) return setRenameError('Another mediator already has that name.')
+        setRenameError(null); setName(null)
+        await renameMediator(m.id, clean)
+      }}>
         <input data-testid="mediator-rename-input" value={name ?? m.name} onChange={(e) => setName(e.target.value)} className={input} maxLength={120} />
         <button data-testid="mediator-rename-button" className={btn.ghost} disabled={!name || name.trim() === m.name}>Rename</button>
       </form>
+      {renameError && <p role="alert" data-testid="mediator-rename-error" className="text-sm font-semibold text-danger">{renameError}</p>}
       <div className="space-y-3">{theirs.length ? theirs.map((d) => <DealCard key={d.id} deal={d} />) : <Empty title="No deals with this mediator" />}</div>
       {!confirm ? <button data-testid="mediator-delete-button" className={`${btn.danger} w-full`} onClick={() => setConfirm(true)}>Delete mediator</button> : (
         <div className="space-y-2">

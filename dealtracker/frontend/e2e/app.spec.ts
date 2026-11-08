@@ -56,6 +56,7 @@ test('two accounts on one browser never see each other\'s data', async ({ page, 
   await page.getByTestId('deal-product-input').fill('Alice secret deal')
   await page.getByTestId('deal-save-button').click()
   await expect(chip(page)).toHaveAttribute('data-state', 'synced', { timeout: 30_000 })
+  await expect.poll(async () => (await serverDeals(a.id)).length, { timeout: 30_000 }).toBe(1)
 
   // 1) account switch without logout (cookie replaced): the local store must be wiped
   await useSession(context, baseURL!, b.token)

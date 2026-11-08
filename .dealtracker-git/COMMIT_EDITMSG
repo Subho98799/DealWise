@@ -1,1 +1,1 @@
-C7: CHANGELOG for Phase 1 and Phase 2
+B4 fix: sync chip shows pending immediately after a local write; e2e asserts server copy before account switch

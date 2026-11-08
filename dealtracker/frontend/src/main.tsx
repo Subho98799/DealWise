@@ -16,7 +16,9 @@ const queryClient: QueryClient = new QueryClient({
       }
     },
   }),
-  defaultOptions: { queries: { refetchOnWindowFocus: false } },
+  // networkMode 'always': our fetchers handle offline themselves (cached /api/me, visible errors);
+  // TanStack's default would silently pause them while offline.
+  defaultOptions: { queries: { refetchOnWindowFocus: false, networkMode: 'always' }, mutations: { networkMode: 'always' } },
 })
 
 createRoot(document.getElementById('root')!).render(

@@ -71,7 +71,9 @@ export class SyncEngine {
 
   /** Call after every local write. */
   poke() {
-    void this.refreshCounts()
+    void this.refreshCounts().then((c) => {
+      if (c.pending && this.status.state === 'synced') this.set({ state: 'pending' }) // never claim "Synced" with unsent work
+    })
     if (this.debounce) clearTimeout(this.debounce)
     this.debounce = setTimeout(() => void this.sync(), this.opts.debounceMs)
   }

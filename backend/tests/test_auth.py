@@ -5,8 +5,9 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 
 from app.auth.oauth import is_safe_next, oauth, pkce_challenge
-from app.auth.sessions import hash_token
+from app.auth.sessions import hash_token, set_session_cookie
 from app.config import SESSION_COOKIE as COOKIE_NAME
+from starlette.responses import Response
 from tests.conftest import CSRF
 
 FRONTEND = "http://localhost:5173"
@@ -88,6 +89,20 @@ def test_cookie_holds_only_opaque_token_and_db_holds_only_hash(client, mock_goog
     assert stored == [hash_token(raw)]
 
 
+def test_production_cookie_uses_host_prefix_and_secure_flags(monkeypatch):
+    settings = type("SettingsStub", (), {"is_prod": True})()
+    monkeypatch.setattr("app.config.get_settings", lambda: settings)
+    monkeypatch.setattr("app.auth.sessions.get_settings", lambda: settings)
+    response = Response()
+
+    set_session_cookie(response, "opaque-test-token")
+
+    cookie = response.headers["set-cookie"].lower()
+    assert cookie.startswith("__host-dt_session=")
+    assert "secure" in cookie and "httponly" in cookie
+    assert "path=/" in cookie and "samesite=lax" in cookie
+
+
 def test_relogin_upserts_by_google_sub(client, mock_google, app_engine):
     _login(client)
     mock_google["set_userinfo"](email="new@example.com", name="Asha K")
@@ -120,6 +135,21 @@ def test_expired_session_returns_401(client, make_user, app_engine):
         assert c.execute(text("SELECT count(*) FROM sessions")).scalar_one() == 0
 
 
+def test_absolute_session_expiry_is_enforced_even_when_idle_expiry_is_future(
+    client, make_user, app_engine,
+):
+    _, raw = make_user("absolute")
+    with app_engine.begin() as connection:
+        connection.execute(text(
+            "UPDATE sessions SET created_at = now() - interval '91 days', "
+            "expires_at = now() + interval '1 day' WHERE token_hash = :token_hash"
+        ), {"token_hash": hash_token(raw)})
+    client.cookies.set(COOKIE_NAME, raw)
+    assert client.get("/api/me").status_code == 401
+    with app_engine.connect() as connection:
+        assert connection.execute(text("SELECT count(*) FROM sessions")).scalar_one() == 0
+
+
 def test_sliding_expiry_touches_at_most_every_10_minutes(client, make_user, app_engine):
     _, raw = make_user("alice")
     client.cookies.set(COOKIE_NAME, raw)
@@ -150,6 +180,28 @@ def test_logout_invalidates_session(client, make_user, app_engine):
         assert c.execute(text("SELECT count(*) FROM sessions")).scalar_one() == 0
     client.cookies.set(COOKIE_NAME, raw)  # replaying the old token must fail
     assert client.get("/api/me").status_code == 401
+
+
+def test_login_cleans_at_most_100_expired_sessions(client, mock_google, app_engine):
+    _login(client)
+    with app_engine.connect() as connection:
+        user_id = connection.execute(text(
+            "SELECT user_id FROM sessions LIMIT 1"
+        )).scalar_one()
+    expired_hashes = [hash_token(f"expired-test-token-{index}") for index in range(101)]
+    with app_engine.begin() as connection:
+        connection.execute(text("""
+            INSERT INTO sessions (user_id, token_hash, created_at, expires_at)
+            SELECT :user_id, token_hash, now() - interval '91 days', now() - interval '1 day'
+            FROM unnest(CAST(:token_hashes AS text[])) AS tokens(token_hash)
+        """), {"user_id": user_id, "token_hashes": expired_hashes})
+
+    _login(client)
+    with app_engine.connect() as connection:
+        remaining = connection.execute(text(
+            "SELECT count(*) FROM sessions WHERE token_hash = ANY(CAST(:token_hashes AS text[]))"
+        ), {"token_hashes": expired_hashes}).scalar_one()
+    assert remaining == 1
 
 
 def test_callback_rejects_unverified_email(client, mock_google, app_engine):

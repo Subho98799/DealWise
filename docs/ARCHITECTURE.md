@@ -39,8 +39,8 @@ Migrations run from the operator's computer with the owner direct URL before dep
 1. Login button navigates to `/api/auth/google/login?next=/path` (relative paths only).
 2. API stores state + nonce + next in a 10-minute signed cookie `dt_oauth` (path `/api/auth`) and redirects to Google.
 3. Google redirects to `FRONTEND_URL/api/auth/google/callback` — **the frontend origin**, forwarded by Vercel (or the Vite proxy locally).
-4. API validates state, exchanges the code, verifies the ID token + nonce, requires `email_verified`, upserts the user by `google_sub`, creates a session (32 random bytes; only SHA-256 stored) and sets `dt_session` (HttpOnly, Secure in prod, SameSite=Lax, 30-day sliding).
-5. `current_user` resolves the cookie on every private request; `last_seen_at`/expiry refresh at most every 10 minutes.
+4. API validates state, exchanges the S256 PKCE-bound code, verifies the ID token + nonce, requires `email_verified`, upserts the user by `google_sub`, creates a session (32 random bytes; only SHA-256 stored) and sets `dt_session` (local) or `__Host-dt_session` (production), HttpOnly, Secure in production, SameSite=Lax.
+5. `current_user` resolves the cookie on every private request; the 30-day sliding idle expiry refreshes at most every 10 minutes and never extends beyond the 90-day absolute lifetime. Login opportunistically deletes at most 100 expired sessions.
 
 **Why the rewrite:** cookies are first-party on the Vercel domain. Safari (ITP) blocks third-party cookies, and same-origin also removes CORS and makes the CSRF header check sufficient.
 

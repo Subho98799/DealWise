@@ -11,7 +11,7 @@
 - Money = decimal strings; dates = `YYYY-MM-DD`; timestamps ISO-8601 UTC.
 - Deal money uses `net refund = amount_paid - less_amount + commission`; `refund_amount` is a generated response/database value, while `net_amount = commission - less_amount`.
 - All errors: `{"error": {"code": "...", "message": "..."}}`.
-- Every private route needs the `dt_session` cookie; mutations need `X-Requested-With: dealtracker`.
+- Every private route needs the local `dt_session` cookie or production `__Host-dt_session`; sessions expire after 30 days idle or 90 days absolute. Mutations need `X-Requested-With: dealtracker`.
 
 ## Status
 | Area | Status |

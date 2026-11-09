@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import delete, func, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from app.auth.sessions import create_session, delete_session
+from app.auth.sessions import cleanup_expired_sessions, create_session, delete_session
 from app.db import SessionLocal
 from app.models import User
 
@@ -13,6 +13,7 @@ def login_user(
 ) -> str:
     """Upsert the user by google_sub and open a new session. Returns the raw session token."""
     with SessionLocal.begin() as db:
+        cleanup_expired_sessions(db)
         stmt = (
             pg_insert(User)
             .values(

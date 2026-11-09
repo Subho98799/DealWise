@@ -34,7 +34,7 @@ export default function PrivacyPage() {
 
     <section>
       <h2>Cookies and local storage</h2>
-      <p>We use one session cookie to keep you signed in. It is HttpOnly, SameSite Lax, secure in production, and expires after 30 days of inactivity. We do not cache API responses in the service worker. You can clear local data at any time by logging out or deleting your account.</p>
+      <p>We use one session cookie to keep you signed in. It is HttpOnly and SameSite Lax; it is secure in production and uses the __Host- prefix. Sessions expire after 30 days of inactivity or 90 days maximum. We do not cache API responses in the service worker. You can clear local data at any time by logging out or deleting your account.</p>
     </section>
 
     <section>

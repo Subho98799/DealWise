@@ -6,13 +6,14 @@ from fastapi import Depends, Request, Response
 from sqlalchemy import delete, select, update
 
 from app.auth.sessions import (
+    ABSOLUTE_SESSION_TTL,
     SESSION_TTL,
     TOUCH_INTERVAL,
     hash_token,
     set_session_cookie,
     utcnow,
 )
-from app.config import SESSION_COOKIE, get_settings
+from app.config import get_settings, session_cookie_name
 from app.errors import AppError
 from app.models import User, UserSession
 from app.security import USER_RATE_LIMIT, user_rate_limiter
@@ -38,7 +39,7 @@ def _unauthorized(message: str = "Please log in.") -> AppError:
 
 
 def current_user(request: Request, response: Response) -> CurrentUser:
-    raw = request.cookies.get(SESSION_COOKIE)
+    raw = request.cookies.get(session_cookie_name())
     if not raw:
         raise _unauthorized()
 
@@ -55,17 +56,19 @@ def current_user(request: Request, response: Response) -> CurrentUser:
         if row is None:
             raise _unauthorized()
         sess, user = row
-        if sess.expires_at <= now:
+        absolute_expiry = sess.created_at + ABSOLUTE_SESSION_TTL
+        if sess.expires_at <= now or absolute_expiry <= now:
             db.execute(delete(UserSession).where(UserSession.id == sess.id))
             expired = True
         elif sess.last_seen_at is None or now - sess.last_seen_at >= TOUCH_INTERVAL:
             db.execute(
                 update(UserSession)
                 .where(UserSession.id == sess.id)
-                .values(last_seen_at=now, expires_at=now + SESSION_TTL)
+                .values(last_seen_at=now, expires_at=min(now + SESSION_TTL, absolute_expiry))
             )
             db.execute(update(User).where(User.id == user.id).values(last_active_at=now))
-            set_session_cookie(response, raw)  # sliding expiry for the cookie too
+            remaining = int((absolute_expiry - now).total_seconds())
+            set_session_cookie(response, raw, min(int(SESSION_TTL.total_seconds()), remaining))
     if expired:
         raise _unauthorized("Session expired, please log in again.")
 

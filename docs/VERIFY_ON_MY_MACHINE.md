@@ -23,7 +23,7 @@ Expected: no `dealtracker-local` data with deals and no `dealtracker:` keys; goi
 
 ## 5. Deploy to Render + Vercel
 Steps: Render Blueprint from `render.yaml` with all env vars (`ENV=prod`, `FRONTEND_URL=https://<app>.vercel.app`) → set the Render host in `frontend/vercel.json` → Vercel project with root `frontend` → add the Vercel origin + redirect URI in Google.
-Expected: `https://<render-host>/api/health` → `{"status":"ok"}`; `https://<app>.vercel.app/api/health` → same (rewrite works); Google login on the Vercel URL lands on Home; DevTools shows the `dt_session` cookie on the Vercel domain (HttpOnly, Secure).
+Expected: `https://<render-host>/api/health` → `{"status":"ok"}`; `https://<app>.vercel.app/api/health` → same (rewrite works); Google login on the Vercel URL lands on Home; DevTools shows the `__Host-dt_session` cookie on the Vercel domain (HttpOnly, Secure, Path=/, no Domain), with 30-day idle and 90-day absolute session expiry.
 
 ## 6. Install the PWA on Android
 Steps: open the Vercel URL in Android Chrome → "Install app" banner (or menu → Install app) → open from the home screen → enable airplane mode → reopen.

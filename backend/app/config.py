@@ -111,6 +111,10 @@ class Settings(BaseSettings):
         return {e.strip().lower() for e in self.ADMIN_EMAILS.split(",") if e.strip()}
 
 
+def session_cookie_name() -> str:
+    return f"__Host-{SESSION_COOKIE}" if get_settings().is_prod else SESSION_COOKIE
+
+
 def explain(exc: ValidationError) -> str:
     lines = [f"{APP_NAME} cannot start: fix these environment variables (backend/.env or host settings):"]
     for err in exc.errors():

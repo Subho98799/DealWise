@@ -1,6 +1,7 @@
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { CalendarClock, FileSpreadsheet, LockKeyhole, ShieldCheck, Trash2, Wallet, WifiOff } from 'lucide-react'
 import { googleLoginHref, useMe } from '../lib/auth'
+import { safeReturnPath } from '../lib/returnPath'
 import { APP_NAME, CONTACT_EMAIL } from '../config/app'
 import { LoginInstallLink } from '../components/InstallPrompt'
 import { GoogleSignInButton } from '../components/GoogleSignIn'
@@ -41,7 +42,7 @@ export default function LoginPage() {
   const me = useMe()
   const location = useLocation()
   const [params] = useSearchParams()
-  const next = (location.state as { next?: string } | null)?.next ?? '/'
+  const next = safeReturnPath((location.state as { next?: unknown } | null)?.next)
   const error = params.get('error')
 
   usePageMeta({ title: `${APP_NAME} — Every refund. Every deadline. One place.`, description: META_DESCRIPTION, path: '/' })

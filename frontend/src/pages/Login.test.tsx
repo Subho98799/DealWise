@@ -80,6 +80,12 @@ describe('Login landing page', () => {
     expect(screen.getByTestId('deals-route')).toBeTruthy()
   })
 
+  it('rejects an external return destination from navigation state', () => {
+    useMeMock.mockReturnValue({ isSuccess: true } as ReturnType<typeof useMe>)
+    renderLogin('/login', { next: '//evil.example/path' })
+    expect(screen.getByTestId('home-route')).toBeTruthy()
+  })
+
   it('hides the install link when the app is already installed', () => {
     installState({ isInstalled: true })
     renderLogin()
@@ -102,4 +108,3 @@ describe('Login landing page', () => {
     expect(screen.getByText(/Open the browser menu/i)).toBeTruthy()
   })
 })
-

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError, isUnauthorized } from './api'
 import { local, wipeLocal } from '../data/db'
 import { engine } from '../sync/engine'
+import { safeReturnPath } from './returnPath'
 import type { Me } from '../data/types'
 
 export type { Me }
@@ -35,7 +36,7 @@ export function useMe() {
 }
 
 export function googleLoginHref(next = '/') {
-  return `/api/auth/google/login?next=${encodeURIComponent(next)}`
+  return `/api/auth/google/login?next=${encodeURIComponent(safeReturnPath(next))}`
 }
 
 /** Stops sync and deletes ALL local data, then leaves for /login. */

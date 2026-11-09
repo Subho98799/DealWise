@@ -1,5 +1,11 @@
 # Changelog
 
+## Generated refund column CI fixes (2026-11)
+### Fixed
+- Updated the isolation test's direct repository seed to provide `less_amount` and `commission`, leaving generated `refund_amount` to PostgreSQL. Updated deal API fixtures and summary inputs to express the same intended net refunds using the new model.
+- Added real-schema regression coverage for import commit, sync push with both component-based and legacy inputs, and legacy API conversion.
+- Updated the offline E2E flow to enter Paid, Less, and Commission, verify the live refund breakdown and saved net refund, and check persisted generated values after sync. Updated dev screenshot seed deals to use Less/Commission instead of a refund input.
+
 ## Public landing page and legal pages (2026-11)
 ### Added
 - Replaced the logged-out login screen with a mobile-first landing page: a refund/deadline hero, Google sign-in and install actions, a CSS and inline-SVG Home preview with clearly labelled sample deals, problem, feature, how-it-works, trust, FAQ, final sign-in and footer sections.

@@ -1,84 +1,53 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
-    // `overline` is a Tailwind utility; without this an app's own eyebrow-label class draws a line above the text.
-    blocklist: ["overline"],
-    darkMode: ["class"],
-    content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-    "./public/index.html"
-  ],
+// Every visual token points at a CSS variable in src/styles/tokens.css.
+export default {
+  content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)'
-      },
       colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))'
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))'
-        },
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))'
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))'
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))'
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))'
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))'
-        },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))'
-        }
+        bg: 'var(--color-bg)',
+        surface: 'var(--color-surface)',
+        'surface-2': 'var(--color-surface-2)',
+        ink: 'var(--color-ink)',
+        muted: 'var(--color-muted)',
+        line: 'var(--color-border)',
+        primary: 'var(--color-brand)',
+        'primary-ink': 'var(--color-brand-ink)',
+        'brand-soft': 'var(--color-brand-soft)',
+        accent: 'var(--color-warning)',
+        success: 'var(--color-success)',
+        'success-soft': 'var(--color-success-soft)',
+        warning: 'var(--color-warning)',
+        'warning-soft': 'var(--color-warning-soft)',
+        danger: 'var(--color-danger)',
+        'danger-soft': 'var(--color-danger-soft)',
+        overlay: 'var(--color-overlay)',
+        'avatar-a': 'var(--color-avatar-a)',
+        'avatar-b': 'var(--color-avatar-b)',
+        'avatar-c': 'var(--color-avatar-c)',
+        'avatar-d': 'var(--color-avatar-d)',
+        'avatar-e': 'var(--color-avatar-e)',
       },
-      keyframes: {
-        'accordion-down': {
-          from: {
-            height: '0'
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)'
-          }
-        },
-        'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)'
-          },
-          to: {
-            height: '0'
-          }
-        }
+      borderRadius: {
+        sm: 'var(--radius-control)',
+        md: 'var(--radius-card)',
+        lg: 'var(--radius-card)',
+        pill: 'var(--radius-chip)',
+        control: 'var(--radius-control)',
+        card: 'var(--radius-card)',
       },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out'
-      }
-    }
+      spacing: {
+        nav: 'var(--nav-height)',
+        gutter: 'var(--space-gutter)',
+      },
+      fontFamily: {
+        sans: ['var(--font-ui)'],
+        display: ['var(--font-display)'],
+      },
+      boxShadow: {
+        card: 'var(--shadow-card)',
+      },
+    },
   },
-  plugins: [require("tailwindcss-animate")],
-};
+  plugins: [],
+}

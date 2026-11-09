@@ -1,1 +1,0 @@
-B4 fix: sync chip shows pending immediately after a local write; e2e asserts server copy before account switch

@@ -7,7 +7,7 @@ import type { Deal } from '../data/types'
 const T = '2026-06-10'
 const deal = (p: Partial<Deal> = {}): Deal => ({
   id: 'd', client_id: 'd', product: 'x', platform: null, mediator_id: null, mediator_name: null, deal_type: 'review',
-  date_taken: '2026-06-01', amount_paid: '0.00', refund_amount: '0.00', commission: '0.00', review_deadline: null,
+  date_taken: '2026-06-01', amount_paid: '0.00', less_amount: '0.00', refund_amount: '0.00', commission: '0.00', review_deadline: null,
   refund_form_deadline: null, review_status: 'pending', form_status: 'pending', payment_status: 'pending',
   payment_received_on: null, notes: null, created_at: '', updated_at: '', ...p,
 })

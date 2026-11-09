@@ -25,8 +25,8 @@ export function evaluate(d: State, today: string, alertDays: number): Urgency {
 export const isCompleted = (d: Pick<Deal, 'review_status' | 'form_status' | 'payment_status'>) =>
   d.review_status === 'done' && d.form_status === 'submitted' && d.payment_status === 'received'
 
-export const netPaise = (d: Pick<Deal, 'amount_paid' | 'refund_amount' | 'commission'>) =>
-  toPaise(d.refund_amount) + toPaise(d.commission) - toPaise(d.amount_paid)
+export const netPaise = (d: Pick<Deal, 'less_amount' | 'commission'>) =>
+  toPaise(d.commission) - toPaise(d.less_amount)
 
 export function nextAction(d: Deal): Action | null {
   if (d.review_status === 'pending') return 'review_done'

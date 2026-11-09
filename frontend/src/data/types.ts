@@ -13,6 +13,7 @@ export type Deal = {
   deal_type: DealType
   date_taken: string
   amount_paid: string
+  less_amount: string
   refund_amount: string
   commission: string
   review_deadline: string | null

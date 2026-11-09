@@ -21,6 +21,16 @@ export function fromPaise(p: number): string {
   return `${p < 0 ? '-' : ''}${Math.floor(a / 100)}.${String(a % 100).padStart(2, '0')}`
 }
 
+export function legacyRefundToComponents(amountPaid: string, refundAmount: string, commission: string) {
+  const paid = toPaise(amountPaid)
+  const refund = toPaise(refundAmount)
+  const oldCommission = toPaise(commission)
+  return {
+    lessAmount: fromPaise(Math.max(paid - refund, 0)),
+    commission: fromPaise(oldCommission + Math.max(refund - paid, 0)),
+  }
+}
+
 function groupIndian(int: string): string {
   if (int.length <= 3) return int
   const last3 = int.slice(-3)

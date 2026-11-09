@@ -1,6 +1,16 @@
 import Dexie, { type Table } from 'dexie'
 import { LOCAL_DB_NAME, STORAGE_PREFIX } from '../config/app'
+import { fromPaise, legacyRefundToComponents, toPaise } from '../lib/money'
 import type { Deal, Mediator, OutboxOp } from './types'
+
+type LegacyMoney = {
+  amount_paid?: unknown
+  less_amount?: unknown
+  refund_amount?: unknown
+  commission?: unknown
+}
+
+const moneyString = (value: unknown) => typeof value === 'string' ? value : String(value ?? '0.00')
 
 // The UI reads ONLY from this local replica. One database per device, owned by exactly one user.
 export class LocalDB extends Dexie {
@@ -9,13 +19,67 @@ export class LocalDB extends Dexie {
   outbox!: Table<OutboxOp, number>
   meta!: Table<{ key: string; value: string }, string>
 
-  constructor() {
-    super(LOCAL_DB_NAME)
+  constructor(name = LOCAL_DB_NAME) {
+    super(name)
     this.version(1).stores({
       deals: 'id, updated_at, mediator_id',
       mediators: 'id, name',
       outbox: '++seq, op_id, status, id',
       meta: 'key',
+    })
+    this.version(2).stores({
+      deals: 'id, updated_at, mediator_id',
+      mediators: 'id, name',
+      outbox: '++seq, op_id, status, id',
+      meta: 'key',
+    }).upgrade(async (transaction) => {
+      const deals = transaction.table('deals')
+      const outbox = transaction.table('outbox')
+      const [oldDeals, oldOps] = await Promise.all([deals.toArray(), outbox.toArray()])
+      const states = new Map<string, LegacyMoney>()
+
+      for (const oldDeal of oldDeals as (LegacyMoney & Deal)[]) {
+        states.set(oldDeal.id, oldDeal)
+        const { lessAmount, commission } = legacyRefundToComponents(
+          moneyString(oldDeal.amount_paid),
+          moneyString(oldDeal.refund_amount),
+          moneyString(oldDeal.commission),
+        )
+        const amountPaid = toPaise(moneyString(oldDeal.amount_paid))
+        const lessPaise = toPaise(lessAmount)
+        const commissionPaise = toPaise(commission)
+        await deals.put({
+          ...oldDeal,
+          less_amount: lessAmount,
+          commission,
+          refund_amount: fromPaise(amountPaid - lessPaise + commissionPaise),
+        })
+      }
+
+      for (const oldOp of (oldOps as OutboxOp[]).sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))) {
+        if (oldOp.type !== 'deal' || oldOp.op !== 'upsert' || !('refund_amount' in oldOp.data)) continue
+        const data = { ...oldOp.data }
+        if ('less_amount' in data) {
+          delete data.refund_amount
+          await outbox.put({ ...oldOp, data })
+          continue
+        }
+        const existing = states.get(oldOp.id)
+        const amountPaid = moneyString(data.amount_paid ?? existing?.amount_paid)
+        const oldCommission = moneyString(data.commission ?? existing?.commission)
+        const refundAmount = moneyString(data.refund_amount)
+        const { lessAmount, commission } = legacyRefundToComponents(amountPaid, refundAmount, oldCommission)
+        delete data.refund_amount
+        data.less_amount = lessAmount
+        data.commission = commission
+        await outbox.put({ ...oldOp, data })
+        states.set(oldOp.id, {
+          ...existing,
+          amount_paid: data.amount_paid ?? existing?.amount_paid,
+          less_amount: lessAmount,
+          commission,
+        })
+      }
     })
   }
 }

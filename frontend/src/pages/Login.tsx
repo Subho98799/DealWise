@@ -1,7 +1,7 @@
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { CalendarClock, FileSpreadsheet, LockKeyhole, ShieldCheck, Trash2, Wallet, WifiOff } from 'lucide-react'
 import { googleLoginHref, useMe } from '../lib/auth'
-import { APP_NAME } from '../config/app'
+import { APP_NAME, CONTACT_EMAIL } from '../config/app'
 import { LoginInstallLink } from '../components/InstallPrompt'
 import { GoogleSignInButton } from '../components/GoogleSignIn'
 import { LandingPreview } from '../components/LandingPreview'
@@ -27,6 +27,14 @@ const TRUST = [
   { icon: ShieldCheck, title: 'Only you see your deals', body: 'Every account is scoped in the database itself with row-level security, not just hidden in the screen.' },
   { icon: LockKeyhole, title: 'Sign in with Google only', body: 'There is no password to create, reuse or leak. Google handles the sign-in.' },
   { icon: Trash2, title: 'Delete your account and data any time', body: 'Open Settings and delete your account, deals and mediators in one step.' },
+]
+
+const FAQ = [
+  { question: 'Is my data private?', answer: 'Yes. Only the Google account you sign in with can see your deals. The database enforces that rule for every query.' },
+  { question: 'Do I need a password?', answer: 'No. You sign in with Google, so there is no password for us to create or store.' },
+  { question: 'Does it work offline?', answer: 'Yes, after the first load. You can add and edit deals without a connection, and changes sync when you are back online.' },
+  { question: 'Can I import my old spreadsheet?', answer: 'Yes. Import an Excel or CSV file, review the rows before saving, and undo the import if something looks wrong.' },
+  { question: 'How do I delete my account?', answer: 'Open Settings and choose Delete my account and all my data. That removes your account, deals and mediators.' },
 ]
 
 export default function LoginPage() {
@@ -149,7 +157,49 @@ export default function LoginPage() {
             </ul>
           </div>
         </section>
+
+        <section id="faq" className="landing-section" aria-labelledby="faq-title">
+          <div className="landing-section-head">
+            <p className="landing-eyebrow">FAQ</p>
+            <h2 id="faq-title" className="landing-heading">Questions, answered.</h2>
+          </div>
+          <div className="landing-faq-list">
+            {FAQ.map(({ question, answer }) => (
+              <details key={question} className="landing-faq-item">
+                <summary>{question}</summary>
+                <p>{answer}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-final" aria-labelledby="final-title">
+          <div className="landing-final-inner">
+            <p className="landing-eyebrow">Start today</p>
+            <h2 id="final-title" className="landing-heading">Keep every rupee in view.</h2>
+            <p>Sign in with Google, add your first deal, and let the app watch the dates.</p>
+            <div className="landing-actions">
+              <GoogleSignInButton href={googleLoginHref(next)} testId="login-google-button-final" />
+              <LoginInstallLink />
+            </div>
+          </div>
+        </section>
       </main>
+
+      <footer className="landing-footer">
+        <div className="landing-footer-inner landing-shell">
+          <div className="landing-footer-brand">
+            <span className="landing-logo" aria-hidden="true"><span /></span>
+            <span>{APP_NAME}</span>
+          </div>
+          <nav aria-label="Legal and contact" className="landing-footer-nav">
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/terms">Terms</Link>
+            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+          </nav>
+          <p className="landing-footer-copy">© {new Date().getFullYear()} {APP_NAME}. Built for review deals in India.</p>
+        </div>
+      </footer>
     </div>
   )
 }

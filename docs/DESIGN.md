@@ -29,6 +29,14 @@ To add a theme, define its light and dark palette tokens in `frontend/src/styles
 - Light cards use a restrained shadow. Dark cards rely on borders.
 - The content column is at most 480px on desktop; page gutters and bottom navigation respect device safe areas.
 
+## Public landing and legal pages
+
+The logged-out `/login` route is the product landing page. Authenticated users are redirected straight to Home and never see it. It uses the same tokens and UI primitives, one `h1`, labelled sections, native `<details>` FAQ items, and visible focus states. The primary and final actions use a Google-branded sign-in button with an 18px Google mark, the "Continue with Google" wording, and Google logo colours defined only in `tokens.css`. The Home preview is CSS and inline SVG with clearly labelled sample deals; its float, card and progress animations stop under `prefers-reduced-motion`.
+
+`/privacy` and `/terms` are public plain-English pages linked from the landing footer. Both are marked with a top-of-file legal-review comment and should be reviewed before public launch. The support address comes from `CONTACT_EMAIL` in `src/config/app.ts` and is still a placeholder.
+
+SEO tags (title, description, Open Graph, Twitter, canonical and theme colour) live in `index.html`; `src/lib/pageMeta.ts` keeps the absolute canonical and social URLs correct per page at runtime.
+
 ## Components and interaction
 
 Use the small primitives in `src/components/ui.tsx`: Button, IconButton, Card, Chip, Stat, Sheet, Toast, Skeleton, EmptyState, SegmentedControl, Input, and Select. Use `Avatar` for people and mediators. Keep existing `data-testid` hooks when restyling.
@@ -53,10 +61,11 @@ Use the small primitives in `src/components/ui.tsx`: Button, IconButton, Card, C
 
 ## Screenshot review
 
-The 390 × 844 light and dark screen captures are in [`docs/screenshots`](screenshots/). They use a local Playwright capture script with a demo account and fixture data; the script mocks API responses, waits for the hero animation to finish, and does not add an authentication path to the app. The seed and capture helper is at `frontend/dev-only/capture-design-screenshots.mjs` and refuses to run with `ENV=prod` or `NODE_ENV=production`.
+The 390 × 844 light and dark screen captures are in [`docs/screenshots`](screenshots/). They use a local Playwright capture script with a demo account and fixture data; the script mocks API responses, waits for the hero animation to finish, and does not add an authentication path to the app. The landing captures use a second context with a mocked `401` from `/api/me`, so no test-login route exists. The seed and capture helper is at `frontend/dev-only/capture-design-screenshots.mjs` and refuses to run with `ENV=prod` or `NODE_ENV=production`.
 
 | Screen | Light | Dark |
 |---|---|---|
+| Landing | [light](screenshots/light-landing.png) | [dark](screenshots/dark-landing.png) |
 | Home | [light](screenshots/light-home.png) | [dark](screenshots/dark-home.png) |
 | Deals | [light](screenshots/light-deals.png) | [dark](screenshots/dark-deals.png) |
 | Quick add | [light](screenshots/light-quick-add.png) | [dark](screenshots/dark-quick-add.png) |
@@ -64,4 +73,4 @@ The 390 × 844 light and dark screen captures are in [`docs/screenshots`](screen
 | Mediators | [light](screenshots/light-mediators.png) | [dark](screenshots/dark-mediators.png) |
 | Settings | [light](screenshots/light-settings.png) | [dark](screenshots/dark-settings.png) |
 
-To regenerate them, start the Vite development server and run `node dev-only/capture-design-screenshots.mjs` from `frontend/`. The capture also checks 360px, 768px, and 1280px layouts and confirms the wide-screen app column stays centered at 480px.
+To regenerate them, start the Vite development server and run `node dev-only/capture-design-screenshots.mjs` from `frontend/`. The capture also checks 360px, 768px, and 1280px layouts and confirms the wide-screen app column stays centered at 480px. The landing page is checked at 360px and 1280px too.

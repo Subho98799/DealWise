@@ -1,5 +1,13 @@
 # Changelog
 
+## Net refund model and deal numbering (2026-11)
+### Changed
+- Added migration `0004_deal_less_amount.py`: `refund_amount` is now generated from Paid − Less + Commission. Backfill preserves the previous total (`old refund + old commission`), including refunds above Paid by moving the excess into Commission. Migration NOTICEs report counts for the above-Paid and at-or-below-Paid rules. **Actual row counts are unavailable here because the migration was not applied to a configured database.**
+- Deal requests use Paid, Less, and Commission; deprecated legacy `refund_amount` input remains accepted on create, patch, and sync push for old clients/queued operations. Responses retain generated `refund_amount` and expose gain/loss as `net_amount`. Summary totals and import reconciliation now use net refunds and Commission − Less.
+- Import supports Less header synonyms and legacy-refund derivation/mismatch warnings. Dexie v2 upgrades stored deals and pending outbox operations without dropping offline edits.
+- Updated forms, cards, detail, Home summaries, mediator reminders, and import previews to display the net-refund model. Deal numbers come from the full local active list and are searchable with `12` or `#12`; numbers may shift after deletion or a date change.
+- Added migration conversion fixtures, money/import tests, IndexedDB upgrade coverage, and client-side numbering tests. Database-backed migration upgrade/downgrade/re-upgrade, RLS/FK checks, and backend API tests require `TEST_DATABASE_URL`.
+
 ## PWA install experience (2026-11)
 ### Added
 - Added one shared install hook and native prompt flow across Home, Settings, and Login, with installed detection, 14-day dismissal, iPhone Share instructions, browser-menu steps, and in-app browser link copying.

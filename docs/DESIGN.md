@@ -46,6 +46,8 @@ Use the small primitives in `src/components/ui.tsx`: Button, IconButton, Card, C
 - Generate PWA icons from the palette with `yarn icons`; do not edit generated PNGs by hand.
 - Deal detail timelines expose only the next action allowed by the shared transition rules. Later incomplete steps stay locked with a reason.
 - Deal cards use three progress segments and show net/deadline chips only when they add useful information. Deadline chips follow the user's alert window.
+- Money entry shows Amount paid and Less on the first row, optional Commission on the second, and a live `Paid - Less + Commission = Net refund` breakdown. Cards show the numbered deal and net refund, with Paid, nonzero Less/Commission chips, and gain/loss; detail repeats the breakdown.
+- Deal numbers are stable within the complete local list, including filtered views and mediator lists. Deal search accepts `12` or `#12`; numbers can shift after deletion or a date change.
 - Under reduced motion, headline values render their final amount without starting a count-up. Negative net-return heroes use the muted danger surface.
 - Keep scrollable content clear of the bottom dock with `--nav-height + safe-area inset + 24px` of bottom space.
 

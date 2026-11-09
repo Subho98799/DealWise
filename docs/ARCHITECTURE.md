@@ -61,8 +61,12 @@ flowchart LR
 - **Conflict policy:** last-write-wins per record using `client_updated_at` (device clock, corrected by the server-time offset learned on each pull) compared to the record's last accepted write time. **Limitation:** concurrent edits of the same record on two devices — the later writer overwrites the earlier one entirely for the fields it sent; large clock errors can mis-order writes.
 - **Cold start:** request timeout 70 s; chip shows "Waking server…" after 4 s; exponential backoff 2 s → 60 s.
 - **Account safety:** the local DB records its owner; a different user → wipe. Logout and account deletion wipe IndexedDB and app localStorage keys.
+- **Legacy money upgrade:** Dexie v2 converts existing deal records and queued upsert operations from legacy `refund_amount` to Less/Commission before the outbox syncs. Server `op_id` idempotency is unchanged.
+- **Deal numbering:** the client numbers the complete active local list by `date_taken`, `created_at`, then `id`; filtered views retain those ranks, so numbering works offline. Deleting a deal or changing its date can shift later numbers.
 
 ## Data model
+For deals, `amount_paid` is P, `less_amount` is L, and `commission` is C. Constraints enforce `0 ≤ L ≤ P` and `C ≥ 0`; generated `refund_amount` is the net refund `P - L + C`. `net_amount` is the gain/loss `C - L`. All four monetary values use `numeric(12,2)` in Postgres and decimal strings in JSON; frontend calculations use integer paise. Migration 0004 preserves prior total money back during its backfill by adding old commission to the converted commission. Its downgrade keeps the previous total semantics but loses the separate Less/Commission split.
+
 ```mermaid
 erDiagram
   users ||--o{ sessions : has
@@ -75,7 +79,7 @@ erDiagram
   users { uuid id PK; text google_sub UK; text email; text role; smallint alert_days; text timezone }
   sessions { uuid id PK; uuid user_id FK; text token_hash UK; timestamptz expires_at }
   mediators { uuid id PK; uuid user_id FK; text name; timestamptz updated_at; timestamptz deleted_at }
-  deals { uuid id PK; uuid user_id FK; uuid client_id; uuid mediator_id; uuid import_job_id FK; text mediator_name; date date_taken; numeric amount_paid; numeric refund_amount; numeric commission; date review_deadline; date refund_form_deadline; text review_status; text form_status; text payment_status; timestamptz updated_at; timestamptz deleted_at }
+  deals { uuid id PK; uuid user_id FK; uuid client_id; uuid mediator_id; uuid import_job_id FK; text mediator_name; date date_taken; numeric amount_paid; numeric less_amount; numeric commission; numeric refund_amount; date review_deadline; date refund_form_deadline; text review_status; text form_status; text payment_status; timestamptz created_at; timestamptz updated_at; timestamptz deleted_at }
   sync_ops { uuid user_id PK; uuid op_id PK; uuid record_id }
   import_jobs { uuid id PK; uuid user_id FK; uuid import_id; text status; int rows_imported; numeric total_paid; numeric total_refund; jsonb errors; timestamptz created_at; timestamptz undone_at }
 ```
@@ -83,6 +87,7 @@ erDiagram
 ## Spreadsheet import
 - The browser parses `.xlsx`, `.xls`, and `.csv` in a Web Worker with SheetJS CE 0.20.3, pinned from the official SheetJS distribution. The file stays on the device; only mapped cell values and import options go to the API. The parser handles workbook formats and keeps large parsing work off the UI thread.
 - The user selects a sheet and header row, maps columns, sets date order and status mappings, and previews the server's normalized values, validation errors, duplicates, and reconciliation totals. Preview does not write data. Mapping preferences are stored per user and header set.
+- Less is mapped from `less`, `deduction`, `discount`, `cut`, or `mediator less`. A mapped legacy Refund without Less is converted per row into Less and Commission and the derivation is shown in preview; explicit Less wins and a mismatch with mapped Refund is warned. Existing-deal matches include the server deal ID so the client can display its offline number.
 - Commit sends online batches of at most 500 rows. The server normalizes and validates again, detects existing and within-file duplicates, and uses a per-user import ID plus deterministic row client IDs for retry-safe writes. Each batch returns counts and amount totals; the `import_jobs` record provides history and an error CSV.
 - `import_jobs` has FORCE RLS. Deals reference jobs through `(import_job_id,user_id)`, so a job cannot be attached across users. Undo within 30 days soft-deletes unchanged imported deals, removes mediators created by that import only when now orphaned, and reports rows that changed since import.
 

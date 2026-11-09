@@ -34,12 +34,12 @@ export function SettingsInstallRow() {
   return <InstallAppControl variant="settings" />
 }
 
-export function LoginInstallLink() {
+export function LoginInstallLink({ testId = 'login-install-link' }: { testId?: string } = {}) {
   const { isInstalled } = usePwaInstall()
-  return isInstalled ? null : <InstallAppControl variant="login" />
+  return isInstalled ? null : <InstallAppControl variant="login" testId={testId} />
 }
 
-function InstallAppControl({ variant }: { variant: InstallControlVariant }) {
+function InstallAppControl({ variant, testId }: { variant: InstallControlVariant; testId?: string }) {
   const install = usePwaInstall()
   const [flow, setFlow] = useState<ManualFlow | null>(null)
   const [outcome, setOutcome] = useState<string | null>(null)
@@ -79,7 +79,7 @@ function InstallAppControl({ variant }: { variant: InstallControlVariant }) {
         <span className="settings-install-label">Install app</span>
         <ArrowRight size={18} aria-hidden="true" />
       </button>
-      : <button type="button" data-testid="login-install-link" onClick={() => void handleInstall()} className="login-install-link">Install app</button>
+      : <button type="button" data-testid={testId ?? 'login-install-link'} onClick={() => void handleInstall()} className="login-install-link">Install app</button>
 
   const title = flow === 'in-app' ? 'Open in your browser to install' : flow === 'ios' ? 'Add to Home Screen' : `Install ${APP_NAME}`
 

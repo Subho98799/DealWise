@@ -180,7 +180,7 @@ export default function LoginPage() {
             <p>Sign in with Google, add your first deal, and let the app watch the dates.</p>
             <div className="landing-actions">
               <GoogleSignInButton href={googleLoginHref(next)} testId="login-google-button-final" />
-              <LoginInstallLink />
+              <LoginInstallLink testId="login-install-link-final" />
             </div>
           </div>
         </section>

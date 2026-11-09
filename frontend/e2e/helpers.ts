@@ -32,9 +32,20 @@ export async function serverDeals(userId: string) {
   try {
     await c.query('BEGIN')
     await c.query("SELECT set_config('app.current_user_id', $1, true)", [userId])
-    const { rows } = await c.query('SELECT product, review_status, deleted_at FROM deals')
+    const { rows } = await c.query(`
+      SELECT product, amount_paid, less_amount, commission, refund_amount, review_status, deleted_at
+      FROM deals
+    `)
     await c.query('ROLLBACK')
-    return rows as { product: string; review_status: string; deleted_at: string | null }[]
+    return rows as {
+      product: string
+      amount_paid: string
+      less_amount: string
+      commission: string
+      refund_amount: string
+      review_status: string
+      deleted_at: string | null
+    }[]
   } finally {
     c.release()
   }

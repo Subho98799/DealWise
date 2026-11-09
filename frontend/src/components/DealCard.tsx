@@ -68,7 +68,7 @@ export function DealCard({ deal, number }: { deal: Deal; number: number }) {
       </div>
       <div className="deal-card-money">
         <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted">Net refund</span>
-        <span className="money deal-card-refund">{formatINR(deal.refund_amount)}</span>
+        <span data-testid="deal-card-net-refund" className="money deal-card-refund">{formatINR(deal.refund_amount)}</span>
         <span className="money deal-card-paid">Paid {formatINR(deal.amount_paid)}</span>
       </div>
     </div>

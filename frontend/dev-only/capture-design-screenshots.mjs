@@ -28,7 +28,7 @@ const mediators = [
 function deal(id, product, mediator, date_taken, options = {}) {
   return {
     id, client_id: id, product, platform: options.platform ?? 'Amazon', mediator_id: mediator.id, mediator_name: mediator.name,
-    deal_type: 'review', date_taken, amount_paid: options.paid ?? '1499.00', refund_amount: options.refund ?? '1299.00',
+    deal_type: 'review', date_taken, amount_paid: options.paid ?? '1499.00', less_amount: options.less ?? '100.00',
     commission: options.commission ?? '100.00', review_deadline: options.reviewDeadline ?? plusDays(today, 5),
     refund_form_deadline: options.formDeadline ?? plusDays(today, 12), review_status: options.review ?? 'pending',
     form_status: options.form ?? 'pending', payment_status: options.payment ?? 'pending',
@@ -36,10 +36,10 @@ function deal(id, product, mediator, date_taken, options = {}) {
   }
 }
 const deals = [
-  deal('deal-baskets', 'Linen storage baskets', mediators[0], monthDate(0), { paid: '1499.00', refund: '1299.00', commission: '100.00', reviewDeadline: plusDays(today, -1), notes: 'Keep the packaging until the review is published.' }),
-  deal('deal-keyboard', 'Wireless keyboard', mediators[0], monthDate(-1), { paid: '3499.00', refund: '3200.00', commission: '250.00', review: 'done', formDeadline: plusDays(today, 2) }),
-  deal('deal-bottle', 'Insulated water bottle', mediators[1], monthDate(-2), { paid: '899.00', refund: '899.00', review: 'done', form: 'submitted', formDeadline: null }),
-  deal('deal-organizers', 'Kitchen organizer set', mediators[2], monthDate(-4), { paid: '2199.00', refund: '2199.00', review: 'done', form: 'submitted', payment: 'received', receivedOn: plusDays(today, -6), formDeadline: null }),
+  deal('deal-baskets', 'Linen storage baskets', mediators[0], monthDate(0), { paid: '1499.00', less: '100.00', commission: '100.00', reviewDeadline: plusDays(today, -1), notes: 'Keep the packaging until the review is published.' }),
+  deal('deal-keyboard', 'Wireless keyboard', mediators[0], monthDate(-1), { paid: '3499.00', less: '49.00', commission: '250.00', review: 'done', formDeadline: plusDays(today, 2) }),
+  deal('deal-bottle', 'Insulated water bottle', mediators[1], monthDate(-2), { paid: '899.00', less: '0.00', commission: '0.00', review: 'done', form: 'submitted', formDeadline: null }),
+  deal('deal-organizers', 'Kitchen organizer set', mediators[2], monthDate(-4), { paid: '2199.00', less: '0.00', commission: '0.00', review: 'done', form: 'submitted', payment: 'received', receivedOn: plusDays(today, -6), formDeadline: null }),
 ]
 
 const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) })

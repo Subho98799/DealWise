@@ -7,7 +7,10 @@ export function safeReturnPath(value: unknown): string {
     || !value.startsWith('/')
     || value.startsWith('//')
     || value.includes('\\')
-    || /[\u0000-\u001f\u007f]/.test(value)
+    || [...value].some((character) => {
+      const code = character.charCodeAt(0)
+      return code < 32 || code === 127
+    })
   ) return '/'
 
   try {

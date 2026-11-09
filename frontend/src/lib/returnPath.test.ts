@@ -15,6 +15,7 @@ describe('safeReturnPath', () => {
     '/\\evil.example/path',
     '\\\\evil.example/path',
     'javascript:alert(1)',
+    '/ok\n/x',
     '',
     null,
     12,

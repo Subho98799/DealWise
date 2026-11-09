@@ -8,10 +8,12 @@
 - Status: Phases 1–3 done. Next: Phase 4 (admin and audit). See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Stack
-Python 3.12, FastAPI, SQLAlchemy 2, Alembic, psycopg 3, Authlib, pydantic v2, slowapi, pytest · Node 20.19+, Vite 5, React 18, TS 5, Tailwind 3, React Router 6, TanStack Query 5, Dexie 4, vite-plugin-pwa, Vitest, ESLint, Playwright · Postgres 16 / Neon · Render (API) + Vercel (SPA + `/api` rewrite).
+Python 3.12, FastAPI 0.162 + Starlette 1.10, SQLAlchemy 2, Alembic, psycopg 3, Authlib, pydantic v2, python-dotenv 1.2, slowapi, pytest · Node 20.19+, Vite 5, React 18, TS 5, Tailwind 3, React Router 6, TanStack Query 5, Dexie 4, vite-plugin-pwa, Vitest, ESLint, Playwright · Postgres 16 / Neon · Render (API) + Vercel (SPA + `/api` rewrite).
 
 ## Commands
 `dt` = `scripts/dt.sh <cmd>` (bash/macOS/Linux) or `.\scripts\dt.ps1 <cmd>` (Windows PowerShell). Same commands on both.
+
+Run migrations from your own computer with the owner URL before deploying a release that needs them. Never configure the owner URL or `MIGRATION_DATABASE_URL` in Render; the API runtime must use only the restricted `app_user` URL.
 
 | Task | Command |
 |---|---|
@@ -39,6 +41,8 @@ Python 3.12, FastAPI, SQLAlchemy 2, Alembic, psycopg 3, Authlib, pydantic v2, sl
 8. Never log or commit secrets, tokens, cookies or full emails. `.env` files are git-ignored; CI fails if one is tracked.
 9. Naming lives in one place: backend `app/config.py` (`APP_NAME`, `COOKIE_PREFIX`, `CSRF_HEADER_VALUE`), frontend `src/config/app.ts`.
 10. Service worker never caches `/api`.
+11. Rate limits are per instance: auth endpoints use forwarded IP, authenticated routes use user ID. Verify forwarded-IP trust through Vercel and Render after deployment; do not assume the proxy chain is trusted.
+12. API request bodies are limited to 1 MiB by default, 512 KiB for sync push, and 5 MiB for imports (also the global ceiling). Sync operation data has bounded keys, depth, arrays, and strings.
 
 ## Repo map
 - `backend/app/` FastAPI app: `config` settings+names, `db` engine+`get_user_db`, `auth/` Google login+sessions, `repos/` only table access, `services/` use-cases, `routes/` HTTP, `rules.py` pure business rules, `schemas.py` pydantic I/O.
@@ -51,9 +55,10 @@ Python 3.12, FastAPI, SQLAlchemy 2, Alembic, psycopg 3, Authlib, pydantic v2, sl
 - Migrations: raw SQL via `op.execute`, text + CHECK instead of enums, always a `downgrade`.
 - Frontend: UI reads Dexie via hooks in `data/hooks.ts`; writes via `data/mutations.ts` only (never `fetch` directly; use `lib/api.ts`). Styling uses CSS variables from `src/styles/tokens.css` and the shared UI components. Keep raw hex colors in `tokens.css`; `yarn lint` enforces this. Inter and Plus Jakarta Sans are bundled; use Lucide for icons. The app column is 480px maximum on desktop and supports System, Light, and Dark appearance modes. Every interactive element has a `data-testid`.
 - Small components, no comments beyond one-liners, no new dependency without need.
+- Security findings, reporting guidance, and unmeasured capacity limits live in [SECURITY.md](SECURITY.md), [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md), and [docs/SCALABILITY.md](docs/SCALABILITY.md).
 
 ## Definition of done
 Tests pass (`dt test`, e2e if UI flow changed) · migration included for schema changes (with RLS if per-user) · isolation tests for new per-user data · `docs/IMPLEMENTATION.md` (API table, schema, status) and `CHANGELOG.md` updated · `dt docs` passes · no secrets.
 
 ## Docs
-[ARCHITECTURE](docs/ARCHITECTURE.md) · [IMPLEMENTATION](docs/IMPLEMENTATION.md) · [ROADMAP](docs/ROADMAP.md) · [SETUP_CREDENTIALS](docs/SETUP_CREDENTIALS.md) · [VERIFY_ON_MY_MACHINE](docs/VERIFY_ON_MY_MACHINE.md) · [CHANGELOG](CHANGELOG.md)
+[ARCHITECTURE](docs/ARCHITECTURE.md) · [IMPLEMENTATION](docs/IMPLEMENTATION.md) · [ROADMAP](docs/ROADMAP.md) · [SECURITY](SECURITY.md) · [SECURITY_AUDIT](docs/SECURITY_AUDIT.md) · [SCALABILITY](docs/SCALABILITY.md) · [SETUP_CREDENTIALS](docs/SETUP_CREDENTIALS.md) · [VERIFY_ON_MY_MACHINE](docs/VERIFY_ON_MY_MACHINE.md) · [CHANGELOG](CHANGELOG.md)

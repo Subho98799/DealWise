@@ -31,4 +31,7 @@ Open <http://localhost:5173>.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how it works and why
 - [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) — status, files, API, schema, recipes, testing
 - [docs/VERIFY_ON_MY_MACHINE.md](docs/VERIFY_ON_MY_MACHINE.md) — manual checks with real accounts
+- [SECURITY.md](SECURITY.md) — private vulnerability reporting
+- [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) — findings and implementation status
+- [docs/SCALABILITY.md](docs/SCALABILITY.md) — measured status, constraints, and upgrade path
 - [CHANGELOG.md](CHANGELOG.md)

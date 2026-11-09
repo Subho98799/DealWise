@@ -1,5 +1,14 @@
 # Changelog
 
+# Security hardening (2026-11)
+### Changed
+- Removed owner database credentials and automatic Alembic execution from the API runtime; migrations must be run locally before deployment.
+- Added S256 PKCE, stronger session-secret checks, a 90-day absolute session lifetime, bounded cleanup, and a production `__Host-` session cookie.
+- Keyed authenticated limits by user, added endpoint/body/sync payload bounds, database timeouts, bounded import-job retention, and per-instance/IP-trust documentation.
+- Lazy-loaded import tools, added parser-worker cancellation and timeout, upgraded FastAPI/Starlette/python-dotenv, and added frontend HSTS and Permissions-Policy headers.
+- Added read-only CI permissions, non-blocking dependency audits, and Dependabot configuration. Recorded deferred risks and unmeasured capacity limits in the security and scalability documentation.
+- Added append-only migration 0005 for restricted `app_user` table grants and database timeouts; users/sessions redesign remains deferred. Apply migrations locally before deploying and never configure the owner URL in Render.
+
 ## Generated refund column CI fixes (2026-11)
 ### Fixed
 - Updated the isolation test's direct repository seed to provide `less_amount` and `commission`, leaving generated `refund_amount` to PostgreSQL. Updated deal API fixtures and summary inputs to express the same intended net refunds using the new model.

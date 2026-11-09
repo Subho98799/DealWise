@@ -12,6 +12,9 @@
 - Deal money uses `net refund = amount_paid - less_amount + commission`; `refund_amount` is a generated response/database value, while `net_amount = commission - less_amount`.
 - All errors: `{"error": {"code": "...", "message": "..."}}`.
 - Every private route needs the local `dt_session` cookie or production `__Host-dt_session`; sessions expire after 30 days idle or 90 days absolute. Mutations need `X-Requested-With: dealtracker`.
+- Auth limits are IP-keyed; authenticated limits and stricter import/sync-push limits are user-keyed. All limits are in-memory per instance, and forwarded-IP trust through Vercel/Render must be verified after deployment.
+- API request bodies are limited to 1 MiB by default, 512 KiB for sync push, and 5 MiB for imports (the global ceiling). Sync operation data is bounded; request transactions also set 15-second statement and 30-second idle-transaction timeouts.
+- The API runs without the owner migration URL. Run migrations locally before deploying; migration 0005 applies the runtime grants and role-level timeouts.
 
 ## Status
 | Area | Status |
@@ -71,9 +74,9 @@
 | DELETE | `/api/deals/{deal_id}` | session | soft delete → 204 |
 | POST | `/api/deals/{deal_id}/action` | session | `{action, payment_received_on?}` → Deal (409 `invalid_transition`) |
 | GET | `/api/sync/changes` | session | `?since=ISO&cursor=…&limit=1..500` → `{server_time, deals, mediators, deleted:{deals,mediators}, next_cursor}`; follow pages before advancing the saved sync time |
-| POST | `/api/sync/push` | session | `{ops:[≤100 {op_id,type,op,id,client_id?,data,client_updated_at}]}`; request ≤512 KiB, each data object ≤50 total keys, depth ≤4, arrays ≤100, keys ≤128 chars, strings ≤2,000 chars; legacy queued `refund_amount` is deprecated but converted → `{results:[{op_id,status,reason?,id?}]}` |
-| POST | `/api/import/preview` | session | mapped rows and import options → normalized rows, duplicate matches (including matching deal ID for local numbering), errors, and reconciliation totals; does not write |
-| POST | `/api/import/commit` | session | import id, filename, options, and a batch of up to 500 mapped rows → import job and batch results |
+| POST | `/api/sync/push` | session | `{ops:[≤100 {op_id,type,op,id,client_id?,data,client_updated_at}]}`; request ≤512 KiB and stricter 30/minute per user; each data object ≤50 total keys, depth ≤4, arrays ≤100, keys ≤128 chars, strings ≤2,000 chars; legacy queued `refund_amount` is deprecated but converted → `{results:[{op_id,status,reason?,id?}]}` |
+| POST | `/api/import/preview` | session | ≤5 MiB and 30/hour per user; mapped rows and import options → normalized rows, duplicate matches (including matching deal ID for local numbering), errors, and reconciliation totals; does not write |
+| POST | `/api/import/commit` | session | ≤5 MiB and 10/hour per user; import id, filename, options, and a batch of up to 500 mapped rows → import job and batch results |
 | GET | `/api/import/jobs` | session | → current user's import history |
 | GET | `/api/import/jobs/{job_id}` | session | → import job status, counts, totals, and errors |
 | GET | `/api/import/jobs/{job_id}/errors.csv` | session | → formula-safe CSV error report |
@@ -138,9 +141,11 @@ Migration 0005 revokes table privileges from `app_user` across the public schema
 - Suites: `test_isolation` (RLS at SQL level), `test_deals_api` (endpoints, filters, cursor, summary fixture, isolation, tz boundary), `test_sync` (push/pull, op_id, LWW, isolation), `test_auth` (mocked Google), `test_route_auth` (every private route needs a session), `test_data_access_scan`, `test_rules`, `test_api`.
 - E2E: API running with `DATABASE_URL` = test DB, `yarn build && yarn preview`, `E2E_DATABASE_URL=… yarn e2e`. Sessions are inserted into the DB; there is no login bypass route.
 - PWA installation cannot be fully verified locally: real installation can only be verified on a deployed HTTPS URL on a real phone. The manifest includes the 390×844 light and dark Home screenshots, and Workbox precaches the app shell plus install screenshots.
+- The import page, parser worker, and XLSX code are lazy chunks and are included in the Workbox precache; parser workers terminate on cancellation, error, timeout, or page exit.
 
 ## Known issues / tech debt
 - Rate limits are in-memory per instance. Auth endpoints use forwarded-IP limits; authenticated routes, imports, and sync push use per-user limits. Verify forwarded-IP trust from Vercel through Render after deployment.
+- `SECURITY.md`, `docs/SECURITY_AUDIT.md`, and `docs/SCALABILITY.md` contain reporting, approved residual risks, and the measurements still needed.
 - LWW uses device clocks (offset-corrected by server time on each pull); concurrent edits on two devices: last writer wins per record.
 - `sync_ops` cleanup is opportunistic: pushes remove at most 500 rows older than 30 days. `import_jobs` cleanup runs on new imports and removes at most 100 jobs older than 90 days. Quiet accounts can retain older entries until the next applicable operation. Sync pulls are paginated at 500 rows.
 - Settings changes need a connection (not queued offline). Logout needs a connection (keeps local data otherwise).

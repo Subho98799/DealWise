@@ -1,6 +1,7 @@
 """Pure business rules (no I/O). Mirrored in frontend/src/lib/rules.ts; SQL twins live in app/repos/deals.py."""
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from functools import lru_cache
 from zoneinfo import ZoneInfo, available_timezones
 
@@ -51,6 +52,14 @@ def is_completed(review_status: str, form_status: str, payment_status: str) -> b
 
 def net_amount(amount_paid, refund_amount, commission):
     return refund_amount + commission - amount_paid
+
+
+def legacy_refund_values(amount_paid: Decimal, refund_amount: Decimal,
+                         commission: Decimal) -> tuple[Decimal, Decimal]:
+    """Translate a legacy refund amount into the deduction and commission model."""
+    less_amount = max(amount_paid - refund_amount, Decimal("0.00"))
+    adjusted_commission = commission + max(refund_amount - amount_paid, Decimal("0.00"))
+    return less_amount, adjusted_commission
 
 
 def validate_deal(state: dict) -> None:

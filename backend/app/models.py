@@ -2,7 +2,8 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, ForeignKeyConstraint, Numeric, SmallInteger, Text, UniqueConstraint, func, text
+from sqlalchemy import (Computed, Date, DateTime, ForeignKey, ForeignKeyConstraint, Numeric,
+                        SmallInteger, Text, UniqueConstraint, func, text)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -80,7 +81,10 @@ class Deal(Base):
     deal_type: Mapped[str] = mapped_column(server_default="review")
     date_taken: Mapped[date]
     amount_paid: Mapped[Decimal] = mapped_column(server_default="0")
-    refund_amount: Mapped[Decimal] = mapped_column(server_default="0")
+    less_amount: Mapped[Decimal] = mapped_column(server_default="0")
+    refund_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), Computed("amount_paid - less_amount + commission", persisted=True),
+    )
     commission: Mapped[Decimal] = mapped_column(server_default="0")
     review_deadline: Mapped[date | None]
     refund_form_deadline: Mapped[date | None]

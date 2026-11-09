@@ -10,5 +10,5 @@ itsdangerous==2.2.0
 pydantic==2.10.3
 pydantic-settings==2.7.0
 python-dotenv==1.2.4
-slowapi==0.1.9
+slowapi==0.1.10
 tzdata==2024.2

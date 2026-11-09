@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react'
+import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { AlertTriangle, Circle, CircleCheck, Clock3, X, type LucideIcon } from 'lucide-react'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -134,30 +134,6 @@ export function SegmentedControl<T extends string>({ label, value, options, onCh
       onClick={() => onChange(option.value)}>{option.label}</button>)}
     <span id={id} className="sr-only">Choose {label.toLowerCase()}</span>
   </div>
-}
-
-export function Input({ label, hint, error, id, className = '', ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string }) {
-  const generatedId = useId()
-  const inputId = id ?? generatedId
-  const describedBy = [hint && `${inputId}-hint`, error && `${inputId}-error`].filter(Boolean).join(' ') || undefined
-  return <label className="ui-field" htmlFor={inputId}>
-    <span className="ui-field-label">{label}</span>
-    <input id={inputId} aria-invalid={!!error} aria-describedby={describedBy} className={`ui-input ${className}`} {...props} />
-    {hint && <span id={`${inputId}-hint`} className="ui-field-hint">{hint}</span>}
-    {error && <span id={`${inputId}-error`} className="ui-field-error">{error}</span>}
-  </label>
-}
-
-export function Select({ label, hint, error, id, className = '', children, ...props }: SelectHTMLAttributes<HTMLSelectElement> & { label: string; hint?: string; error?: string }) {
-  const generatedId = useId()
-  const selectId = id ?? generatedId
-  const describedBy = [hint && `${selectId}-hint`, error && `${selectId}-error`].filter(Boolean).join(' ') || undefined
-  return <label className="ui-field" htmlFor={selectId}>
-    <span className="ui-field-label">{label}</span>
-    <select id={selectId} aria-invalid={!!error} aria-describedby={describedBy} className={`ui-input ${className}`} {...props}>{children}</select>
-    {hint && <span id={`${selectId}-hint`} className="ui-field-hint">{hint}</span>}
-    {error && <span id={`${selectId}-error`} className="ui-field-error">{error}</span>}
-  </label>
 }
 
 export function PageTitle({ children, right }: { children: ReactNode; right?: ReactNode }) {

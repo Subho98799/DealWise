@@ -3,6 +3,8 @@ export const APP_NAME = 'DealTracker'
 export const APP_SHORT_NAME = 'Deals'
 export const APP_DESCRIPTION = 'Track review deals, refunds, mediators and deadlines.'
 export const APP_SLUG = 'dealtracker'
+// Replace with the real support mailbox before public launch.
+export const CONTACT_EMAIL = 'support@example.com'
 export const CSRF_HEADER = 'X-Requested-With'
 export const CSRF_HEADER_VALUE = APP_SLUG // must equal backend CSRF_HEADER_VALUE
 export const STORAGE_PREFIX = `${APP_SLUG}:`

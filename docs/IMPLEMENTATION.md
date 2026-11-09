@@ -1,7 +1,7 @@
 # IMPLEMENTATION
 
 **TL;DR**
-- Phases 1–3 are built; Phases 4–6 are not started ([ROADMAP](ROADMAP.md)).
+- Phases 1–3 are built; Phase 5 polish is in progress, while Phase 4 admin and Phase 6 web push are not started ([ROADMAP](ROADMAP.md)).
 - This file is the reference for: status, file map, API table, schema, env vars, change recipes, testing, tech debt.
 - The API table and migration list are machine-checked by `backend/scripts/check_docs.py` (CI) — keep them exact.
 - Invariants live in [AGENTS.md](../AGENTS.md); design reasons in [ARCHITECTURE.md](ARCHITECTURE.md).
@@ -23,7 +23,9 @@
 | P2 tests (pytest, Vitest, Playwright) | done |
 | P3 import normalization, jobs, API, wizard, sync pagination, tests | done |
 | Real Neon / Google / Render / Vercel run | **NOT VERIFIED HERE** (see VERIFY_ON_MY_MACHINE) |
-| P4 admin/audit/support access, P5 polish, P6 push | not started |
+| P4 admin/audit/support access | not started |
+| P5 visual and interaction polish | in progress |
+| P6 optional web push | not started |
 
 ## File map
 | File | Purpose |

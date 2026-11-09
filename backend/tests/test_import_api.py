@@ -1,5 +1,6 @@
 import csv
 import uuid
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -109,6 +110,20 @@ def test_commit_is_idempotent_uses_deterministic_client_id_and_exports_errors(ap
     assert a.get(f"/api/import/jobs/{job['id']}").json()["import_id"] == str(import_id)
 
 
+def test_import_commit_lets_database_generate_net_refund(api):
+    a, _ = api("alice")
+    committed = a.post("/api/import/commit", json=commit_body(
+        uuid.uuid4(),
+        [row("Component import", amount_paid="1100.00", less_amount="100.00", commission="200.00")],
+    ))
+    assert committed.status_code == 200, committed.text
+    assert committed.json()["rows_imported"] == 1
+
+    imported = a.get("/api/deals").json()["items"][0]
+    assert (imported["amount_paid"], imported["less_amount"], imported["commission"],
+            imported["refund_amount"]) == ("1100.00", "100.00", "200.00", "1200.00")
+
+
 def test_generated_messy_csv_fixture_previews_commits_and_undoes(api):
     fixture = Path(__file__).resolve().parents[1].parent / "frontend/src/imports/fixtures/messy-deals.csv"
     with fixture.open(encoding="utf-8-sig", newline="") as file:
@@ -149,10 +164,20 @@ def test_generated_messy_csv_fixture_previews_commits_and_undoes(api):
     preview = a.post("/api/import/preview", json=request_rows(rows, **options)).json()
     assert [item["status"] for item in preview["rows"]] == ["ok", "duplicate", "ok"]
     assert preview["reconciliation"] == {
-        "total_paid": "131199.50", "total_refund": "1399.50", "total_gain_loss": "100.00",
-        "pending_refund": "1399.50",
+        "total_paid": "131199.50", "total_refund": "131299.50", "total_gain_loss": "100.00",
+        "pending_refund": "131299.50",
     }
     assert any("Mapped Less is used" in warning["reason"] for warning in preview["rows"][2]["warnings"])
+    assert (
+        preview["rows"][2]["values"]["amount_paid"],
+        preview["rows"][2]["values"]["less_amount"],
+        preview["rows"][2]["values"]["commission"],
+        preview["rows"][2]["values"]["refund_amount"],
+    ) == ("129900.00", "0.00", "0.00", "129900.00")
+    assert Decimal(preview["reconciliation"]["total_refund"]) == (
+        Decimal(preview["reconciliation"]["total_paid"])
+        + Decimal(preview["reconciliation"]["total_gain_loss"])
+    )
     assert preview["mediators_to_create"] == ["Priya Deals", "New Agent"]
 
     committed = a.post("/api/import/commit", json=commit_body(uuid.uuid4(), rows, **options))

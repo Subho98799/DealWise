@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   hygiene:
     runs-on: ubuntu-latest
@@ -18,6 +21,11 @@ jobs:
       - run: pip install -r backend/requirements.txt
       - name: Doc freshness (routes + migrations in docs/IMPLEMENTATION.md)
         run: python backend/scripts/check_docs.py
+      - name: Python dependency audit (non-blocking)
+        continue-on-error: true
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt
 
   backend:
     runs-on: ubuntu-latest
@@ -61,6 +69,10 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: yarn install --frozen-lockfile
+        working-directory: frontend
+      - name: Yarn dependency audit (non-blocking)
+        continue-on-error: true
+        run: yarn audit --groups dependencies
         working-directory: frontend
       - run: yarn lint && yarn typecheck && yarn test && yarn build
         working-directory: frontend

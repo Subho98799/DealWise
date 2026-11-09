@@ -88,6 +88,34 @@ def test_legacy_refund_conversion_and_less_validation(api):
     assert "Less cannot be more than the amount paid" in invalid.json()["error"]["message"]
 
 
+def test_legacy_refund_service_normalizes_string_money_and_rejects_malformed_values():
+    from decimal import Decimal
+
+    from app.errors import AppError
+    from app.services.deals import _normalize_legacy_refund
+
+    values = {
+        "amount_paid": "1100.00",
+        "refund_amount": "1200.00",
+        "commission": "25.00",
+    }
+    _normalize_legacy_refund(values)
+    assert values == {
+        "amount_paid": Decimal("1100.00"),
+        "less_amount": Decimal("0.00"),
+        "commission": Decimal("125.00"),
+    }
+
+    with pytest.raises(AppError) as error:
+        _normalize_legacy_refund({
+            "amount_paid": "1100.00",
+            "refund_amount": "not money",
+            "commission": "25.00",
+        })
+    assert error.value.status == 422
+    assert "refund_amount" in error.value.message
+
+
 def test_client_id_idempotent(api):
     a, _ = api("alice")
     cid = "11111111-1111-4111-8111-111111111111"

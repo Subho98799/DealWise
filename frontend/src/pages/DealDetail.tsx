@@ -1,17 +1,20 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Check, Circle, CircleCheck, Clock3, LockKeyhole, PencilLine, Trash2 } from 'lucide-react'
-import { useDeal, useToday, useUser } from '../data/hooks'
+import { useDeal, useDeals, useToday, useUser } from '../data/hooks'
 import { dealAction, deleteDeal, updateDeal } from '../data/mutations'
 import { useToast } from '../components/Toast'
 import { btn, Empty, PageTitle, Skeleton } from '../components/ui'
 import { ACTION_LABEL, evaluate, netPaise, nextAction, type Action } from '../lib/rules'
 import { formatINR, refundBreakdown } from '../lib/money'
 import { countdown, formatShort } from '../lib/dates'
+import { numberDeals } from '../lib/dealNumbers'
 
 export default function DealDetailPage() {
   const { id } = useParams()
   const deal = useDeal(id)
+  const deals = useDeals()
+  const numbering = useMemo(() => deals ? numberDeals(deals) : undefined, [deals])
   const me = useUser()
   const today = useToday()
   const toast = useToast()
@@ -43,6 +46,7 @@ export default function DealDetailPage() {
       <PageTitle right={<Link to={`/deals/${deal.id}/edit`} data-testid="deal-edit-link" className={`${btn.ghost} flex items-center gap-2`}><PencilLine size={16} aria-hidden="true" />Edit</Link>}>
         <span data-testid="deal-detail-product">{deal.product}</span>
       </PageTitle>
+      {numbering && <p data-testid="deal-detail-number" className="mb-3 text-sm font-semibold text-muted">Deal #{numbering.byId.get(deal.id)} of {numbering.total}</p>}
       <section className="deal-detail-hero" aria-label="Deal net refund summary">
         <span className="section-eyebrow">Net refund</span>
         <strong className="deal-detail-net money">{formatINR(deal.refund_amount)}</strong>

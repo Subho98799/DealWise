@@ -54,9 +54,10 @@ class ImportRepo:
 
     def existing_deal_values(self) -> list[tuple]:
         stmt = (
-            select(Deal.product, Deal.date_taken, Deal.amount_paid, Deal.mediator_name, Mediator.name)
+            select(Deal.id, Deal.product, Deal.date_taken, Deal.amount_paid, Deal.mediator_name, Mediator.name)
             .outerjoin(Mediator, (Mediator.id == Deal.mediator_id) & (Mediator.user_id == Deal.user_id))
             .where(Deal.user_id == CURRENT_USER_ID, Deal.deleted_at.is_(None))
+            .order_by(Deal.date_taken, Deal.created_at, Deal.id)
         )
         return list(self._s.execute(stmt).all())
 

@@ -11,7 +11,7 @@ import { formatINR } from '../lib/money'
 import { countdown } from '../lib/dates'
 import type { Deal } from '../data/types'
 
-export function DealCard({ deal }: { deal: Deal }) {
+export function DealCard({ deal, number }: { deal: Deal; number: number }) {
   const me = useUser()
   const today = useToday()
   const toast = useToast()
@@ -59,6 +59,7 @@ export function DealCard({ deal }: { deal: Deal }) {
     onTouchStartCapture={onTouchStart} onTouchEndCapture={onTouchEnd}>
     <div className="deal-card-top">
       <div className="min-w-0 flex-1">
+        <span className="mb-1 block text-xs font-semibold text-muted" data-testid="deal-card-number">#{number}</span>
         <Link to={`/deals/${deal.id}`} className="deal-card-product" data-testid="deal-card-product">{deal.product}</Link>
         <div className="mt-2 flex min-w-0 items-center gap-2">
           <Avatar name={deal.mediator_name ?? deal.platform ?? 'Deal'} url={null} size={28} />

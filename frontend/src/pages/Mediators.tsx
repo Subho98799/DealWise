@@ -8,6 +8,7 @@ import { Avatar } from '../components/Avatar'
 import { btn, Empty, input, PageTitle, Skeleton } from '../components/ui'
 import { formatINR, toPaise } from '../lib/money'
 import type { Deal } from '../data/types'
+import { numberDeals } from '../lib/dealNumbers'
 
 function whatsappNumber(contact: string | null): string | null {
   if (!contact) return null
@@ -81,6 +82,7 @@ export function MediatorDetailPage() {
   const navigate = useNavigate()
   const meds = useMediators()
   const deals = useDeals()
+  const numbering = useMemo(() => deals ? numberDeals(deals) : undefined, [deals])
   const mediator = meds?.find((item) => item.id === id)
   const [name, setName] = useState<string | null>(null)
   const [confirm, setConfirm] = useState(false)
@@ -122,7 +124,7 @@ export function MediatorDetailPage() {
       </section>
       <section className="mediator-deals-section">
         <div className="mediator-deals-heading"><div><span className="section-eyebrow">History</span><h2 className="section-title">Deals</h2></div><span className="deal-progress-count">{theirs.length}</span></div>
-        <div className="space-y-3">{theirs.length ? theirs.map((deal) => <DealCard key={deal.id} deal={deal} />) : <Empty title="No deals with this mediator">Add a deal and choose this mediator to see it here.</Empty>}</div>
+        <div className="space-y-3">{theirs.length ? theirs.map((deal) => <DealCard key={deal.id} deal={deal} number={numbering!.byId.get(deal.id)!} />) : <Empty title="No deals with this mediator">Add a deal and choose this mediator to see it here.</Empty>}</div>
       </section>
       <section className="mediator-danger-zone">
         <div><h2>Delete mediator</h2><p>Existing deals will keep their saved mediator name.</p></div>

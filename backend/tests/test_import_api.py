@@ -68,6 +68,22 @@ def test_preview_applies_user_status_maps_and_nested_defaults(api):
     assert result["unrecognized_status_values"] == {}
 
 
+def test_preview_identifies_matching_existing_deal_for_local_numbering(api):
+    a, _ = api("alice")
+    committed = a.post("/api/import/commit", json=commit_body(
+        uuid.uuid4(), [row(platform="Amazon", mediator="Ravi", amount_paid="1299.50")],
+    ))
+    assert committed.status_code == 200, committed.text
+    deal_id = a.get("/api/deals").json()["items"][0]["id"]
+
+    preview = a.post("/api/import/preview", json=request_rows([
+        row(platform="Amazon", mediator="Ravi", amount_paid="1299.50"),
+    ])).json()
+
+    assert preview["rows"][0]["status"] == "duplicate"
+    assert preview["rows"][0]["existing_deal_id"] == deal_id
+
+
 def test_commit_is_idempotent_uses_deterministic_client_id_and_exports_errors(api):
     a, _ = api("alice")
     import_id = uuid.uuid4()

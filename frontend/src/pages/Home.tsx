@@ -13,6 +13,7 @@ import { countdown } from '../lib/dates'
 import { formatINR } from '../lib/money'
 import type { Deal } from '../data/types'
 import { monthlyOverview } from './homeData'
+import { numberDeals } from '../lib/dealNumbers'
 
 function useFirstCountUp(target: number, ready: boolean) {
   const [value, setValue] = useState(0)
@@ -56,6 +57,7 @@ export default function HomePage() {
   const deals = useDeals()
   const mediators = useMediators()
   const summary = useSummary(deals)
+  const numbering = useMemo(() => deals ? numberDeals(deals) : undefined, [deals])
   const pendingAnimation = useFirstCountUp(summary?.pending ?? 0, !!summary)
   const pendingForDisplay = pendingAnimation.value
   const urgent = deals ? sortDeals(deals.filter((deal) => evaluate(deal, today, me.alert_days).isUrgent), 'urgency') : []
@@ -73,6 +75,7 @@ export default function HomePage() {
     <header className="home-greeting">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Your deals, at a glance</p>
       <h1 data-testid="home-user-name" className="mt-1 truncate font-display text-2xl font-bold tracking-tight">Welcome back, {me.name?.split(' ')[0] ?? 'there'}</h1>
+      {deals && <p data-testid="home-deal-count" className="mt-1 text-sm text-muted">{deals.length} deals - {summary?.open ?? 0} open</p>}
     </header>
 
     {!summary ? <Skeleton rows={2} /> : <>
@@ -115,7 +118,7 @@ export default function HomePage() {
         {urgent.length > 0 && <Link to="/deals?chip=needs_action" className="inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold text-primary">See all <ArrowRight size={16} aria-hidden="true" /></Link>}
       </div>
       {!deals ? <Skeleton rows={2} /> : urgent.length ? <div data-testid="urgent-list" className="urgent-carousel -mx-gutter flex snap-x gap-3 overflow-x-auto px-gutter pb-2">
-        {urgent.map((deal) => <UrgentDeal key={deal.id} deal={deal} today={today} alertDays={me.alert_days} />)}
+        {urgent.map((deal) => <UrgentDeal key={deal.id} deal={deal} number={numbering!.byId.get(deal.id)!} today={today} alertDays={me.alert_days} />)}
       </div> : <EmptyState title="Nothing urgent today" testId="urgent-empty">You’re all caught up. We’ll flag a deal when a deadline needs your attention.</EmptyState>}
     </section>
 
@@ -147,7 +150,7 @@ export default function HomePage() {
         <div><p className="section-eyebrow">Latest activity</p><h2 id="recent-deals-title" className="section-title">Recent deals</h2></div>
         {!!deals?.length && <Link to="/deals" className="inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold text-primary">See all <ArrowRight size={16} aria-hidden="true" /></Link>}
       </div>
-      {!deals ? <Skeleton rows={2} /> : recent.length ? <div className="space-y-3">{recent.map((deal) => <DealCard key={deal.id} deal={deal} />)}</div> : <EmptyState title="Start with your first deal">
+      {!deals ? <Skeleton rows={2} /> : recent.length ? <div className="space-y-3">{recent.map((deal) => <DealCard key={deal.id} deal={deal} number={numbering!.byId.get(deal.id)!} />)}</div> : <EmptyState title="Start with your first deal">
         <p>Track what you paid, what’s coming back, and when to follow up.</p>
         <Link to="/deals/new" className="mt-3 inline-flex min-h-[44px] items-center font-semibold text-primary">Add a deal <ArrowRight size={16} className="ml-1" aria-hidden="true" /></Link>
       </EmptyState>}
@@ -155,7 +158,7 @@ export default function HomePage() {
   </div>
 }
 
-function UrgentDeal({ deal, today, alertDays }: { deal: Deal; today: string; alertDays: number }) {
+function UrgentDeal({ deal, number, today, alertDays }: { deal: Deal; number: number; today: string; alertDays: number }) {
   const toast = useToast()
   const urgency = evaluate(deal, today, alertDays)
   const action = nextAction(deal)
@@ -169,6 +172,7 @@ function UrgentDeal({ deal, today, alertDays }: { deal: Deal; today: string; ale
     <div className="urgent-card-heading">
       <div className="min-w-0">
         <p className="urgent-card-title font-display text-base font-bold">{deal.product}</p>
+        <span className="text-xs font-semibold text-muted">#{number}</span>
         {urgency.due && <Chip className="urgent-card-deadline" variant={urgency.isOverdue ? 'danger' : 'warning'}>{countdown(urgency.due, today)}</Chip>}
         <p className="mt-1 truncate text-xs text-muted">{deal.mediator_name || deal.platform || 'No mediator yet'}</p>
       </div>

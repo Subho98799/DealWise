@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, apiBlob } from '../lib/api'
-import { useUser } from '../data/hooks'
+import { useDeals, useUser } from '../data/hooks'
 import { btn, input, PageTitle } from '../components/ui'
 import { IMPORT_TARGETS, blankMapping, loadMapping, saveMapping, suggestMappings, type ColumnMapping, type ImportField } from '../imports/mapping'
 import { countDataRows, isSupportedImportFile, MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, suggestHeaderRow, type WorkbookPreview } from '../imports/workbook'
 import { downloadCsvTemplate, downloadXlsxTemplate } from '../imports/template'
+import { numberDeals } from '../lib/dealNumbers'
 
 type Step = 'upload' | 'sheet' | 'map' | 'fix' | 'review' | 'result'
 type DateOrder = 'dmy' | 'mdy'
@@ -26,6 +27,7 @@ type PreviewRow = {
   will_import: boolean
   duplicate_of: number | null
   duplicate_reason: string | null
+  existing_deal_id?: string | null
   values: Record<string, unknown>
   errors: { field: string; reason: string }[]
   warnings: { field: string; reason: string }[]
@@ -122,6 +124,8 @@ function downloadBlob(blob: Blob, filename: string) {
 
 export default function ImportPage() {
   const me = useUser()
+  const deals = useDeals()
+  const numbering = useMemo(() => deals ? numberDeals(deals) : undefined, [deals])
   const online = useOnline()
   const workerRef = useRef<Worker | null>(null)
   const previewSequence = useRef(0)
@@ -527,12 +531,18 @@ export default function ImportPage() {
             {([['ok', 'Will import', preview.counts.will_import], ['duplicate', 'Duplicates', preview.counts.duplicates], ['error', 'Errors', preview.counts.errors]] as const).map(([tab, label, count]) => <button key={tab} role="tab" aria-selected={previewTab === tab} data-testid={`import-tab-${tab}`} className={`${btn.ghost} shrink-0 ${previewTab === tab ? 'border-primary text-primary' : ''}`} onClick={() => { setPreviewTab(tab); setPreviewPage(0) }}>{label} ({count})</button>)}
           </div>
           <div className="space-y-2" data-testid="import-preview-rows">
-            {pageRows.length === 0 ? <p className="rounded-sm border border-dashed border-line p-4 text-center text-sm text-muted">No rows in this tab.</p> : pageRows.map((row) => <article key={row.row_number} className="rounded-sm border border-line p-3 text-sm">
-              <div className="flex items-start justify-between gap-2"><b>Row {sourceLines[row.row_number - 1] ?? row.row_number}</b><span className="rounded-pill bg-surface-2 px-2 py-1 text-xs font-bold">{row.status === 'ok' ? 'Ready' : row.status}</span></div>
-              <p className="mt-1 truncate font-semibold">{String(row.values.product ?? 'Unnamed product')} · {inr(String(row.values.amount_paid ?? 0))} · {String(row.values.date_taken ?? 'No date')}</p>
-              {row.duplicate_reason && <p className="mt-1 text-muted">{row.duplicate_reason}</p>}
-              {[...row.errors, ...row.warnings].map((issue, index) => <p key={`${issue.field}-${index}`} className={row.errors.includes(issue) ? 'mt-1 text-danger' : 'mt-1 text-muted'}>{humanize(issue.field)}: {issue.reason}</p>)}
-            </article>)}
+            {pageRows.length === 0 ? <p className="rounded-sm border border-dashed border-line p-4 text-center text-sm text-muted">No rows in this tab.</p> : pageRows.map((row) => {
+              const existingNumber = row.existing_deal_id ? numbering?.byId.get(row.existing_deal_id) : undefined
+              return <article key={row.row_number} className="rounded-sm border border-line p-3 text-sm">
+                <div className="flex items-start justify-between gap-2"><b>Row {sourceLines[row.row_number - 1] ?? row.row_number}</b><span className="rounded-pill bg-surface-2 px-2 py-1 text-xs font-bold">{row.status === 'ok' ? 'Ready' : row.status}</span></div>
+                <p className="mt-1 truncate font-semibold">{String(row.values.product ?? 'Unnamed product')} · {inr(String(row.values.amount_paid ?? 0))} · {String(row.values.date_taken ?? 'No date')}</p>
+                {row.duplicate_reason && <p className="mt-1 text-muted">{row.duplicate_reason}</p>}
+                {row.existing_deal_id && <p className="mt-1 text-muted">
+                  {existingNumber ? <Link to={`/deals/${row.existing_deal_id}`} className="font-semibold text-primary">Existing deal #{existingNumber}</Link> : 'Existing deal (not on this device)'}
+                </p>}
+                {[...row.errors, ...row.warnings].map((issue, index) => <p key={`${issue.field}-${index}`} className={row.errors.includes(issue) ? 'mt-1 text-danger' : 'mt-1 text-muted'}>{humanize(issue.field)}: {issue.reason}</p>)}
+              </article>
+            })}
           </div>
           <div className="flex items-center justify-between text-sm"><span>Page {previewPage + 1} of {pageCount} · 50 rows per page</span><div className="flex gap-2"><button type="button" className={btn.ghost} disabled={!previewPage} onClick={() => setPreviewPage((page) => Math.max(0, page - 1))}>Previous</button><button type="button" className={btn.ghost} disabled={previewPage + 1 >= pageCount} onClick={() => setPreviewPage((page) => Math.min(pageCount - 1, page + 1))}>Next</button></div></div>
         </>}

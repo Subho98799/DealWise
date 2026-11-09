@@ -43,6 +43,7 @@ class PreparedRow:
     will_import: bool
     duplicate_of: int | None = None
     duplicate_reason: str | None = None
+    existing_deal_id: uuid.UUID | None = None
     mediator_key: str = ""
     original_mediator_name: str | None = None
 
@@ -100,10 +101,11 @@ def _prepare(
     repo = ImportRepo(session)
     existing_mediators = MediatorRepo(session).list()
     mediator_by_key = {_mediator_key(m.name): m for m in existing_mediators}
-    existing_deal_keys = {
-        _deal_key(product, taken, amount, mediator_name or joined_name)
-        for product, taken, amount, mediator_name, joined_name in repo.existing_deal_values()
-    }
+    existing_deal_keys = {}
+    for deal_id, product, taken, amount, mediator_name, joined_name in repo.existing_deal_values():
+        existing_deal_keys.setdefault(
+            _deal_key(product, taken, amount, mediator_name or joined_name), deal_id,
+        )
 
     prepared: list[PreparedRow] = []
     seen: dict[tuple, int] = {}
@@ -118,14 +120,15 @@ def _prepare(
             continue
         key = _deal_key(values["product"], values["date_taken"], values["amount_paid"], mediator_name)
         duplicate_of = seen.get(key)
-        existing_duplicate = key in existing_deal_keys
+        existing_deal_id = existing_deal_keys.get(key)
         if duplicate_of is not None:
             entry.status = "duplicate"
             entry.duplicate_of = duplicate_of
             entry.duplicate_reason = f"Matches row {duplicate_of} in this file"
-        elif existing_duplicate:
+        elif existing_deal_id:
             entry.status = "duplicate"
             entry.duplicate_reason = "Matches an existing deal"
+            entry.existing_deal_id = existing_deal_id
         else:
             entry.status = "ok"
         seen.setdefault(key, index)
@@ -165,6 +168,7 @@ def _preview_response(
         will_import=entry.will_import,
         duplicate_of=entry.duplicate_of,
         duplicate_reason=entry.duplicate_reason,
+        existing_deal_id=entry.existing_deal_id,
         values=_public_values(entry.result),
         errors=entry.result.errors,
         warnings=entry.result.warnings,

@@ -5,6 +5,7 @@ import { useDeals, useToday, useUser } from '../data/hooks'
 import { DealCard } from '../components/DealCard'
 import { Button, EmptyState, IconButton, PageTitle, Sheet, Skeleton } from '../components/ui'
 import { CHIPS, matchesChip, sortDeals, type Chip, type Sort } from '../lib/rules'
+import { numberDeals } from '../lib/dealNumbers'
 
 const SORTS: { value: Sort; label: string; detail: string }[] = [
   { value: 'urgency', label: 'Urgent first', detail: 'Closest deadlines at the top' },
@@ -28,25 +29,32 @@ export default function DealsPage() {
     setParams(next, { replace: true })
   }
 
+  const numbering = useMemo(() => deals ? numberDeals(deals) : undefined, [deals])
   const list = useMemo(() => {
     if (!deals) return undefined
     const needle = q.trim().toLowerCase()
-    const filtered = deals.filter((deal) => matchesChip(deal, chip, today, me.alert_days) &&
-      (!needle || deal.product.toLowerCase().includes(needle) || (deal.notes ?? '').toLowerCase().includes(needle)))
+    const numberQuery = /^#?\d+$/.test(needle) ? Number(needle.replace(/^#/, '')) : null
+    const filtered = deals.filter((deal) => numberQuery !== null
+      ? numbering?.byId.get(deal.id) === numberQuery
+      : matchesChip(deal, chip, today, me.alert_days) &&
+        (!needle || deal.product.toLowerCase().includes(needle) || (deal.notes ?? '').toLowerCase().includes(needle)))
     return sortDeals(filtered, sort)
-  }, [deals, chip, sort, q, today, me.alert_days])
+  }, [deals, numbering, chip, sort, q, today, me.alert_days])
   const counts = useMemo(() => new Map(CHIPS.map(([id]) => [id, deals?.filter((deal) => matchesChip(deal, id, today, me.alert_days)).length ?? 0])), [deals, today, me.alert_days])
   const currentSort = SORTS.find((option) => option.value === sort)?.label ?? SORTS[0].label
+  const isFiltered = chip !== 'all' || !!q.trim()
 
   return <div data-testid="deals-page" className="deals-page">
-    <PageTitle right={list ? <span className="text-sm font-semibold text-muted">{list.length} {list.length === 1 ? 'deal' : 'deals'}</span> : undefined}>Deals</PageTitle>
+    <PageTitle right={list && deals ? <span data-testid="deals-count" className="text-sm font-semibold text-muted">
+      {isFiltered ? `${list.length} of ${deals.length}` : deals.length} {deals.length === 1 ? 'deal' : 'deals'}
+    </span> : undefined}>Deals</PageTitle>
     <div className="deals-controls">
       <div className="deals-search-row">
         <div className="deals-search-field">
           <label className="sr-only" htmlFor="deals-search">Search deals</label>
           <Search size={18} aria-hidden="true" className="deals-search-icon" />
           <input id="deals-search" data-testid="deals-search-input" value={q} onChange={(event) => set('q', event.target.value)}
-            placeholder="Search deals" aria-label="Search product or notes" className="deals-search-input" />
+            placeholder="Search deals or #12" aria-label="Search product, notes or deal number" className="deals-search-input" />
           {q && <IconButton label="Clear search" className="deals-search-clear" onClick={() => set('q', '')}><X size={17} aria-hidden="true" /></IconButton>}
         </div>
         <button data-testid="deals-sort-button" aria-label={`Sort deals: ${currentSort}`} onClick={() => setSortOpen(true)} className="deals-sort-button">
@@ -62,7 +70,7 @@ export default function DealsPage() {
     </div>
 
     <div className="mt-4 space-y-3" data-testid="deals-list">
-      {!list ? <Skeleton rows={3} /> : list.length ? list.map((deal) => <DealCard key={deal.id} deal={deal} />) : <EmptyState title={deals?.length ? 'No deals match' : 'No deals yet'} testId="deals-empty">
+      {!list ? <Skeleton rows={3} /> : list.length ? list.map((deal) => <DealCard key={deal.id} deal={deal} number={numbering!.byId.get(deal.id)!} />) : <EmptyState title={deals?.length ? 'No deals match' : 'No deals yet'} testId="deals-empty">
         {deals?.length ? 'Try a different filter or search.' : <><span>Tap + to add your first deal, or </span><Link to="/import" data-testid="deals-import-link" className="font-semibold text-primary">import a spreadsheet</Link><span>.</span></>}
       </EmptyState>}
     </div>

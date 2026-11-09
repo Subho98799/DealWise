@@ -282,6 +282,7 @@ class ImportPreviewRow(BaseModel):
     will_import: bool
     duplicate_of: int | None = None
     duplicate_reason: str | None = None
+    existing_deal_id: uuid.UUID | None = None
     values: dict[str, Any]
     errors: list[dict[str, str]]
     warnings: list[dict[str, str]]

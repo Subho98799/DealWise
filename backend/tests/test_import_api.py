@@ -45,8 +45,11 @@ def test_preview_normalizes_duplicates_errors_totals_and_writes_nothing(api):
     assert result["unrecognized_status_values"] == {"review_status": ["Mystery state"]}
     assert result["mediators_to_create"] == ["Ravi-Kumar"]
     assert result["reconciliation"] == {
-        "total_paid": "1299.50", "total_refund": "1500.00", "pending_refund": "1500.00",
+        "total_paid": "1299.50", "total_refund": "1500.00", "total_gain_loss": "200.50",
+        "pending_refund": "1500.00",
     }
+    assert result["rows"][0]["values"]["less_amount"] == "0.00"
+    assert any("Legacy refund converted" in warning["reason"] for warning in result["rows"][0]["warnings"])
     assert a.get("/api/deals").json()["items"] == []
     assert a.get("/api/mediators").json() == []
     assert a.get("/api/import/jobs").json() == []
@@ -75,7 +78,7 @@ def test_commit_is_idempotent_uses_deterministic_client_id_and_exports_errors(ap
     assert job["status"] == "committed"
     assert (job["rows_total"], job["rows_imported"], job["rows_failed"], job["mediators_created"]) == (2, 1, 1, 1)
     assert job["total_paid"] == "1299.50"
-    assert job["total_refund"] == "0.00"
+    assert job["total_refund"] == "1299.50"
     assert len(job["errors"]) == 3
     items = a.get("/api/deals").json()["items"]
     assert len(items) == 1
@@ -102,6 +105,8 @@ def test_generated_messy_csv_fixture_previews_commits_and_undoes(api):
         "deal_type": "Deal type",
         "date_taken": "Order Date",
         "amount_paid": "Price Paid",
+        "less_amount": "Less",
+        "commission": "Commission",
         "refund_amount": "Refunded Amount",
         "review_status": "Review Status",
         "form_status": "Form Status",
@@ -128,8 +133,10 @@ def test_generated_messy_csv_fixture_previews_commits_and_undoes(api):
     preview = a.post("/api/import/preview", json=request_rows(rows, **options)).json()
     assert [item["status"] for item in preview["rows"]] == ["ok", "duplicate", "ok"]
     assert preview["reconciliation"] == {
-        "total_paid": "131199.50", "total_refund": "1299.00", "pending_refund": "1299.00",
+        "total_paid": "131199.50", "total_refund": "1399.50", "total_gain_loss": "100.00",
+        "pending_refund": "1399.50",
     }
+    assert any("Mapped Less is used" in warning["reason"] for warning in preview["rows"][2]["warnings"])
     assert preview["mediators_to_create"] == ["Priya Deals", "New Agent"]
 
     committed = a.post("/api/import/commit", json=commit_body(uuid.uuid4(), rows, **options))
@@ -161,7 +168,8 @@ def test_import_duplicate_policy_reconciles_to_the_rows_that_commit(api):
     assert preview["counts"]["will_import"] == 2
     assert preview["counts"]["duplicates"] == 1
     assert preview["reconciliation"] == {
-        "total_paid": "25.00", "total_refund": "24.00", "pending_refund": "24.00",
+        "total_paid": "25.00", "total_refund": "24.00", "total_gain_loss": "-1.00",
+        "pending_refund": "24.00",
     }
     job = a.post("/api/import/commit", json=commit_body(uuid.uuid4(), rows, **options)).json()
     assert job["rows_imported"] == 2 and job["rows_skipped_duplicate"] == 0

@@ -216,9 +216,9 @@ class SummaryOut(BaseModel):
 
 
 IMPORT_FIELDS = {
-    "product", "platform", "mediator", "deal_type", "date_taken", "amount_paid", "refund_amount",
-    "commission", "review_deadline", "refund_form_deadline", "review_status", "form_status",
-    "payment_status", "payment_received_on", "notes",
+    "product", "platform", "mediator", "deal_type", "date_taken", "amount_paid", "less_amount",
+    "refund_amount", "commission", "review_deadline", "refund_form_deadline", "review_status",
+    "form_status", "payment_status", "payment_received_on", "notes",
 }
 
 
@@ -302,6 +302,7 @@ class ImportMediatorMatch(BaseModel):
 class ImportReconciliation(BaseModel):
     total_paid: str
     total_refund: str
+    total_gain_loss: str
     pending_refund: str
 
 

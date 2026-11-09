@@ -144,8 +144,43 @@ def test_default_date_statuses_deal_type_and_warnings():
     assert row.unrecognized_statuses == {"review_status": "Awaiting seller"}
     assert any(error["field"] == "review_status" for error in row.errors)
     assert any(warning["field"] == "refund_amount" for warning in row.warnings)
-    zero_refund = normalize_import_row({"product": "x", "amount_paid": "1", "date_taken": "2026-11-08"}, today=date(2026, 11, 8))
-    assert any("zero" in warning["reason"] for warning in zero_refund.warnings)
+    no_adjustment = normalize_import_row({"product": "x", "amount_paid": "1", "date_taken": "2026-11-08"}, today=date(2026, 11, 8))
+    assert no_adjustment.values["refund_amount"] == Decimal("1.00")
+
+
+def test_import_legacy_refund_derives_less_and_commission_with_preview_message():
+    less = normalize_import_row({
+        "product": "x", "amount_paid": "1100", "refund_amount": "1000",
+        "commission": "200", "date_taken": "2026-11-08",
+    }, today=date(2026, 11, 8))
+    assert (less.values["less_amount"], less.values["commission"], less.values["refund_amount"]) == (
+        Decimal("100.00"), Decimal("200.00"), Decimal("1200.00"),
+    )
+    assert any("Legacy refund converted" in warning["reason"] for warning in less.warnings)
+
+    over = normalize_import_row({
+        "product": "x", "amount_paid": "1100", "refund_amount": "1200",
+        "commission": "50", "date_taken": "2026-11-08",
+    }, today=date(2026, 11, 8))
+    assert (over.values["less_amount"], over.values["commission"], over.values["refund_amount"]) == (
+        Decimal("0.00"), Decimal("150.00"), Decimal("1250.00"),
+    )
+
+
+def test_mapped_less_wins_over_refund_and_oversized_less_is_rejected():
+    mismatch = normalize_import_row({
+        "product": "x", "amount_paid": "1100", "less_amount": "100",
+        "commission": "0", "refund_amount": "1050", "date_taken": "2026-11-08",
+    }, today=date(2026, 11, 8))
+    assert mismatch.values["refund_amount"] == Decimal("1000.00")
+    assert any("Mapped Less is used" in warning["reason"] for warning in mismatch.warnings)
+
+    oversized = normalize_import_row({
+        "product": "x", "amount_paid": "100", "less_amount": "100.01",
+        "date_taken": "2026-11-08",
+    }, today=date(2026, 11, 8))
+    assert any(issue["field"] == "less_amount" and "cannot be more" in issue["reason"]
+               for issue in oversized.errors)
 
 
 def test_deadline_before_taken_future_and_old_dates_are_diagnostics():

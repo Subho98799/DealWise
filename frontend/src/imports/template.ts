@@ -1,10 +1,10 @@
 export const TEMPLATE_HEADERS = [
-  'Product', 'Platform', 'Mediator', 'Deal type', 'Date taken', 'Amount paid', 'Refund amount', 'Commission',
+  'Product', 'Platform', 'Mediator', 'Deal type', 'Date taken', 'Amount paid', 'Less', 'Commission',
   'Review deadline', 'Refund form deadline', 'Review status', 'Form status', 'Payment status', 'Payment received on', 'Notes',
 ]
 
 const EXAMPLE_ROW = [
-  'Insulated water bottle', 'Amazon', 'Priya Deals', 'Review', '08/11/2026', '₹1,299.00', '1,500', '0',
+  'Insulated water bottle', 'Amazon', 'Priya Deals', 'Review', '08/11/2026', '₹1,299.00', '100', '200',
   '15/11/2026', '20/11/2026', 'Pending', 'Not yet', 'Pending', '', 'Example row — replace or remove this row',
 ]
 

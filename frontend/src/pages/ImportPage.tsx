@@ -36,7 +36,7 @@ type Preview = {
   unrecognized_status_values: Partial<Record<StatusField, string[]>>
   mediators_to_create: string[]
   existing_mediators: { input_name: string; existing_name: string }[]
-  reconciliation: { total_paid: string; total_refund: string; pending_refund: string }
+  reconciliation: { total_paid: string; total_refund: string; total_gain_loss: string; pending_refund: string }
 }
 type ImportJob = {
   id: string
@@ -518,7 +518,7 @@ export default function ImportPage() {
             <Summary label="Errors" value={preview.counts.errors} />
           </div>
           <label className="flex items-center gap-3 rounded-sm border border-line p-3 text-sm font-semibold"><input data-testid="import-duplicate-policy" type="checkbox" checked={duplicatePolicy === 'import'} onChange={(event) => { setPendingImportId(null); setDuplicatePolicy(event.target.checked ? 'import' : 'skip') }} />Import duplicate rows too</label>
-          <div className="grid gap-3 sm:grid-cols-3"><MoneySummary label="Paid total" value={preview.reconciliation.total_paid} /><MoneySummary label="Refund total" value={preview.reconciliation.total_refund} /><MoneySummary label="Refund pending" value={preview.reconciliation.pending_refund} /></div>
+          <div className="grid gap-3 sm:grid-cols-3"><MoneySummary label="Paid" value={preview.reconciliation.total_paid} /><MoneySummary label="Net refund" value={preview.reconciliation.total_refund} /><MoneySummary label="Gain/loss" value={preview.reconciliation.total_gain_loss} /></div>
           <div className="grid gap-3 sm:grid-cols-2">
             <ListSummary title="Mediators to create" items={preview.mediators_to_create} empty="No new mediators." />
             <ListSummary title="Matching existing mediators" items={preview.existing_mediators.map((item) => `${item.input_name} → ${item.existing_name}`)} empty="No existing matches." />
@@ -544,7 +544,7 @@ export default function ImportPage() {
         {job ? <>
           <div><h2 className="text-lg font-bold">{job.status === 'undone' ? 'Import undone' : job.status === 'failed' ? 'Import finished with errors' : 'Import complete'}</h2><p className="text-sm text-muted">{job.filename || 'Spreadsheet import'} · {new Date(job.created_at).toLocaleString('en-IN')}</p></div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4"><Summary label="Imported" value={job.rows_imported} /><Summary label="Duplicates skipped" value={job.rows_skipped_duplicate} /><Summary label="Rows with errors" value={job.rows_failed} /><Summary label="Mediators created" value={job.mediators_created} /></div>
-          <div className="grid gap-3 sm:grid-cols-2"><MoneySummary label="Paid total" value={job.total_paid} /><MoneySummary label="Refund total" value={job.total_refund} /></div>
+          <div className="grid gap-3 sm:grid-cols-2"><MoneySummary label="Paid" value={job.total_paid} /><MoneySummary label="Net refund" value={job.total_refund} /></div>
           {undoResult && <p data-testid="import-undo-result" role="status" className="rounded-sm bg-primary/10 p-3 text-sm">Removed {undoResult.deleted_deals} deals and {undoResult.deleted_mediators} mediators. {undoResult.warning}</p>}
           <div className="flex flex-col gap-2 sm:flex-row">
             {job.errors.length > 0 && <button type="button" data-testid="import-download-errors" className={btn.ghost} disabled={!online} title={!online ? 'Connect to download the report.' : undefined} onClick={() => void downloadErrors(job)}>Download error report</button>}
@@ -595,4 +595,3 @@ function ImportHistory({ items, loading, error, online, onRefresh, onOpen }: { i
     {loading ? <p role="status" className="text-sm text-muted">Loading imports…</p> : error ? <p role="alert" className="text-sm text-danger">{error}</p> : !online ? <p className="text-sm text-muted">Connect to view import history.</p> : items.length === 0 ? <p className="text-sm text-muted">No imports yet.</p> : <ul className="divide-y divide-line">{items.map((item) => <li key={item.id} className="py-2"><button type="button" data-testid="import-history-item" className="flex w-full items-center justify-between gap-3 text-left" onClick={() => onOpen(item)}><span className="min-w-0"><span className="block truncate text-sm font-bold">{item.filename || 'Spreadsheet import'}</span><span className="text-xs text-muted">{new Date(item.created_at).toLocaleDateString('en-IN')} · {item.rows_imported} imported · {item.status}</span></span><span aria-hidden className="text-primary">›</span></button></li>)}</ul>}
   </section>
 }
-

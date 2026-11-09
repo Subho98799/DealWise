@@ -6,6 +6,8 @@ from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_FLOOR, ROUND_HALF_UP
 from typing import Any, Mapping
 
+from app.rules import legacy_refund_values
+
 
 MAX_MONEY = Decimal("10000000")
 CENT = Decimal("0.01")
@@ -267,12 +269,57 @@ def normalize_import_row(
         "other": "other",
     }.get(deal_type_text, "review")
 
-    for field in ("amount_paid", "refund_amount", "commission"):
+    for field in ("amount_paid", "commission"):
         try:
             values[field] = parse_money(row.get(field), required=field == "amount_paid")
         except ValueError as exc:
             values[field] = None
             issue(field, str(exc))
+
+    less_mapped = "less_amount" in row
+    try:
+        values["less_amount"] = parse_money(row.get("less_amount")) if less_mapped else Decimal("0.00")
+    except ValueError as exc:
+        values["less_amount"] = None
+        issue("less_amount", str(exc))
+    legacy_refund = None
+    if "refund_amount" in row:
+        try:
+            legacy_refund = parse_money(row.get("refund_amount"))
+        except ValueError as exc:
+            issue("refund_amount", str(exc))
+
+    paid = values.get("amount_paid")
+    commission = values.get("commission")
+    less_amount = values.get("less_amount")
+    if less_mapped:
+        if legacy_refund is not None and paid is not None and less_amount is not None and commission is not None:
+            calculated = paid - less_amount + commission
+            if calculated != legacy_refund:
+                issue(
+                    "refund_amount",
+                    f"Mapped Less is used; its net refund is {calculated:.2f}, not {legacy_refund:.2f}.",
+                    warning=True,
+                )
+    elif legacy_refund is not None and paid is not None and commission is not None:
+        less_amount, commission = legacy_refund_values(paid, legacy_refund, commission)
+        values["less_amount"] = less_amount
+        values["commission"] = commission
+        issue(
+            "refund_amount",
+            f"Legacy refund converted: Less = max(Paid - Refund, 0) = {less_amount:.2f}; "
+            "any excess was added to Commission.",
+            warning=True,
+        )
+
+    if paid is not None and values.get("less_amount") is not None and values.get("commission") is not None:
+        if values["less_amount"] > paid:
+            issue("less_amount", "Less cannot be more than the amount paid.")
+            values["refund_amount"] = None
+        else:
+            values["refund_amount"] = paid - values["less_amount"] + values["commission"]
+    else:
+        values["refund_amount"] = None
 
     date_fields = ("date_taken", "review_deadline", "refund_form_deadline", "payment_received_on")
     for field in date_fields:
@@ -316,9 +363,6 @@ def normalize_import_row(
         if taken < _five_years_before(today):
             issue("date_taken", "date is more than five years old", warning=True)
     if values.get("refund_amount") == Decimal("0.00"):
-        issue("refund_amount", "refund amount is zero", warning=True)
-    if values.get("refund_amount") is not None and values.get("amount_paid") is not None:
-        if values["refund_amount"] < values["amount_paid"]:
-            issue("refund_amount", "refund amount is lower than amount paid", warning=True)
+        issue("refund_amount", "net refund is zero", warning=True)
 
     return RowNormalization(values, errors, warnings, unrecognized, ambiguous)

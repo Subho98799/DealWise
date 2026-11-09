@@ -174,6 +174,8 @@ def _preview_response(
     refund = sum((values["refund_amount"] for values in eligible), Decimal("0.00"))
     pending = sum((values["refund_amount"] for values in eligible
                    if values["payment_status"] != "received"), Decimal("0.00"))
+    gain_loss = sum((values["commission"] - values["less_amount"] for values in eligible),
+                    Decimal("0.00"))
     unknown: dict[str, set[str]] = {}
     for entry in prepared:
         for field, value in entry.result.unrecognized_statuses.items():
@@ -192,6 +194,7 @@ def _preview_response(
         reconciliation=ImportReconciliation(
             total_paid=_money(paid) or "0.00",
             total_refund=_money(refund) or "0.00",
+            total_gain_loss=_money(gain_loss) or "0.00",
             pending_refund=_money(pending) or "0.00",
         ),
     )
@@ -274,6 +277,7 @@ def commit(session: Session, body: ImportCommitIn, user: CurrentUser) -> ImportJ
     batch: list[dict] = []
     for entry in importable:
         deal_values = dict(entry.result.values)
+        deal_values.pop("refund_amount", None)
         deal_values.setdefault("mediator_id", None)
         key = entry.mediator_key
         if key and key in existing_mediators:

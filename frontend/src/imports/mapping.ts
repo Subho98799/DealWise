@@ -5,6 +5,7 @@ export const IMPORT_TARGETS = [
   ['deal_type', 'Deal type'],
   ['date_taken', 'Date taken'],
   ['amount_paid', 'Amount paid'],
+  ['less_amount', 'Less'],
   ['refund_amount', 'Refund amount'],
   ['commission', 'Commission'],
   ['review_deadline', 'Review deadline'],
@@ -27,6 +28,7 @@ const synonyms: Record<ImportField, string[]> = {
   deal_type: ['deal type', 'review type', 'type'],
   date_taken: ['date taken', 'order date', 'date', 'ordered on', 'purchase date', 'taken on'],
   amount_paid: ['amount paid', 'paid', 'price', 'amount', 'order amount', 'purchase price', 'cost'],
+  less_amount: ['less', 'deduction', 'discount', 'cut', 'mediator less'],
   refund_amount: ['refund amount', 'refunded amount', 'refund', 'to receive', 'expected refund'],
   commission: ['commission', 'commission amount', 'fee'],
   review_deadline: ['review deadline', 'review by', 'review due'],
@@ -118,4 +120,3 @@ export function blankMapping(): ColumnMapping {
 }
 
 import { STORAGE_PREFIX } from '../config/app'
-

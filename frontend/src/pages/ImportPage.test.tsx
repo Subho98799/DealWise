@@ -55,15 +55,16 @@ function previewFor(body: { rows: Record<string, string>[]; options: { duplicate
       duplicate_reason: index === 1 ? 'Matches row 1 in this file' : null,
       values: {
         product: row.product, date_taken: '2025-11-08', amount_paid: index === 2 ? '129900.00' : '1299.50',
-        refund_amount: index === 2 ? '0.00' : '1299.00', review_status: index === 2 ? (body.options.value_maps.review_status?.mystery ?? 'pending') : 'pending',
+        less_amount: index === 2 ? '0.00' : '100.00', commission: index === 2 ? '0.00' : '200.00',
+        refund_amount: index === 2 ? '129900.00' : '1399.50', review_status: index === 2 ? (body.options.value_maps.review_status?.mystery ?? 'pending') : 'pending',
       },
-      errors: [], warnings: index === 2 ? [{ field: 'refund_amount', reason: 'Refund is zero.' }] : [],
+      errors: [], warnings: index === 2 ? [{ field: 'refund_amount', reason: 'Mapped Less is used.' }] : [],
     })),
     counts: { total: 3, will_import: duplicateImport ? 3 : 2, duplicates: 1, errors: 0 },
     unrecognized_status_values: body.options.value_maps.review_status?.mystery ? {} : { review_status: ['mystery'] },
     mediators_to_create: ['Priya Deals', 'New Agent'],
     existing_mediators: [],
-    reconciliation: { total_paid: duplicateImport ? '132499.00' : '131199.50', total_refund: duplicateImport ? '3897.00' : '2598.00', pending_refund: '2598.00' },
+    reconciliation: { total_paid: duplicateImport ? '132499.00' : '131199.50', total_refund: duplicateImport ? '132699.00' : '131299.50', total_gain_loss: duplicateImport ? '200.00' : '100.00', pending_refund: duplicateImport ? '132699.00' : '131299.50' },
   }
 }
 
@@ -100,6 +101,7 @@ describe('import wizard', () => {
 
     expect((screen.getByTestId('import-map-product') as HTMLSelectElement).value).toBe('0')
     expect((screen.getByTestId('import-map-amount_paid') as HTMLSelectElement).value).toBe('5')
+    expect((screen.getByTestId('import-map-less_amount') as HTMLSelectElement).value).toBe('6')
     expect((screen.getByTestId('import-map-date_taken') as HTMLSelectElement).value).toBe('4')
     fireEvent.click(screen.getByTestId('import-continue-fix'))
     await screen.findAllByTestId('import-date-sample')
@@ -110,6 +112,7 @@ describe('import wizard', () => {
     await screen.findByTestId('import-review-step')
     expect(screen.getByTestId('import-tab-duplicate').textContent).toContain('1')
     expect(screen.getByText('₹1,31,199.50')).toBeTruthy()
+    expect(screen.getByText('Gain/loss')).toBeTruthy()
     const previewCall = apiMock.mock.calls.find(([path]) => path === '/api/import/preview')
     const requestRows = (previewCall?.[1] as { json: { rows: Record<string, string>[] } }).json.rows
     expect(requestRows).toHaveLength(3)
@@ -136,4 +139,3 @@ describe('import wizard', () => {
     if (originalOnline) Object.defineProperty(navigator, 'onLine', originalOnline)
   })
 })
-

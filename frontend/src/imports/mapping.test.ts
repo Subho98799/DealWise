@@ -5,14 +5,16 @@ afterEach(() => localStorage.clear())
 
 describe('import column mapping', () => {
   it('suggests target fields from common messy spreadsheet headers', () => {
-    const result = suggestMappings(['Item name', 'Marketplace', 'Agent / seller', 'Order date', 'Price paid', 'Refunded amount', 'Remarks'])
+    const result = suggestMappings(['Item name', 'Marketplace', 'Agent / seller', 'Order date', 'Price paid', 'Mediator less', 'Refunded amount', 'Commission', 'Remarks'])
     expect(result.mapping.product).toBe(0)
     expect(result.mapping.platform).toBe(1)
     expect(result.mapping.mediator).toBe(2)
     expect(result.mapping.date_taken).toBe(3)
     expect(result.mapping.amount_paid).toBe(4)
-    expect(result.mapping.refund_amount).toBe(5)
-    expect(result.mapping.notes).toBe(6)
+    expect(result.mapping.less_amount).toBe(5)
+    expect(result.mapping.refund_amount).toBe(6)
+    expect(result.mapping.commission).toBe(7)
+    expect(result.mapping.notes).toBe(8)
     expect(result.confidence.product).toBe('high')
   })
 
@@ -30,4 +32,3 @@ describe('import column mapping', () => {
     expect(loadMapping(localStorage, 'user-a', ['Product', 'Paid', 'Date'])).toBeNull()
   })
 })
-

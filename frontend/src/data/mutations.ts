@@ -2,6 +2,7 @@
 import { db, local } from './db'
 import { enqueue, nowIso, uuid } from './outbox'
 import { applyAction, type Action } from '../lib/rules'
+import { fromPaise, toPaise } from '../lib/money'
 import type { Deal, Mediator } from './types'
 import { engine } from '../sync/engine'
 
@@ -35,8 +36,10 @@ export async function createDeal(draft: DealDraft): Promise<Deal> {
     const m = await mediatorFor(draft.mediator_name)
     const now = nowIso()
     const d: Deal = { ...DEFAULTS, ...draft, mediator_id: m?.id ?? null, mediator_name: m?.name ?? null, id, client_id: id, created_at: now, updated_at: now }
+    d.refund_amount = fromPaise(toPaise(d.amount_paid) - toPaise(d.less_amount) + toPaise(d.commission))
     await db.deals.put(d)
-    const { id: _i, client_id: _c, created_at: _a, updated_at: _u, ...data } = d
+    const data = Object.fromEntries(Object.entries(d).filter(([key]) =>
+      !['id', 'client_id', 'created_at', 'updated_at', 'refund_amount'].includes(key)))
     await enqueue({ type: 'deal', op: 'upsert', id, client_id: id, data, label: d.product })
     return d
   })
@@ -56,8 +59,11 @@ export async function updateDeal(id: string, patch: Partial<Deal>): Promise<void
       changes.mediator_id = m?.id ?? null
       changes.mediator_name = m?.name ?? null
     }
-    await db.deals.put({ ...cur, ...changes, updated_at: nowIso() })
-    await enqueue({ type: 'deal', op: 'upsert', id, data: changes, label: cur.product })
+    const updated = { ...cur, ...changes, updated_at: nowIso() }
+    updated.refund_amount = fromPaise(toPaise(updated.amount_paid) - toPaise(updated.less_amount) + toPaise(updated.commission))
+    await db.deals.put(updated)
+    const data = Object.fromEntries(Object.entries(changes).filter(([key]) => key !== 'refund_amount'))
+    await enqueue({ type: 'deal', op: 'upsert', id, data, label: cur.product })
   })
   engine.poke()
 }

@@ -105,7 +105,7 @@ export default function HomePage() {
       <section aria-label="Money summary" className="grid grid-cols-3 gap-2.5">
         <Stat label="Paid" value={formatINR(summary.paid)} icon={CircleDollarSign} />
         <Stat label="Received" value={formatINR(summary.received)} icon={CircleCheck} />
-        <Stat label="Net profit" value={formatINR(summary.profit)} icon={TrendingUp} />
+        <Stat label="Gain/loss" value={formatINR(summary.gainLoss)} icon={TrendingUp} />
       </section>
     </>}
 
@@ -173,7 +173,7 @@ function UrgentDeal({ deal, today, alertDays }: { deal: Deal; today: string; ale
         <p className="mt-1 truncate text-xs text-muted">{deal.mediator_name || deal.platform || 'No mediator yet'}</p>
       </div>
     </div>
-    <p className="money mt-4 font-display text-xl font-bold">{formatINR(deal.refund_amount)} <span className="font-sans text-xs font-medium text-muted">refund</span></p>
+    <p className="money mt-4 font-display text-xl font-bold">{formatINR(deal.refund_amount)} <span className="font-sans text-xs font-medium text-muted">net refund</span></p>
     {action && !isCompleted(deal) && <Button data-testid="deal-card-action-button" className="mt-4 w-full" onClick={() => void perform(action)}>{ACTION_LABEL[action]}</Button>}
   </Card>
 }
@@ -182,7 +182,7 @@ function MonthlyOverview({ deals, today }: { deals: Deal[] | undefined; today: s
   const months = useMemo(() => deals ? monthlyOverview(deals, today) : [], [deals, today])
   const populated = months.filter((month) => month.hasData).length
   const maxValue = Math.max(1, ...months.flatMap((month) => [month.paid, month.refunded]))
-  const points = months.map((month) => `${month.label}: paid ${formatINR(month.paid)}, refunded ${formatINR(month.refunded)}, net profit ${formatINR(month.profit)}`).join('. ')
+  const points = months.map((month) => `${month.label}: paid ${formatINR(month.paid)}, net refund ${formatINR(month.refunded)}, gain/loss ${formatINR(month.gainLoss)}`).join('. ')
   return <section aria-labelledby="monthly-title">
     <div className="mb-3"><p className="section-eyebrow">Six month view</p><h2 id="monthly-title" className="section-title">Monthly overview</h2></div>
     {!deals ? <Skeleton rows={2} /> : populated < 2 ? <EmptyState title="Your monthly story is just getting started">Add deals across a couple of months to see paid and refunded totals here.</EmptyState> : <Card className="monthly-card">
@@ -201,11 +201,11 @@ function MonthlyOverview({ deals, today }: { deals: Deal[] | undefined; today: s
             <rect x={x} y={126 - paidHeight} width="17" height={paidHeight} rx="5" fill="var(--color-brand)"><title>{month.label} paid {formatINR(month.paid)}</title></rect>
             <rect x={x + 20} y={126 - refundedHeight} width="17" height={refundedHeight} rx="5" fill="var(--color-success)"><title>{month.label} refunded {formatINR(month.refunded)}</title></rect>
             <text x={x + 18} y="146" textAnchor="middle" className="chart-label">{month.label}</text>
-            <text x={x + 18} y="165" textAnchor="middle" className="chart-net">{compactINR(month.profit)}</text>
+            <text x={x + 18} y="165" textAnchor="middle" className="chart-net">{compactINR(month.gainLoss)}</text>
           </g>
         })}
       </svg>
-      <p className="mt-1 text-center text-xs text-muted">Net profit by month</p>
+      <p className="mt-1 text-center text-xs text-muted">Gain/loss by month</p>
     </Card>}
   </section>
 }

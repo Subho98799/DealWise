@@ -22,7 +22,7 @@ describe('monthly home summary', () => {
 
     expect(months).toHaveLength(6)
     expect(months.map(({ key }) => key)).toEqual(['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'])
-    expect(months[5]).toMatchObject({ paid: 15000, refunded: 9000, profit: -1000, hasData: true })
+    expect(months[5]).toMatchObject({ paid: 15000, refunded: 9000, gainLoss: -1000, hasData: true })
     expect(months[0]?.hasData).toBe(false)
   })
 })

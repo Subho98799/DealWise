@@ -6,7 +6,7 @@ import { dealAction, deleteDeal, updateDeal } from '../data/mutations'
 import { useToast } from '../components/Toast'
 import { btn, Empty, PageTitle, Skeleton } from '../components/ui'
 import { ACTION_LABEL, evaluate, netPaise, nextAction, type Action } from '../lib/rules'
-import { formatINR } from '../lib/money'
+import { formatINR, refundBreakdown } from '../lib/money'
 import { countdown, formatShort } from '../lib/dates'
 
 export default function DealDetailPage() {
@@ -30,10 +30,12 @@ export default function DealDetailPage() {
     { key: 'form', title: 'Refund form submitted', done: formDone, date: formDone ? null : deal.refund_form_deadline ? `Due ${formatShort(deal.refund_form_deadline)}` : null, action: 'form_submitted' as const },
     { key: 'payment', title: 'Payment received', done: paymentDone, date: deal.payment_received_on ? formatShort(deal.payment_received_on) : null, action: 'payment_received' as const },
   ]
+  const gainLoss = netPaise(deal)
   const rows: [string, string][] = [
     ['Platform', deal.platform ?? '—'], ['Mediator', deal.mediator_name ?? '—'], ['Date taken', formatShort(deal.date_taken)],
-    ['Amount paid', formatINR(deal.amount_paid)], ['Refund expected', formatINR(deal.refund_amount)], ['Commission', formatINR(deal.commission)],
-    ['Net return', formatINR(netPaise(deal))], ['Review deadline', formatShort(deal.review_deadline) || '—'],
+    ['Amount paid', formatINR(deal.amount_paid)], ['Less', formatINR(deal.less_amount)],
+    ['Commission', formatINR(deal.commission)], ['Gain/loss', formatINR(gainLoss)],
+    ['Review deadline', formatShort(deal.review_deadline) || '—'],
     ['Form deadline', formatShort(deal.refund_form_deadline) || '—'], ['Payment status', deal.payment_status + (deal.payment_received_on ? ` · ${formatShort(deal.payment_received_on)}` : '')],
   ]
   return (
@@ -41,10 +43,15 @@ export default function DealDetailPage() {
       <PageTitle right={<Link to={`/deals/${deal.id}/edit`} data-testid="deal-edit-link" className={`${btn.ghost} flex items-center gap-2`}><PencilLine size={16} aria-hidden="true" />Edit</Link>}>
         <span data-testid="deal-detail-product">{deal.product}</span>
       </PageTitle>
-      <section className={`deal-detail-hero ${netPaise(deal) < 0 ? 'refund-hero-negative' : ''}`} aria-label="Deal return summary">
-        <span className="section-eyebrow">Expected net return</span>
-        <strong className="deal-detail-net money">{formatINR(netPaise(deal))}</strong>
-        <div className="deal-detail-amounts"><span>Refund <b className="money">{formatINR(deal.refund_amount)}</b></span><span>Paid <b className="money">{formatINR(deal.amount_paid)}</b></span></div>
+      <section className="deal-detail-hero" aria-label="Deal net refund summary">
+        <span className="section-eyebrow">Net refund</span>
+        <strong className="deal-detail-net money">{formatINR(deal.refund_amount)}</strong>
+        <div className="deal-detail-amounts">
+          <span>Paid <b className="money">{formatINR(deal.amount_paid)}</b></span>
+          <span>Less <b className="money">{formatINR(deal.less_amount)}</b></span>
+          <span>Commission <b className="money">{formatINR(deal.commission)}</b></span>
+        </div>
+        <p data-testid="deal-refund-breakdown" className="mt-3 text-sm font-semibold">{refundBreakdown(deal.amount_paid, deal.less_amount, deal.commission)}</p>
       </section>
       {u.due && <p className={`deal-detail-deadline ${u.isOverdue ? 'is-overdue' : ''}`}><Clock3 size={17} aria-hidden="true" />{u.reason?.startsWith('review') ? 'Review' : 'Refund form'}: {countdown(u.due, today)}</p>}
       <section className="deal-detail-section" aria-labelledby="deal-progress-heading">

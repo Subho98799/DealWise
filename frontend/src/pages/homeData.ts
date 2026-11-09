@@ -2,7 +2,7 @@ import { netPaise } from '../lib/rules'
 import { toPaise } from '../lib/money'
 import type { Deal } from '../data/types'
 
-export type MonthlySummary = { key: string; label: string; paid: number; refunded: number; profit: number; hasData: boolean }
+export type MonthlySummary = { key: string; label: string; paid: number; refunded: number; gainLoss: number; hasData: boolean }
 
 export function monthlyOverview(deals: Deal[], today: string): MonthlySummary[] {
   const [year, month] = today.slice(0, 7).split('-').map(Number)
@@ -14,7 +14,7 @@ export function monthlyOverview(deals: Deal[], today: string): MonthlySummary[] 
       label: new Intl.DateTimeFormat('en-IN', { month: 'short' }).format(date),
       paid: 0,
       refunded: 0,
-      profit: 0,
+      gainLoss: 0,
       hasData: false,
     }
   })
@@ -26,8 +26,8 @@ export function monthlyOverview(deals: Deal[], today: string): MonthlySummary[] 
     month.paid += toPaise(deal.amount_paid)
     if (deal.payment_status === 'received') {
       month.refunded += toPaise(deal.refund_amount)
-      month.profit += netPaise(deal)
     }
+    month.gainLoss += netPaise(deal)
   }
   return months
 }

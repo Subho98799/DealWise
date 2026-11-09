@@ -1,6 +1,6 @@
 ﻿import { useRef, useState, type TouchEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, CircleAlert, CircleDollarSign, Clock3, FileText, MoreHorizontal, PenLine, Pencil, Trash2 } from 'lucide-react'
+import { CircleDollarSign, Clock3, FileText, MoreHorizontal, PenLine, Pencil, Trash2 } from 'lucide-react'
 import { Avatar } from './Avatar'
 import { Button, Chip, IconButton, Sheet } from './ui'
 import { deleteDeal, dealAction, updateDeal } from '../data/mutations'
@@ -16,7 +16,7 @@ export function DealCard({ deal }: { deal: Deal }) {
   const today = useToday()
   const toast = useToast()
   const next = nextAction(deal)
-  const net = netPaise(deal)
+  const gainLoss = netPaise(deal)
   const urgency = evaluate(deal, today, me.alert_days)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -66,9 +66,18 @@ export function DealCard({ deal }: { deal: Deal }) {
         </div>
       </div>
       <div className="deal-card-money">
+        <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted">Net refund</span>
         <span className="money deal-card-refund">{formatINR(deal.refund_amount)}</span>
         <span className="money deal-card-paid">Paid {formatINR(deal.amount_paid)}</span>
       </div>
+    </div>
+    <div className="deal-card-flags">
+      {Number(deal.less_amount) > 0 && <Chip variant="neutral">Less {formatINR(deal.less_amount)}</Chip>}
+      {Number(deal.commission) > 0 && <Chip variant="neutral">Commission +{formatINR(deal.commission)}</Chip>}
+      {gainLoss !== 0 && <Chip variant={gainLoss > 0 ? 'success' : 'danger'}>{gainLoss > 0 ? 'Gain' : 'Loss'} {gainLoss > 0 ? '+' : ''}{formatINR(gainLoss)}</Chip>}
+      {urgency.isUrgent && urgency.due && <Chip testId="deal-card-countdown" variant={urgency.isOverdue ? 'danger' : 'warning'} icon={Clock3}>
+        {countdown(urgency.due, today)}
+      </Chip>}
     </div>
 
     <div className="deal-card-meta">
@@ -80,12 +89,6 @@ export function DealCard({ deal }: { deal: Deal }) {
         </div>)}
       </div>
       <p data-testid="deal-card-next" className="deal-progress-next">{nextLabel ? <>Next: <strong>{nextLabel}</strong></> : <strong>All steps complete</strong>}</p>
-      {(net < 0 || isCompleted(deal) || (urgency.isUrgent && urgency.due)) && <div className="deal-card-flags">
-        {(net < 0 || isCompleted(deal)) && <Chip variant={net < 0 ? 'danger' : 'success'} icon={net < 0 ? CircleAlert : Check}>{net < 0 ? 'Net loss' : 'Net profit'} {formatINR(net)}</Chip>}
-        {urgency.isUrgent && urgency.due && <Chip testId="deal-card-countdown" variant={urgency.isOverdue ? 'danger' : 'warning'} icon={Clock3}>
-          {countdown(urgency.due, today)}
-        </Chip>}
-      </div>}
     </div>
 
     <div className="deal-card-actions">

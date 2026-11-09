@@ -53,7 +53,7 @@ export function useSummary(deals: Deal[] | undefined) {
       if (u.isUrgent) urgent += 1
       if (u.isOverdue) overdue += 1
     }
-    const profit = deals.filter((d) => d.payment_status === 'received').reduce((s, d) => s + netPaise(d), 0)
-    return { paid, pending, received, open, urgent, overdue, profit }
+    const gainLoss = deals.reduce((sum, d) => sum + netPaise(d), 0)
+    return { paid, pending, received, open, urgent, overdue, gainLoss }
   }, [deals, today, me.alert_days])
 }

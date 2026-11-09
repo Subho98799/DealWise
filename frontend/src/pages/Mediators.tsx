@@ -21,9 +21,9 @@ function whatsappNumber(contact: string | null): string | null {
 function reminderHref(name: string, contact: string | null, pending: Deal[]) {
   const number = whatsappNumber(contact)
   if (!number || pending.length === 0) return null
-  const rows = pending.map((deal) => `\u2022 ${deal.product}: ${formatINR(deal.refund_amount)}`)
+  const rows = pending.map((deal) => `\u2022 ${deal.product}: Net refund ${formatINR(deal.refund_amount)}`)
   const total = pending.reduce((sum, deal) => sum + toPaise(deal.refund_amount), 0)
-  const message = `Hi ${name}, could you share an update on these pending refunds?\n\n${rows.join('\n')}\n\nTotal pending: ${formatINR(total)}\n\nThank you!`
+  const message = `Hi ${name}, could you share an update on these pending net refunds?\n\n${rows.join('\n')}\n\nTotal net refund pending: ${formatINR(total)}\n\nThank you!`
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`
 }
 
@@ -63,7 +63,7 @@ export function MediatorsPage() {
             <Link to={`/mediators/${mediator.id}`} data-testid="mediator-row" className="mediator-card-main">
               <Avatar name={mediator.name} url={null} size={48} />
               <span className="mediator-card-info"><b>{mediator.name}</b><span>{summary?.openCount ?? 0} open deal{summary?.openCount === 1 ? '' : 's'}</span></span>
-              <span className="mediator-card-money"><b className="money">{formatINR(summary?.pendingPaise ?? 0)}</b><span>pending</span></span>
+              <span className="mediator-card-money"><b className="money">{formatINR(summary?.pendingPaise ?? 0)}</b><span>net refund pending</span></span>
               <ArrowRight size={17} aria-hidden="true" className="mediator-card-arrow" />
             </Link>
             {href && <a className="mediator-remind-link" data-testid="mediator-whatsapp-reminder" href={href} target="_blank" rel="noopener noreferrer" aria-label={`Open WhatsApp reminder for ${mediator.name}`}>
@@ -100,7 +100,7 @@ export function MediatorDetailPage() {
         {href && <a className="mediator-remind-button" data-testid="mediator-whatsapp-reminder" href={href} target="_blank" rel="noopener noreferrer"><MessageCircle size={17} aria-hidden="true" /> Remind</a>}
       </section>
       <div className="mediator-stat-grid" aria-label="Mediator totals">
-        <div><span>Pending refund</span><strong className="money">{formatINR(summary?.pendingPaise ?? 0)}</strong></div>
+        <div><span>Pending net refund</span><strong className="money">{formatINR(summary?.pendingPaise ?? 0)}</strong></div>
         <div><span>Open deals</span><strong>{summary?.openCount ?? 0}</strong></div>
         <div><span>Total deals</span><strong>{theirs.length}</strong></div>
       </div>

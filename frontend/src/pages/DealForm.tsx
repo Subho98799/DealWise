@@ -5,14 +5,14 @@ import { createDeal, deleteDeal, updateDeal } from '../data/mutations'
 import { local } from '../data/db'
 import { btn, input, PageTitle, Sheet, Skeleton } from '../components/ui'
 import { useToast } from '../components/Toast'
-import { formatINR, isValidMoney, toPaise } from '../lib/money'
+import { fromPaise, isValidMoney, refundBreakdown, toPaise } from '../lib/money'
 import type { Deal } from '../data/types'
 
-type Form = Record<'product' | 'mediator_name' | 'amount_paid' | 'refund_amount' | 'platform' | 'deal_type' | 'commission' | 'date_taken' |
+type Form = Record<'product' | 'mediator_name' | 'amount_paid' | 'less_amount' | 'platform' | 'deal_type' | 'commission' | 'date_taken' |
   'review_deadline' | 'refund_form_deadline' | 'payment_status' | 'notes', string>
 
 const fromDeal = (d: Deal): Form => ({
-  product: d.product, mediator_name: d.mediator_name ?? '', amount_paid: d.amount_paid, refund_amount: d.refund_amount,
+  product: d.product, mediator_name: d.mediator_name ?? '', amount_paid: d.amount_paid, less_amount: d.less_amount,
   platform: d.platform ?? '', deal_type: d.deal_type, commission: d.commission, date_taken: d.date_taken,
   review_deadline: d.review_deadline ?? '', refund_form_deadline: d.refund_form_deadline ?? '', payment_status: d.payment_status, notes: d.notes ?? '',
 })
@@ -20,8 +20,9 @@ const fromDeal = (d: Deal): Form => ({
 function validate(f: Form): string | null {
   if (!f.product.trim()) return 'Product is required.'
   if (f.product.length > 200) return 'Product is too long (max 200 characters).'
-  for (const key of ['amount_paid', 'refund_amount', 'commission'] as const)
+  for (const key of ['amount_paid', 'less_amount', 'commission'] as const)
     if (f[key] && !isValidMoney(f[key])) return 'Amounts must be 0 to 1,00,00,000 with up to 2 decimals.'
+  if (toPaise(f.less_amount) > toPaise(f.amount_paid)) return 'Less cannot be more than the amount paid.'
   if (f.review_deadline && f.review_deadline < f.date_taken) return 'Review deadline cannot be before the date taken.'
   if (f.refund_form_deadline && f.refund_form_deadline < f.date_taken) return 'Form deadline cannot be before the date taken.'
   if (f.notes.length > 2000) return 'Notes are too long (max 2000 characters).'
@@ -30,9 +31,13 @@ function validate(f: Form): string | null {
 
 function toDeal(f: Form): Partial<Deal> & { product: string; date_taken: string } {
   const money = (value: string) => (value ? (value.includes('.') ? value : `${value}.00`) : '0.00')
+  const amountPaid = money(f.amount_paid)
+  const lessAmount = money(f.less_amount)
+  const commission = money(f.commission)
   return {
-    product: f.product.trim(), mediator_name: f.mediator_name.trim() || null, amount_paid: money(f.amount_paid),
-    refund_amount: money(f.refund_amount), commission: money(f.commission), platform: f.platform.trim() || null,
+    product: f.product.trim(), mediator_name: f.mediator_name.trim() || null, amount_paid: amountPaid,
+    less_amount: lessAmount, refund_amount: fromPaise(toPaise(amountPaid) - toPaise(lessAmount) + toPaise(commission)),
+    commission, platform: f.platform.trim() || null,
     deal_type: f.deal_type as Deal['deal_type'], date_taken: f.date_taken, review_deadline: f.review_deadline || null,
     refund_form_deadline: f.refund_form_deadline || null, payment_status: f.payment_status as Deal['payment_status'],
     payment_received_on: null, notes: f.notes.trim() || null,
@@ -67,15 +72,15 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
     return a.name.localeCompare(b.name)
   }), [mediators, lastMediator])
   const blank: Form = {
-    product: '', mediator_name: lastMediator, amount_paid: '', refund_amount: '', platform: local.get('last_platform') ?? '',
-    deal_type: 'review', commission: '', date_taken: today, review_deadline: '', refund_form_deadline: '', payment_status: 'pending', notes: '',
+    product: '', mediator_name: lastMediator, amount_paid: '', less_amount: '0.00', platform: local.get('last_platform') ?? '',
+    deal_type: 'review', commission: '0.00', date_taken: today, review_deadline: '', refund_form_deadline: '', payment_status: 'pending', notes: '',
   }
   const [form, setForm] = useState<Form>(deal ? fromDeal(deal) : blank)
   const [more, setMore] = useState(!!deal)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<{ id: string; product: string } | null>(null)
   const on = (key: keyof Form) => (event: { target: { value: string } }) => setForm((current) => ({ ...current, [key]: event.target.value }))
-  const net = toPaise(form.refund_amount) + toPaise(form.commission) - toPaise(form.amount_paid)
+  const breakdown = refundBreakdown(form.amount_paid, form.less_amount, form.commission)
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -121,9 +126,10 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
     </Field>
     <div className="grid grid-cols-2 gap-3">
       <Field label="Amount paid"><input data-testid="deal-amount-paid-input" inputMode="decimal" value={form.amount_paid} onChange={on('amount_paid')} className={`${input} money-field-input`} placeholder="₹ 0" /></Field>
-      <Field label="Refund expected"><input data-testid="deal-refund-input" inputMode="decimal" value={form.refund_amount} onChange={on('refund_amount')} className={`${input} money-field-input`} placeholder="₹ 0" /></Field>
+      <Field label="Less"><input data-testid="deal-less-input" inputMode="decimal" value={form.less_amount} onChange={on('less_amount')} className={`${input} money-field-input`} placeholder="₹ 0" /></Field>
     </div>
-    <p className="deal-net-preview" aria-live="polite">Net: <span className="money font-bold">{formatINR(net)}</span></p>
+    <Field label="Commission (optional)"><input data-testid="deal-commission-input" inputMode="decimal" value={form.commission} onChange={on('commission')} className={`${input} money-field-input`} placeholder="₹ 0" /></Field>
+    <p data-testid="deal-net-preview" className="deal-net-preview font-semibold" aria-live="polite">{breakdown}</p>
 
     <button type="button" data-testid="deal-more-toggle" aria-expanded={more} onClick={() => setMore((value) => !value)} className="more-details-toggle">
       <span>{more ? 'Hide details' : 'More details'}</span><span aria-hidden="true">{more ? '−' : '+'}</span>
@@ -136,7 +142,6 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
           <option value="review">Review</option><option value="rating_only">Rating only</option><option value="review_photo">Review + photo</option>
           <option value="review_video">Review + video</option><option value="other">Other</option>
         </select></Field>
-        <Field label="Commission"><input data-testid="deal-commission-input" inputMode="decimal" value={form.commission} onChange={on('commission')} className={input} placeholder="₹ 0" /></Field>
         <Field label="Review deadline"><input data-testid="deal-review-deadline-input" type="date" value={form.review_deadline} onChange={on('review_deadline')} className={input} /></Field>
         <Field label="Form deadline"><input data-testid="deal-form-deadline-input" type="date" value={form.refund_form_deadline} onChange={on('refund_form_deadline')} className={input} /></Field>
       </div>

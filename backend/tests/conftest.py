@@ -32,7 +32,7 @@ os.environ["RATE_LIMIT_ENABLED"] = "false"
 os.environ["FRONTEND_URL"] = "http://localhost:5173"
 for k, v in {"GOOGLE_CLIENT_ID": "test-client-id.apps.googleusercontent.com",
              "GOOGLE_CLIENT_SECRET": "test-client-secret",
-             "SESSION_SECRET": "test-session-secret-at-least-32-characters-long"}.items():
+             "SESSION_SECRET": "ci-test-7d3c09e27a9b45f4a8f07b3c15e6a102"}.items():
     os.environ[k] = v
 
 import pytest  # noqa: E402

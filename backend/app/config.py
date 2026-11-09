@@ -71,6 +71,30 @@ class Settings(BaseSettings):
             raise ValueError("must end with .apps.googleusercontent.com")
         return v
 
+    @field_validator("SESSION_SECRET")
+    @classmethod
+    def _session_secret(cls, v: str) -> str:
+        normalized = v.strip().lower()
+        placeholders = {
+            "secret",
+            "changeme",
+            "change-me",
+            "replace-me",
+            "placeholder",
+            "your-secret",
+            "example-secret",
+        }
+        if (
+            normalized in placeholders
+            or len(set(normalized)) == 1
+            or any(
+                token in normalized
+                for token in ("changeme", "change-me", "placeholder", "your-secret", "test-session-secret")
+            )
+        ):
+            raise ValueError("must not be an obvious placeholder")
+        return v
+
     @field_validator("FRONTEND_URL")
     @classmethod
     def _strip_slash(cls, v: str) -> str:

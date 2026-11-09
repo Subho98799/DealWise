@@ -7,7 +7,7 @@ from _common import BACKEND, ROOT
 for k, v in {"ENV": "dev", "DATABASE_URL": "postgresql+psycopg://x:x@localhost/x_test",
              "MIGRATION_DATABASE_URL": "postgresql+psycopg://x:x@localhost/x_test",
              "GOOGLE_CLIENT_ID": "docs-check.apps.googleusercontent.com", "GOOGLE_CLIENT_SECRET": "x",
-             "SESSION_SECRET": "x" * 32, "FRONTEND_URL": "http://localhost:5173"}.items():
+             "SESSION_SECRET": "docs-check-1a2b3c4d5e6f7a8b9c0de", "FRONTEND_URL": "http://localhost:5173"}.items():
     os.environ[k] = v  # no DB connection is made; this only builds the route table
 os.chdir(BACKEND)
 

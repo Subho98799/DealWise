@@ -1,11 +1,12 @@
 import logging
+import secrets
 
 from authlib.integrations.base_client.errors import OAuthError
 from fastapi import APIRouter, Query, Request, Response
 from fastapi.responses import RedirectResponse
 
 from app.auth import service
-from app.auth.oauth import is_safe_next, oauth, redirect_uri
+from app.auth.oauth import is_safe_next, oauth, pkce_challenge, redirect_uri
 from app.auth.sessions import clear_session_cookie, set_session_cookie
 from app.config import SESSION_COOKIE, get_settings
 from app.errors import AppError
@@ -26,8 +27,15 @@ async def google_login(request: Request, next: str = Query(default="/")):
         raise AppError(400, "invalid_next", "next must be a relative path starting with '/'.")
     request.session.clear()
     request.session["next"] = next
+    code_verifier = secrets.token_urlsafe(32)
+    request.session["code_verifier"] = code_verifier
     # Authlib stores state + nonce in the short-lived handshake session cookie.
-    return await oauth.google.authorize_redirect(request, redirect_uri())
+    return await oauth.google.authorize_redirect(
+        request,
+        redirect_uri(),
+        code_challenge=pkce_challenge(code_verifier),
+        code_challenge_method="S256",
+    )
 
 
 @router.get("/google/callback")
@@ -36,9 +44,13 @@ async def google_callback(request: Request):
     if request.query_params.get("error"):
         request.session.clear()
         return _fail("access_denied")
+    code_verifier = request.session.get("code_verifier")
+    if not isinstance(code_verifier, str):
+        request.session.clear()
+        return _fail("oauth_failed")
     try:
-        # Validates state, exchanges the code, verifies the ID token signature, audience and nonce.
-        token = await oauth.google.authorize_access_token(request)
+        # Validates state, exchanges the PKCE-bound code, verifies the ID token and nonce.
+        token = await oauth.google.authorize_access_token(request, code_verifier=code_verifier)
     except OAuthError as exc:
         log.warning("oauth callback failed: %s", exc.error)
         request.session.clear()

@@ -1,3 +1,5 @@
+import base64
+import hashlib
 from urllib.parse import urlsplit
 
 from authlib.integrations.starlette_client import OAuth
@@ -20,6 +22,11 @@ def redirect_uri() -> str:
     # REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     # It must equal exactly what is registered in Google Cloud: FRONTEND_URL + /api/auth/google/callback
     return f"{get_settings().FRONTEND_URL}/api/auth/google/callback"
+
+
+def pkce_challenge(verifier: str) -> str:
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
 
 
 def is_safe_next(value: str | None) -> bool:

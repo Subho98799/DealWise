@@ -4,7 +4,7 @@ import pytest
 from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 
-from app.auth.oauth import is_safe_next, oauth
+from app.auth.oauth import is_safe_next, oauth, pkce_challenge
 from app.auth.sessions import hash_token
 from app.config import SESSION_COOKIE as COOKIE_NAME
 from tests.conftest import CSRF
@@ -31,11 +31,14 @@ def mock_google(monkeypatch):
 
     async def fake_redirect(request, redirect_uri, **kwargs):
         calls["redirect_uri"] = redirect_uri
+        calls["redirect_kwargs"] = kwargs
+        calls["code_verifier"] = request.session.get("code_verifier")
         request.session["_state_google_fake"] = {"data": {"nonce": "n"}}
         return RedirectResponse("https://accounts.google.com/o/oauth2/v2/auth?state=fake", 302)
 
     def set_userinfo(**overrides):
         async def fake_exchange(request, **kwargs):
+            calls["token_kwargs"] = kwargs
             return {"access_token": "x", "id_token": "y", "userinfo": _google_userinfo(**overrides)}
 
         monkeypatch.setattr(oauth.google, "authorize_access_token", fake_exchange)
@@ -55,6 +58,12 @@ def _login(client, next_path="/"):
 def test_full_login_flow_sets_cookie_and_me_works(client, mock_google):
     r = _login(client, "/settings")
     assert mock_google["redirect_uri"] == f"{FRONTEND}/api/auth/google/callback"
+    verifier = mock_google["code_verifier"]
+    assert mock_google["redirect_kwargs"] == {
+        "code_challenge": pkce_challenge(verifier),
+        "code_challenge_method": "S256",
+    }
+    assert mock_google["token_kwargs"] == {"code_verifier": verifier}
     assert r.status_code == 302
     assert r.headers["location"] == f"{FRONTEND}/settings"
     set_cookie = r.headers["set-cookie"].lower()

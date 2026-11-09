@@ -110,7 +110,7 @@ Migration 0004 backfills Less as `greatest(amount_paid - old_refund_amount, 0)`;
 |---|---|---|---|
 | `ENV` | yes | app | `dev` / `prod` |
 | `DATABASE_URL` | yes | app | app_user, **pooled**, `postgresql+psycopg://…?sslmode=require` |
-| `MIGRATION_DATABASE_URL` | yes | alembic, create-role | owner, **direct** |
+| `MIGRATION_DATABASE_URL` | yes (local tooling only) | alembic, create-role | owner, **direct**; never Render |
 | `TEST_DATABASE_URL` | tests | pytest | app_user, DB name contains `test` |
 | `TEST_MIGRATION_DATABASE_URL` | optional | pytest, migrate-test | owner, direct, test DB |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | yes | app | Google OAuth web client |

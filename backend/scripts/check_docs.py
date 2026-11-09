@@ -11,6 +11,10 @@ for k, v in {"ENV": "dev", "DATABASE_URL": "postgresql+psycopg://x:x@localhost/x
     os.environ[k] = v  # no DB connection is made; this only builds the route table
 os.chdir(BACKEND)
 
+from app.config import Settings  # noqa: E402
+
+Settings.model_config["env_file"] = None
+
 from fastapi.routing import APIRoute  # noqa: E402
 
 from app.main import app  # noqa: E402

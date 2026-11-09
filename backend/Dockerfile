@@ -17,6 +17,5 @@ COPY --chown=appuser:appuser . .
 USER appuser
 EXPOSE 8000
 
-# Migrations run as the OWNER (MIGRATION_DATABASE_URL); the app itself connects as app_user (DATABASE_URL).
 # --no-access-log: our own access log omits query strings (they carry OAuth codes).
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*' --no-access-log"]
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*' --no-access-log"]

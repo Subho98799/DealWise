@@ -18,7 +18,6 @@ CSRF_HEADER_VALUE = APP_SLUG
 HINTS = {
     "ENV": "dev on your laptop, prod on Render",
     "DATABASE_URL": "app_user POOLED Neon URL, e.g. postgresql+psycopg://app_user:<pw>@ep-x-pooler.<region>.aws.neon.tech/neondb?sslmode=require",
-    "MIGRATION_DATABASE_URL": "owner DIRECT Neon URL (no -pooler), e.g. postgresql+psycopg://neondb_owner:<pw>@ep-x.<region>.aws.neon.tech/neondb?sslmode=require",
     "GOOGLE_CLIENT_ID": "from Google Cloud > Credentials, ends with .apps.googleusercontent.com",
     "GOOGLE_CLIENT_SECRET": "from the same Google OAuth client (starts with GOCSPX-)",
     "SESSION_SECRET": 'at least 32 random characters: python -c "import secrets; print(secrets.token_urlsafe(48))"',
@@ -53,7 +52,6 @@ class Settings(BaseSettings):
 
     ENV: Literal["dev", "prod"]
     DATABASE_URL: str = Field(min_length=1)
-    MIGRATION_DATABASE_URL: str = Field(min_length=1)
     GOOGLE_CLIENT_ID: str = Field(min_length=1)
     GOOGLE_CLIENT_SECRET: str = Field(min_length=1)
     SESSION_SECRET: str = Field(min_length=32)
@@ -61,7 +59,7 @@ class Settings(BaseSettings):
     ADMIN_EMAILS: str = ""
     RATE_LIMIT_ENABLED: bool = True
 
-    @field_validator("DATABASE_URL", "MIGRATION_DATABASE_URL")
+    @field_validator("DATABASE_URL")
     @classmethod
     def _pg(cls, v: str) -> str:
         return _check_pg_url(v)

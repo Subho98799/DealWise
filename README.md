@@ -21,7 +21,8 @@ Needs Python 3.12, Node 20 + Yarn (`corepack enable`), Git. Get your values firs
 Open <http://localhost:5173>.
 
 ## Deploy
-- **API → Render (free):** New → Blueprint → this repo (`render.yaml`). Set the env vars listed in [SETUP_CREDENTIALS](docs/SETUP_CREDENTIALS.md) (`ENV=prod`, `FRONTEND_URL=https://<app>.vercel.app`). It migrates on start. Render sleeps after 15 min idle; optionally ping `/api/health` every 10–14 min.
+- **Before deploying:** from your own computer, set the owner direct URL locally and run `scripts/dt.sh migrate` (bash/macOS/Linux) or `.\scripts\dt.ps1 migrate` (Windows PowerShell). Run migrations before each deployment that includes a new migration. Never put the owner URL or `MIGRATION_DATABASE_URL` in Render; it is only for local migration tooling.
+- **API → Render (free):** New → Blueprint → this repo (`render.yaml`). Set only the API runtime values listed in [SETUP_CREDENTIALS](docs/SETUP_CREDENTIALS.md), including `ENV=prod` and `FRONTEND_URL=https://<app>.vercel.app`. Render does not run migrations at startup. It sleeps after 15 min idle; optionally ping `/api/health` every 10–14 min.
 - **App → Vercel (free):** put your Render host into `frontend/vercel.json` (`REPLACE-WITH-RENDER-URL`), import the repo with **Root Directory `frontend`**, framework Vite. No env vars.
 - **Google OAuth client:** Web application; origins `http://localhost:5173` and your Vercel URL; redirect URIs `<origin>/api/auth/google/callback`. Steps: [SETUP_CREDENTIALS §3](docs/SETUP_CREDENTIALS.md#3-google-oauth-google_client_id-google_client_secret).
 

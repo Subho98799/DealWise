@@ -22,7 +22,7 @@ flowchart LR
   UI -->|/api/me, settings| V
   V -->|/api/*| R[Render: FastAPI + uvicorn]
   R -->|app_user, pooled| N[(Neon Postgres + RLS)]
-  R -.->|owner, direct: alembic at start| N
+  M[Owner runs migrations locally before deploy] -.->|owner direct URL| N
   R <-->|OAuth code flow| G[Google]
 ```
 
@@ -32,6 +32,8 @@ flowchart LR
 | Vercel | serves `dist/`, SPA fallback, CSP headers, rewrites `/api/*` → Render |
 | FastAPI | auth, sessions, validation, business rules, repos, sync protocol |
 | Postgres | data, constraints, RLS isolation, `updated_at` triggers |
+
+Migrations run from the operator's computer with the owner direct URL before deploying an application release that requires them. The owner URL is used only by local migration tooling and must never be configured in Render; the API container starts without running Alembic.
 
 ## Auth and session flow
 1. Login button navigates to `/api/auth/google/login?next=/path` (relative paths only).

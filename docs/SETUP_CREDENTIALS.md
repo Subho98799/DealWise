@@ -2,7 +2,7 @@
 
 **TL;DR**
 - You need: a free Neon database (app + test), a Google OAuth client, and a random session secret.
-- Values go in `backend/.env` locally (created blank by `dt install`), and later in Render's environment settings. Vercel needs **no** secrets.
+- Runtime values go in `backend/.env` locally (created blank by `dt install`) and in Render's environment settings. The owner URL is local-only and must never be put in Render. Vercel needs **no** secrets.
 - **Never commit real values and never paste them into any chat or AI tool.** `.env` is git-ignored and CI fails if one is tracked.
 - After filling `.env`, run `scripts/check_setup.sh` (bash) or `.\scripts\check_setup.ps1` (PowerShell) — it prints PASS/FAIL and no secrets.
 - Shell differences are shown as **bash** / **PowerShell**.
@@ -15,7 +15,7 @@
 1. Sign up at <https://neon.tech> → **New project** → region *AWS Asia Pacific (Singapore)* → Postgres 16.
 2. Dashboard → **Connect**. Pick database `neondb`, role `neondb_owner`.
    - Turn **Connection pooling OFF** → copy the URL → this is the **owner direct** URL.
-3. Put it in `backend/.env` as `MIGRATION_DATABASE_URL`, changing the start to `postgresql+psycopg://`:
+3. Keep this owner direct URL in your local `backend/.env` only as `MIGRATION_DATABASE_URL`, changing the start to `postgresql+psycopg://`. Never add it to Render:
    `MIGRATION_DATABASE_URL=postgresql+psycopg://neondb_owner:FAKEpass123@ep-cool-name-123456.ap-southeast-1.aws.neon.tech/neondb?sslmode=require`
 4. Create the restricted role with **your own strong password** (≥ 16 chars; generate one with `python -c "import secrets; print(secrets.token_urlsafe(24))"`):
    - bash: `scripts/dt.sh create-role` · PowerShell: `.\scripts\dt.ps1 create-role` (asks for the password, input hidden).
@@ -23,12 +23,12 @@
 5. Back in **Connect**, choose role `app_user`, **Connection pooling ON** → copy → this is `DATABASE_URL` (host contains `-pooler`):
    `DATABASE_URL=postgresql+psycopg://app_user:FAKEappPass456@ep-cool-name-123456-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require`
    (If `app_user` is not listed, take the pooled owner URL and replace user and password with `app_user` and your password.)
-6. Run migrations: bash `scripts/dt.sh migrate` · PowerShell `.\scripts\dt.ps1 migrate`.
+6. Before deploying a release that includes database changes, run migrations from your computer: bash `scripts/dt.sh migrate` · PowerShell `.\scripts\dt.ps1 migrate`. Render does not run migrations at startup.
 
 | Variable | Goes to |
 |---|---|
 | `DATABASE_URL` | local `backend/.env`, Render |
-| `MIGRATION_DATABASE_URL` | local `backend/.env`, Render |
+| `MIGRATION_DATABASE_URL` | local `backend/.env` and migration tooling only; never Render |
 
 ## 2. Test database (TEST_DATABASE_URL, TEST_MIGRATION_DATABASE_URL)
 Tests refuse any database whose name does not contain `test`.

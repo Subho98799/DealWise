@@ -98,6 +98,7 @@ class _DealFields(Strict):
     deal_type: DealType | None = None
     date_taken: date | None = None
     amount_paid: Money | None = None
+    less_amount: Money | None = None
     refund_amount: Money | None = None
     commission: Money | None = None
     review_deadline: date | None = None
@@ -134,6 +135,7 @@ class DealOut(BaseModel):
     deal_type: str
     date_taken: date
     amount_paid: MoneyOut
+    less_amount: MoneyOut
     refund_amount: MoneyOut
     commission: MoneyOut
     review_deadline: date | None
@@ -206,7 +208,7 @@ class SummaryOut(BaseModel):
     total_paid: MoneyOut
     refund_pending_amount: MoneyOut
     refund_received_amount: MoneyOut
-    net_profit: MoneyOut
+    gain_loss: MoneyOut
     open_deals: int
     urgent_count: int
     overdue_count: int

@@ -22,13 +22,14 @@ def deal(c, **kw):
 def test_create_returns_strings_and_computed_fields(api):
     a, _ = api("alice")
     d = deal(a, commission="50.00", review_deadline="2026-06-11", mediator_name="Ravi")
-    assert d["amount_paid"] == "1299.00" and d["net_amount"] == "50.00"
+    assert d["amount_paid"] == "1299.00" and d["less_amount"] == "0.00"
+    assert d["refund_amount"] == "1349.00" and d["net_amount"] == "50.00"
     assert d["date_taken"] == "2026-06-10"  # today in Asia/Kolkata
     assert d["is_urgent"] is True and d["is_overdue"] is False and d["urgency_reason"] == "review_due_soon"
     assert d["mediator_name"] == "Ravi" and d["mediator_id"]
     assert "user_id" not in d
     meds = a.get("/api/mediators").json()
-    assert [(m["name"], m["pending_refund_amount"], m["open_deal_count"]) for m in meds] == [("Ravi", "1299.00", 1)]
+    assert [(m["name"], m["pending_refund_amount"], m["open_deal_count"]) for m in meds] == [("Ravi", "1349.00", 1)]
 
 
 def test_validation_errors(api):
@@ -38,6 +39,47 @@ def test_validation_errors(api):
     r = a.post("/api/deals", json={"product": "x", "date_taken": "2026-06-10", "review_deadline": "2026-06-01"})
     assert r.status_code == 422 and "review_deadline" in r.json()["error"]["message"]
     assert a.post("/api/deals", json={"product": "x", "user_id": "00000000-0000-0000-0000-000000000000"}).status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("paid", "less", "commission", "refund", "gain_loss"),
+    [
+        ("1100.00", "100.00", "0.00", "1000.00", "-100.00"),
+        ("1100.00", "100.00", "200.00", "1200.00", "100.00"),
+        ("1100.00", "0.00", "50.00", "1150.00", "50.00"),
+    ],
+)
+def test_generated_refund_and_gain_loss_examples(api, paid, less, commission, refund, gain_loss):
+    a, _ = api("alice")
+    response = a.post("/api/deals", json={
+        "product": "example", "amount_paid": paid, "less_amount": less, "commission": commission,
+    })
+    assert response.status_code == 201, response.text
+    result = response.json()
+    assert (result["refund_amount"], result["net_amount"]) == (refund, gain_loss)
+
+
+def test_legacy_refund_conversion_and_less_validation(api):
+    a, _ = api("alice")
+    created = a.post("/api/deals", json={
+        "product": "legacy", "amount_paid": "1100.00", "refund_amount": "1200.00",
+        "commission": "25.00",
+    })
+    assert created.status_code == 201, created.text
+    deal_data = created.json()
+    assert (deal_data["less_amount"], deal_data["commission"], deal_data["refund_amount"]) == (
+        "0.00", "125.00", "1225.00",
+    )
+    patched = a.patch(f"/api/deals/{deal_data['id']}", json={"refund_amount": "1000.00"})
+    assert patched.status_code == 200, patched.text
+    assert (patched.json()["less_amount"], patched.json()["commission"], patched.json()["refund_amount"]) == (
+        "100.00", "125.00", "1125.00",
+    )
+    invalid = a.post("/api/deals", json={
+        "product": "invalid", "amount_paid": "10.00", "less_amount": "10.01",
+    })
+    assert invalid.status_code == 422
+    assert "Less cannot be more than the amount paid" in invalid.json()["error"]["message"]
 
 
 def test_client_id_idempotent(api):
@@ -73,6 +115,7 @@ def test_patch_delete_and_filters(api):
               payment_status="received", date_taken="2026-06-05")
     r = a.patch(f"/api/deals/{d1['id']}", json={"refund_amount": "100.10", "platform": "Myntra"})
     assert r.json()["refund_amount"] == "100.10" and r.json()["updated_at"] >= d1["updated_at"]
+    assert r.json()["less_amount"] == "1198.90"
     ids = lambda **q: [x["id"] for x in a.get("/api/deals", params=q).json()["items"]]  # noqa: E731
     assert ids(status="completed") == [d2["id"]]
     assert ids(status="open") == [d1["id"]]
@@ -111,8 +154,8 @@ def test_summary_matches_hand_computed_fixture(api):
     s = a.get("/api/summary").json()
     assert s["total_paid"] == "1700.60"
     assert s["refund_pending_amount"] == "750.70"
-    assert s["refund_received_amount"] == "1100.00"
-    assert s["net_profit"] == "150.00"
+    assert s["refund_received_amount"] == "1150.00"
+    assert s["gain_loss"] == "200.10"
     assert (s["open_deals"], s["urgent_count"], s["overdue_count"]) == (3, 2, 1)
     assert [(m["name"], m["pending_refund_amount"], m["open_deal_count"]) for m in s["top_mediators"]] == \
         [("Ravi", "500.50", 1), ("Sita", "0.20", 1)]

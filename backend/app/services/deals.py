@@ -2,6 +2,7 @@
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -14,7 +15,10 @@ from app.repos import DealRepo, MediatorRepo
 from app.schemas import DealIn, DealOut, DealPatch, MediatorIn, MediatorPatch
 
 COMPUTED = ("net_amount", "is_urgent", "is_overdue", "urgency_reason")
-STATE_FIELDS = ("date_taken", "review_deadline", "refund_form_deadline", "payment_status", "payment_received_on")
+STATE_FIELDS = (
+    "date_taken", "amount_paid", "less_amount", "review_deadline", "refund_form_deadline",
+    "payment_status", "payment_received_on",
+)
 
 
 @dataclass(frozen=True)
@@ -33,7 +37,7 @@ def present(deal: Deal, ctx: Ctx) -> DealOut:
     base = {k: getattr(deal, k) for k in DealOut.model_fields if k not in COMPUTED}
     return DealOut(
         **base,
-        net_amount=rules.net_amount(deal.amount_paid, deal.refund_amount, deal.commission),
+        net_amount=rules.net_amount(deal.less_amount, deal.commission),
         is_urgent=u.is_urgent, is_overdue=u.is_overdue, urgency_reason=u.reason,
     )
 
@@ -57,6 +61,22 @@ def _resolve_mediator(meds: MediatorRepo, mediator_id, mediator_name) -> Mediato
     return None
 
 
+def _normalize_legacy_refund(values: dict, existing: Deal | None = None) -> None:
+    legacy_refund = values.pop("refund_amount", None)
+    if legacy_refund is None or "less_amount" in values:
+        return
+    amount_paid = values.get(
+        "amount_paid", existing.amount_paid if existing else Decimal("0.00"),
+    )
+    commission = values.get(
+        "commission", existing.commission if existing else Decimal("0.00"),
+    )
+    less_amount, adjusted_commission = rules.legacy_refund_values(
+        amount_paid, legacy_refund, commission,
+    )
+    values.update(less_amount=less_amount, commission=adjusted_commission)
+
+
 def create_deal(s: Session, data: DealIn, ctx: Ctx, id: uuid.UUID | None = None,
                 written_at: datetime | None = None) -> tuple[Deal, bool]:
     deals, meds = DealRepo(s), MediatorRepo(s)
@@ -65,6 +85,7 @@ def create_deal(s: Session, data: DealIn, ctx: Ctx, id: uuid.UUID | None = None,
         if existing:
             return existing, False
     values = data.model_dump(exclude_none=True, exclude={"mediator_name", "mediator_id"})
+    _normalize_legacy_refund(values)
     values.setdefault("date_taken", ctx.today)
     m = _resolve_mediator(meds, data.mediator_id, data.mediator_name)
     if m:
@@ -88,10 +109,11 @@ def update_deal(s: Session, deal: Deal, patch: DealPatch, written_at: datetime |
     changes = {k: getattr(patch, k) for k in patch.model_fields_set if k not in ("mediator_id", "mediator_name")}
     if "product" in changes and not changes["product"]:
         raise AppError(422, "validation_error", "product is required")
-    for k in ("deal_type", "date_taken", "amount_paid", "refund_amount", "commission",
+    for k in ("deal_type", "date_taken", "amount_paid", "less_amount", "refund_amount", "commission",
               "review_status", "form_status", "payment_status"):
         if k in changes and changes[k] is None:
             raise AppError(422, "validation_error", f"{k} cannot be null")
+    _normalize_legacy_refund(changes, deal)
     if {"mediator_id", "mediator_name"} & patch.model_fields_set:
         m = _resolve_mediator(meds, patch.mediator_id, patch.mediator_name)
         changes.update(mediator_id=m.id if m else None, mediator_name=m.name if m else None)

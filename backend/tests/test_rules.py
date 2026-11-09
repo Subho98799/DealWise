@@ -69,7 +69,10 @@ def test_action_transitions():
 
 def test_money_is_exact_and_floats_rejected():
     d = DealIn(product="x", amount_paid="0.10", refund_amount="0.20", commission="0")
-    assert rules.net_amount(d.amount_paid, d.refund_amount, d.commission) == Decimal("0.10")
+    assert rules.legacy_refund_values(d.amount_paid, d.refund_amount, d.commission) == (
+        Decimal("0.00"), Decimal("0.10"),
+    )
+    assert rules.net_amount(Decimal("0.10"), Decimal("0.20")) == Decimal("0.10")
     assert DealIn(product="x", amount_paid=1299).amount_paid == Decimal("1299")
     for bad in (12.5, "1.234", "-1", "10000000.01"):
         with pytest.raises(ValidationError):
@@ -79,6 +82,11 @@ def test_money_is_exact_and_floats_rejected():
     with pytest.raises(ValidationError):
         DealIn(product="x", user_id="00000000-0000-0000-0000-000000000000")
     assert DealIn(product="x", amount_paid="10000000.00").amount_paid == Decimal("10000000.00")
+
+
+def test_less_cannot_exceed_amount_paid():
+    with pytest.raises(rules.RuleError, match="Less cannot be more than the amount paid"):
+        rules.validate_deal({"amount_paid": Decimal("99.00"), "less_amount": Decimal("100.00")})
 
 
 def test_money_serializes_as_two_decimal_strings():

@@ -50,8 +50,8 @@ def is_completed(review_status: str, form_status: str, payment_status: str) -> b
     return review_status == "done" and form_status == "submitted" and payment_status == "received"
 
 
-def net_amount(amount_paid, refund_amount, commission):
-    return refund_amount + commission - amount_paid
+def net_amount(less_amount: Decimal, commission: Decimal) -> Decimal:
+    return commission - less_amount
 
 
 def legacy_refund_values(amount_paid: Decimal, refund_amount: Decimal,
@@ -63,6 +63,10 @@ def legacy_refund_values(amount_paid: Decimal, refund_amount: Decimal,
 
 
 def validate_deal(state: dict) -> None:
+    amount_paid = state.get("amount_paid")
+    less_amount = state.get("less_amount")
+    if amount_paid is not None and less_amount is not None and less_amount > amount_paid:
+        raise RuleError("validation_error", "Less cannot be more than the amount paid.")
     taken = state.get("date_taken")
     for field in ("review_deadline", "refund_form_deadline"):
         d = state.get(field)

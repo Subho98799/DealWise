@@ -155,8 +155,7 @@ class DealRepo:
                 func.coalesce(func.sum(Deal.amount_paid), zero).label("total_paid"),
                 func.coalesce(func.sum(Deal.refund_amount).filter(not_received), zero).label("refund_pending_amount"),
                 func.coalesce(func.sum(Deal.refund_amount).filter(received), zero).label("refund_received_amount"),
-                func.coalesce(func.sum(Deal.refund_amount + Deal.commission - Deal.amount_paid)
-                              .filter(received), zero).label("net_profit"),
+                func.coalesce(func.sum(Deal.commission - Deal.less_amount), zero).label("gain_loss"),
                 func.count().filter(~COMPLETED).label("open_deals"),
                 func.count().filter(urgent_expr(today, alert_days)).label("urgent_count"),
                 func.count().filter(overdue_expr(today)).label("overdue_count"),

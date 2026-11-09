@@ -64,7 +64,7 @@ jobs:
       E2E_DATABASE_URL: postgresql://app_user:ci_only_app_user_password@localhost:5432/dealtracker_test
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: "20", cache: yarn, cache-dependency-path: frontend/yarn.lock }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }

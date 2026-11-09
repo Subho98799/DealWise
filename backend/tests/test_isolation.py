@@ -20,7 +20,7 @@ def _seed(user_ctx, uid):
                 mediator_id=med.id,
                 date_taken=date(2026, 6, 1),
                 amount_paid=Decimal("1299.00"),
-                refund_amount=Decimal("1299.00"),
+                less_amount=Decimal("0.00"),
                 commission=Decimal("50.00"),
             )
         )
@@ -47,6 +47,9 @@ def test_owner_sees_own_rows_and_money_is_exact(user_ctx, make_user):
         assert all(d.user_id == a for d in deals)
         top = next(d for d in deals if d.product == "Boat Airdopes")
         assert top.amount_paid == Decimal("1299.00") and isinstance(top.amount_paid, Decimal)
+        assert top.less_amount == Decimal("0.00")
+        assert top.commission == Decimal("50.00")
+        assert top.refund_amount == Decimal("1349.00")
         assert len(MediatorRepo(s).list()) == 1
 
 

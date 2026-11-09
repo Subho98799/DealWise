@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes, useLocation, type Location } from 'react-router-dom'
 import { ProtectedLayout } from './components/ProtectedLayout'
 import LoginPage from './pages/Login'
+import PrivacyPage from './pages/Privacy'
+import TermsPage from './pages/Terms'
 import HomePage from './pages/Home'
 import DealsPage from './pages/Deals'
 import DealFormPage from './pages/DealForm'
@@ -16,6 +18,8 @@ export default function App() {
     <>
       <Routes location={backgroundLocation ?? location}>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route element={<ProtectedLayout quickAddModal={!!backgroundLocation} />}>
           <Route index element={<HomePage />} />
           <Route path="deals" element={<DealsPage />} />

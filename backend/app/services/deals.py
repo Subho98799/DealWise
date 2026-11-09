@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 
+from pydantic import TypeAdapter, ValidationError
+
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -12,9 +14,10 @@ from app.auth.deps import CurrentUser
 from app.errors import AppError
 from app.models import Deal, Mediator
 from app.repos import DealRepo, MediatorRepo
-from app.schemas import DealIn, DealOut, DealPatch, MediatorIn, MediatorPatch
+from app.schemas import DealIn, DealOut, DealPatch, MediatorIn, MediatorPatch, Money
 
 COMPUTED = ("net_amount", "is_urgent", "is_overdue", "urgency_reason")
+MONEY_ADAPTER = TypeAdapter(Money)
 STATE_FIELDS = (
     "date_taken", "amount_paid", "less_amount", "review_deadline", "refund_form_deadline",
     "payment_status", "payment_received_on",
@@ -49,6 +52,13 @@ def _rule(fn, *args):
         raise AppError(422 if e.code == "validation_error" else 409, e.code, e.message) from None
 
 
+def _money_value(value, field: str) -> Decimal:
+    try:
+        return MONEY_ADAPTER.validate_python(value)
+    except ValidationError:
+        raise AppError(422, "validation_error", f"{field} must be a valid decimal amount.") from None
+
+
 def _resolve_mediator(meds: MediatorRepo, mediator_id, mediator_name) -> Mediator | None:
     if mediator_id:
         m = meds.get(mediator_id)
@@ -65,15 +75,18 @@ def _normalize_legacy_refund(values: dict, existing: Deal | None = None) -> None
     legacy_refund = values.pop("refund_amount", None)
     if legacy_refund is None or "less_amount" in values:
         return
-    amount_paid = values.get(
+    amount_paid = _money_value(values.get(
         "amount_paid", existing.amount_paid if existing else Decimal("0.00"),
-    )
-    commission = values.get(
+    ), "amount_paid")
+    legacy_refund = _money_value(legacy_refund, "refund_amount")
+    commission = _money_value(values.get(
         "commission", existing.commission if existing else Decimal("0.00"),
-    )
+    ), "commission")
     less_amount, adjusted_commission = rules.legacy_refund_values(
         amount_paid, legacy_refund, commission,
     )
+    if "amount_paid" in values:
+        values["amount_paid"] = amount_paid
     values.update(less_amount=less_amount, commission=adjusted_commission)
 
 

@@ -1,13 +1,41 @@
-import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
+import { CalendarClock, FileSpreadsheet, LockKeyhole, ShieldCheck, Trash2, Wallet, WifiOff } from 'lucide-react'
 import { googleLoginHref, useMe } from '../lib/auth'
-import { APP_NAME } from '../config/app'
+import { APP_NAME, CONTACT_EMAIL } from '../config/app'
 import { LoginInstallLink } from '../components/InstallPrompt'
+import { GoogleSignInButton } from '../components/GoogleSignIn'
+import { LandingPreview } from '../components/LandingPreview'
+import { Card } from '../components/ui'
+import { usePageMeta } from '../lib/pageMeta'
 
 const ERRORS: Record<string, string> = {
   access_denied: 'Google sign-in was cancelled.',
   email_unverified: 'Your Google email is not verified. Verify it with Google and try again.',
   oauth_failed: 'Sign-in could not be completed. Please try again.',
 }
+
+const META_DESCRIPTION = 'Every review deal, refund form and deadline in one private place. Sign in with Google, track every mediator and see what is still pending.'
+
+const FEATURES = [
+  { icon: CalendarClock, title: 'Never miss a deadline', body: 'Home shows what is due soon and what is already overdue, based on the alert window you choose.' },
+  { icon: Wallet, title: 'Every mediator and rupee in one place', body: 'See what each mediator still owes, what you paid, and the net refund on every deal.' },
+  { icon: WifiOff, title: 'Works offline, syncs when you are back', body: 'Add and edit deals without a connection. Changes sync to your private account when you reconnect.' },
+  { icon: FileSpreadsheet, title: 'Import your old Excel or CSV', body: 'Bring past deals in, review every row before saving, and undo an import if something looks wrong.' },
+]
+
+const TRUST = [
+  { icon: ShieldCheck, title: 'Only you see your deals', body: 'Every account is scoped in the database itself with row-level security, not just hidden in the screen.' },
+  { icon: LockKeyhole, title: 'Sign in with Google only', body: 'There is no password to create, reuse or leak. Google handles the sign-in.' },
+  { icon: Trash2, title: 'Delete your account and data any time', body: 'Open Settings and delete your account, deals and mediators in one step.' },
+]
+
+const FAQ = [
+  { question: 'Is my data private?', answer: 'Yes. Only the Google account you sign in with can see your deals. The database enforces that rule for every query.' },
+  { question: 'Do I need a password?', answer: 'No. You sign in with Google, so there is no password for us to create or store.' },
+  { question: 'Does it work offline?', answer: 'Yes, after the first load. You can add and edit deals without a connection, and changes sync when you are back online.' },
+  { question: 'Can I import my old spreadsheet?', answer: 'Yes. Import an Excel or CSV file, review the rows before saving, and undo the import if something looks wrong.' },
+  { question: 'How do I delete my account?', answer: 'Open Settings and choose Delete my account and all my data. That removes your account, deals and mediators.' },
+]
 
 export default function LoginPage() {
   const me = useMe()
@@ -16,43 +44,162 @@ export default function LoginPage() {
   const next = (location.state as { next?: string } | null)?.next ?? '/'
   const error = params.get('error')
 
+  usePageMeta({ title: `${APP_NAME} — Every refund. Every deadline. One place.`, description: META_DESCRIPTION, path: '/' })
+
   if (me.isSuccess) return <Navigate to={next} replace />
 
   return (
-    <div className="safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col px-gutter">
-      <div className="flex flex-1 flex-col justify-end pb-10">
-        <div className="rise mb-8 grid h-16 w-16 place-items-center rounded-lg bg-primary shadow-card">
-          <span className="h-8 w-8 rounded-pill border-[5px] border-primary-ink" />
-        </div>
-        <h1 data-testid="login-title" className="rise text-4xl font-extrabold tracking-tight sm:text-5xl" style={{ animationDelay: '60ms' }}>
-          {APP_NAME}
-        </h1>
-        <p data-testid="login-tagline" className="rise mt-3 text-base text-muted" style={{ animationDelay: '120ms' }}>
-          Every review deal, refund and deadline in one place, so no rupee slips through.
-        </p>
-      </div>
+    <div className="landing-page">
+      <header className="landing-topbar landing-shell">
+        <Link to="/login" className="landing-brand" aria-label={`${APP_NAME} home`}>
+          <span className="landing-logo" aria-hidden="true"><span /></span>
+          <span>{APP_NAME}</span>
+        </Link>
+        <nav aria-label="Landing page">
+          <a href="#how-it-works" className="landing-topbar-link">How it works</a>
+        </nav>
+      </header>
 
-      <div className="rise pb-10" style={{ animationDelay: '180ms' }}>
-        {error && (
-          <p data-testid="login-error" role="alert" className="mb-4 rounded-sm bg-danger-soft px-4 py-3 text-sm font-semibold text-danger">
-            {ERRORS[error] ?? ERRORS.oauth_failed}
-          </p>
-        )}
-        <a
-          data-testid="login-google-button"
-          href={googleLoginHref(next)}
-          className="flex h-14 w-full items-center justify-center gap-3 rounded-pill bg-ink text-base font-bold text-bg shadow-card transition-transform active:scale-[0.98]"
-        >
-          <GoogleMark />
-          Continue with Google
-        </a>
-        <LoginInstallLink />
-        <p className="mt-4 text-center text-xs text-muted">Your deals are private to your account.</p>
-      </div>
+      <main className="landing-shell">
+        <section className="landing-hero" aria-labelledby="landing-title">
+          <div className="landing-hero-copy">
+            <p className="landing-eyebrow">Built for review deals</p>
+            <h1 id="landing-title" data-testid="login-title" className="landing-title">
+              Every refund.<br />Every deadline.<br /><span className="landing-title-accent">One place.</span>
+            </h1>
+            <p data-testid="login-tagline" className="landing-subhead">
+              Track every review deal, refund form and mediator payment, so no rupee slips through.
+            </p>
+
+            {error && (
+              <p data-testid="login-error" role="alert" className="landing-error">
+                {ERRORS[error] ?? ERRORS.oauth_failed}
+              </p>
+            )}
+
+            <div className="landing-actions">
+              <GoogleSignInButton href={googleLoginHref(next)} testId="login-google-button" />
+              <LoginInstallLink />
+            </div>
+            <p className="landing-fineprint">Sign in with Google. No password needed.</p>
+          </div>
+
+          <LandingPreview />
+        </section>
+
+        <section className="landing-problem" aria-labelledby="problem-title">
+          <div className="landing-section-inner">
+            <p className="landing-eyebrow">The problem</p>
+            <h2 id="problem-title" className="landing-statement">
+              <span>Forgotten reviews.</span>
+              <span>Closed refund forms. Messy Excel.</span>
+            </h2>
+            <p className="landing-section-copy">
+              The order is only half the deal. The money is not really back until the review is done, the form is in, and the refund lands.
+            </p>
+          </div>
+        </section>
+
+        <section className="landing-section" aria-labelledby="features-title">
+          <div className="landing-section-head">
+            <p className="landing-eyebrow">What it does</p>
+            <h2 id="features-title" className="landing-heading">Everything between the order and the refund.</h2>
+          </div>
+          <div className="landing-feature-grid">
+            {FEATURES.map(({ icon: Icon, title, body }) => (
+              <Card key={title} className="landing-feature">
+                <span className="landing-feature-icon" aria-hidden="true"><Icon size={20} /></span>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section id="how-it-works" className="landing-section landing-how" aria-labelledby="how-title">
+          <div className="landing-section-head">
+            <p className="landing-eyebrow">How it works</p>
+            <h2 id="how-title" className="landing-heading">Three steps, then you are done.</h2>
+          </div>
+          <ol className="landing-step-list">
+            <li>
+              <span className="landing-step-number" aria-hidden="true">1</span>
+              <h3>Add the deal in 15 seconds</h3>
+              <p>Product, mediator, amounts and deadlines. That is all it takes to start tracking.</p>
+            </li>
+            <li>
+              <span className="landing-step-number" aria-hidden="true">2</span>
+              <h3>Tick off the review and form</h3>
+              <p>One tap when each step is done. The deal timeline shows what comes next.</p>
+            </li>
+            <li>
+              <span className="landing-step-number" aria-hidden="true">3</span>
+              <h3>Track the refund until it lands</h3>
+              <p>See what is pending with each mediator and mark the money received when it arrives.</p>
+            </li>
+          </ol>
+        </section>
+
+        <section className="landing-trust" aria-labelledby="trust-title">
+          <div className="landing-section-inner">
+            <p className="landing-eyebrow">Trust</p>
+            <h2 id="trust-title" className="landing-heading">Private by design, not by promise.</h2>
+            <p className="landing-section-copy">
+              Your deals are yours. The rules that keep them private live in the database and in the app.
+            </p>
+            <ul className="landing-trust-list">
+              {TRUST.map(({ icon: Icon, title, body }) => (
+                <li key={title}>
+                  <span className="landing-trust-icon" aria-hidden="true"><Icon size={19} /></span>
+                  <div><h3>{title}</h3><p>{body}</p></div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section id="faq" className="landing-section" aria-labelledby="faq-title">
+          <div className="landing-section-head">
+            <p className="landing-eyebrow">FAQ</p>
+            <h2 id="faq-title" className="landing-heading">Questions, answered.</h2>
+          </div>
+          <div className="landing-faq-list">
+            {FAQ.map(({ question, answer }) => (
+              <details key={question} className="landing-faq-item">
+                <summary>{question}</summary>
+                <p>{answer}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-final" aria-labelledby="final-title">
+          <div className="landing-final-inner">
+            <p className="landing-eyebrow">Start today</p>
+            <h2 id="final-title" className="landing-heading">Keep every rupee in view.</h2>
+            <p>Sign in with Google, add your first deal, and let the app watch the dates.</p>
+            <div className="landing-actions">
+              <GoogleSignInButton href={googleLoginHref(next)} testId="login-google-button-final" />
+              <LoginInstallLink testId="login-install-link-final" />
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="landing-footer">
+        <div className="landing-footer-inner landing-shell">
+          <div className="landing-footer-brand">
+            <span className="landing-logo" aria-hidden="true"><span /></span>
+            <span>{APP_NAME}</span>
+          </div>
+          <nav aria-label="Legal and contact" className="landing-footer-nav">
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/terms">Terms</Link>
+            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+          </nav>
+          <p className="landing-footer-copy">© {new Date().getFullYear()} {APP_NAME}. Built for review deals in India.</p>
+        </div>
+      </footer>
     </div>
   )
-}
-
-function GoogleMark() {
-  return <span className="font-display text-lg font-bold text-primary" aria-hidden="true">G</span>
 }

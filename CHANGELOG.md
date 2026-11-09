@@ -1,5 +1,26 @@
 # Changelog
 
+## Generated refund column CI fixes (2026-11)
+### Fixed
+- Updated the isolation test's direct repository seed to provide `less_amount` and `commission`, leaving generated `refund_amount` to PostgreSQL. Updated deal API fixtures and summary inputs to express the same intended net refunds using the new model.
+- Added real-schema regression coverage for import commit, sync push with both component-based and legacy inputs, and legacy API conversion.
+- Updated the offline E2E flow to enter Paid, Less, and Commission, verify the live refund breakdown and saved net refund, and check persisted generated values after sync. Updated dev screenshot seed deals to use Less/Commission instead of a refund input.
+
+## Public landing page and legal pages (2026-11)
+### Added
+- Replaced the logged-out login screen with a mobile-first landing page: a refund/deadline hero, Google sign-in and install actions, a CSS and inline-SVG Home preview with clearly labelled sample deals, problem, feature, how-it-works, trust, FAQ, final sign-in and footer sections.
+- Added public `/privacy` and `/terms` plain-English templates for OAuth verification, with a legal-review comment at the top of each file and links from the landing footer. No claim goes beyond the current app: no export, testimonials, user counts or ratings.
+- Added SEO basics (title, description, Open Graph, Twitter, canonical, theme colour) and a per-page meta helper.
+- Added Vitest coverage for logged-out landing rendering, logged-in redirects, install-link states, footer links and legal page headings.
+- Added 390 × 844 light and dark landing screenshots to `docs/screenshots`.
+
+### Changed
+- The dev-only screenshot helper now captures the landing page in a second context with a mocked `401`, so no authentication bypass route exists. It also checks the landing layout at 360px and 1280px and waits on `data-mode` when switching light/dark.
+
+### Notes
+- `CONTACT_EMAIL` in `frontend/src/config/app.ts` is a placeholder (`support@example.com`). Replace it before launch.
+- The privacy and terms text is a template and **needs legal review before public launch**.
+
 ## Net refund model and deal numbering (2026-11)
 ### Changed
 - Added migration `0004_deal_less_amount.py`: `refund_amount` is now generated from Paid − Less + Commission. Backfill preserves the previous total (`old refund + old commission`), including refunds above Paid by moving the excess into Commission. Migration NOTICEs report counts for the above-Paid and at-or-below-Paid rules. **Actual row counts are unavailable here because the migration was not applied to a configured database.**

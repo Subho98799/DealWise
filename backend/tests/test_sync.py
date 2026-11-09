@@ -36,6 +36,37 @@ def test_push_creates_with_client_ids_and_op_id_is_idempotent(api):
     assert items[0]["mediator_name"] == "Ravi"
 
 
+def test_sync_push_persists_components_and_converts_legacy_refund_on_real_schema(api):
+    a, _ = api("alice")
+    component_id = uuid.uuid4()
+    legacy_id = uuid.uuid4()
+    results = push(
+        a,
+        op(id=component_id, data={
+            "product": "Component deal",
+            "amount_paid": "1100.00",
+            "less_amount": "100.00",
+            "commission": "200.00",
+        }),
+        op(id=legacy_id, data={
+            "product": "Legacy sync deal",
+            "amount_paid": "1100.00",
+            "refund_amount": "1000.00",
+            "commission": "25.00",
+        }),
+    )
+    assert [result["status"] for result in results] == ["applied", "applied"]
+
+    component = a.get(f"/api/deals/{component_id}").json()
+    assert (component["less_amount"], component["commission"], component["refund_amount"]) == (
+        "100.00", "200.00", "1200.00",
+    )
+    legacy = a.get(f"/api/deals/{legacy_id}").json()
+    assert (legacy["less_amount"], legacy["commission"], legacy["refund_amount"]) == (
+        "100.00", "25.00", "1025.00",
+    )
+
+
 def test_last_write_wins(api):
     a, _ = api("alice")
     did = uuid.uuid4()

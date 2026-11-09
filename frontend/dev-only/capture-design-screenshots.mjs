@@ -28,7 +28,7 @@ const mediators = [
 function deal(id, product, mediator, date_taken, options = {}) {
   return {
     id, client_id: id, product, platform: options.platform ?? 'Amazon', mediator_id: mediator.id, mediator_name: mediator.name,
-    deal_type: 'review', date_taken, amount_paid: options.paid ?? '1499.00', refund_amount: options.refund ?? '1299.00',
+    deal_type: 'review', date_taken, amount_paid: options.paid ?? '1499.00', less_amount: options.less ?? '100.00',
     commission: options.commission ?? '100.00', review_deadline: options.reviewDeadline ?? plusDays(today, 5),
     refund_form_deadline: options.formDeadline ?? plusDays(today, 12), review_status: options.review ?? 'pending',
     form_status: options.form ?? 'pending', payment_status: options.payment ?? 'pending',
@@ -36,10 +36,10 @@ function deal(id, product, mediator, date_taken, options = {}) {
   }
 }
 const deals = [
-  deal('deal-baskets', 'Linen storage baskets', mediators[0], monthDate(0), { paid: '1499.00', refund: '1299.00', commission: '100.00', reviewDeadline: plusDays(today, -1), notes: 'Keep the packaging until the review is published.' }),
-  deal('deal-keyboard', 'Wireless keyboard', mediators[0], monthDate(-1), { paid: '3499.00', refund: '3200.00', commission: '250.00', review: 'done', formDeadline: plusDays(today, 2) }),
-  deal('deal-bottle', 'Insulated water bottle', mediators[1], monthDate(-2), { paid: '899.00', refund: '899.00', review: 'done', form: 'submitted', formDeadline: null }),
-  deal('deal-organizers', 'Kitchen organizer set', mediators[2], monthDate(-4), { paid: '2199.00', refund: '2199.00', review: 'done', form: 'submitted', payment: 'received', receivedOn: plusDays(today, -6), formDeadline: null }),
+  deal('deal-baskets', 'Linen storage baskets', mediators[0], monthDate(0), { paid: '1499.00', less: '100.00', commission: '100.00', reviewDeadline: plusDays(today, -1), notes: 'Keep the packaging until the review is published.' }),
+  deal('deal-keyboard', 'Wireless keyboard', mediators[0], monthDate(-1), { paid: '3499.00', less: '49.00', commission: '250.00', review: 'done', formDeadline: plusDays(today, 2) }),
+  deal('deal-bottle', 'Insulated water bottle', mediators[1], monthDate(-2), { paid: '899.00', less: '0.00', commission: '0.00', review: 'done', form: 'submitted', formDeadline: null }),
+  deal('deal-organizers', 'Kitchen organizer set', mediators[2], monthDate(-4), { paid: '2199.00', less: '0.00', commission: '0.00', review: 'done', form: 'submitted', payment: 'received', receivedOn: plusDays(today, -6), formDeadline: null }),
 ]
 
 const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) })
@@ -67,22 +67,19 @@ try {
   }, { deals, mediators })
   await page.getByText('Linen storage baskets').first().waitFor()
 
-  async function capture(mode, name, path, setup) {
-    if (path) await page.goto(new URL(path, baseURL).toString(), { waitUntil: 'domcontentloaded' })
-    if (setup) await setup()
-    if (name === 'home') await page.locator('[data-testid="summary-pending"][data-animation-done="true"]').waitFor()
-    await page.waitForTimeout(280)
+  async function shot(targetPage, mode, name) {
+    await targetPage.waitForTimeout(280)
     const filename = join(outDir, `${mode}-${name}.png`)
     for (let attempt = 0; ; attempt++) {
       try {
-        await page.screenshot({ path: filename })
+        await targetPage.screenshot({ path: filename })
         break
       } catch (error) {
         if (attempt >= 4) throw error
-        await page.waitForTimeout(250 * (attempt + 1))
+        await targetPage.waitForTimeout(250 * (attempt + 1))
       }
     }
-    const layout = await page.evaluate(() => ({
+    const layout = await targetPage.evaluate(() => ({
       viewportWidth: document.documentElement.clientWidth,
       documentWidth: document.documentElement.scrollWidth,
       bodyWidth: document.body.scrollWidth,
@@ -91,11 +88,18 @@ try {
     if (layout.documentWidth > layout.viewportWidth + 1) throw new Error(`${mode}-${name} overflows horizontally: ${JSON.stringify(layout)}`)
   }
 
+  async function capture(mode, name, path, setup) {
+    if (path) await page.goto(new URL(path, baseURL).toString(), { waitUntil: 'domcontentloaded' })
+    if (setup) await setup()
+    if (name === 'home') await page.locator('[data-testid="summary-pending"][data-animation-done="true"]').waitFor()
+    await shot(page, mode, name)
+  }
+
   for (const mode of ['light', 'dark']) {
     await page.goto(new URL('/settings', baseURL).toString(), { waitUntil: 'domcontentloaded' })
     await page.getByTestId('settings-appearance').waitFor()
     await page.getByRole('button', { name: mode === 'light' ? 'Light' : 'Dark' }).click()
-    await page.waitForFunction((theme) => document.documentElement.getAttribute('data-theme') === theme, mode)
+    await page.waitForFunction((savedMode) => document.documentElement.getAttribute('data-mode') === savedMode, mode)
     await capture(mode, 'home', '/')
     await capture(mode, 'deals', '/deals')
     await capture(mode, 'quick-add', '/deals', async () => {
@@ -127,6 +131,35 @@ try {
     const modalWidth = await page.evaluate(() => ({ viewportWidth: document.documentElement.clientWidth, documentWidth: document.documentElement.scrollWidth }))
     if (modalWidth.documentWidth > width + 1) throw new Error(`${width}px quick-add overflows horizontally: ${JSON.stringify(modalWidth)}`)
     console.log(`${width}px layouts: app frame ${Math.min(width, 480)}px; all checked routes fit`)
+  }
+
+  for (const mode of ['light', 'dark']) {
+    const landingContext = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, serviceWorkers: 'block', reducedMotion: 'no-preference' })
+    await landingContext.addInitScript((savedMode) => {
+      globalThis.localStorage.setItem('dealtracker:appearance', savedMode)
+      globalThis.localStorage.setItem('dealtracker:color-theme', 'indigo')
+    }, mode)
+    const landingPage = await landingContext.newPage()
+    await landingPage.route('**/api/me', (route) => route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'unauthorized', message: 'Not signed in' } }),
+    }))
+    await landingPage.goto(new URL('/login', baseURL).toString(), { waitUntil: 'domcontentloaded' })
+    await landingPage.getByTestId('login-title').waitFor()
+    await landingPage.evaluate(() => document.fonts.ready.then(() => true))
+    await landingPage.waitForFunction((savedMode) => document.documentElement.getAttribute('data-mode') === savedMode, mode)
+    await shot(landingPage, mode, 'landing')
+    for (const width of [360, 1280]) {
+      await landingPage.setViewportSize({ width, height: 844 })
+      await landingPage.waitForTimeout(180)
+      const layout = await landingPage.evaluate(() => ({
+        viewportWidth: document.documentElement.clientWidth,
+        documentWidth: document.documentElement.scrollWidth,
+      }))
+      if (layout.documentWidth > layout.viewportWidth + 1) throw new Error(`${mode} landing at ${width}px overflows horizontally`)
+    }
+    await landingContext.close()
   }
 } finally {
   await context.close()

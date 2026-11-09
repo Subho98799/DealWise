@@ -13,7 +13,13 @@ def frozen(monkeypatch):
 
 
 def deal(c, **kw):
-    body = {"product": "Boat Airdopes", "amount_paid": "1299.00", "refund_amount": "1299.00", **kw}
+    body = {
+        "product": "Boat Airdopes",
+        "amount_paid": "1299.00",
+        "less_amount": "0.00",
+        "commission": "0.00",
+        **kw,
+    }
     r = c.post("/api/deals", json=body)
     assert r.status_code == 201, r.text
     return r.json()
@@ -82,6 +88,34 @@ def test_legacy_refund_conversion_and_less_validation(api):
     assert "Less cannot be more than the amount paid" in invalid.json()["error"]["message"]
 
 
+def test_legacy_refund_service_normalizes_string_money_and_rejects_malformed_values():
+    from decimal import Decimal
+
+    from app.errors import AppError
+    from app.services.deals import _normalize_legacy_refund
+
+    values = {
+        "amount_paid": "1100.00",
+        "refund_amount": "1200.00",
+        "commission": "25.00",
+    }
+    _normalize_legacy_refund(values)
+    assert values == {
+        "amount_paid": Decimal("1100.00"),
+        "less_amount": Decimal("0.00"),
+        "commission": Decimal("125.00"),
+    }
+
+    with pytest.raises(AppError) as error:
+        _normalize_legacy_refund({
+            "amount_paid": "1100.00",
+            "refund_amount": "not money",
+            "commission": "25.00",
+        })
+    assert error.value.status == 422
+    assert "refund_amount" in error.value.message
+
+
 def test_client_id_idempotent(api):
     a, _ = api("alice")
     cid = "11111111-1111-4111-8111-111111111111"
@@ -113,7 +147,7 @@ def test_patch_delete_and_filters(api):
     d1 = deal(a, product="Phone case", platform="Flipkart", notes="blue one", date_taken="2026-06-01")
     d2 = deal(a, product="Mixer", platform="Amazon", review_status="done", form_status="submitted",
               payment_status="received", date_taken="2026-06-05")
-    r = a.patch(f"/api/deals/{d1['id']}", json={"refund_amount": "100.10", "platform": "Myntra"})
+    r = a.patch(f"/api/deals/{d1['id']}", json={"less_amount": "1198.90", "platform": "Myntra"})
     assert r.json()["refund_amount"] == "100.10" and r.json()["updated_at"] >= d1["updated_at"]
     assert r.json()["less_amount"] == "1198.90"
     ids = lambda **q: [x["id"] for x in a.get("/api/deals", params=q).json()["items"]]  # noqa: E731
@@ -146,11 +180,15 @@ def test_cursor_pagination_covers_everything_once(api):
 
 def test_summary_matches_hand_computed_fixture(api):
     a, _ = api("alice")
-    deal(a, amount_paid="1000.00", refund_amount="1100.00", commission="50.00", review_status="done",
-         form_status="submitted", payment_status="received", mediator_name="Ravi")       # net +150
-    deal(a, amount_paid="500.50", refund_amount="500.50", date_taken="2026-06-01", review_deadline="2026-06-09", mediator_name="Ravi")  # overdue
-    deal(a, amount_paid="0.10", refund_amount="0.20", refund_form_deadline="2026-06-12", mediator_name="Sita")  # urgent
-    deal(a, amount_paid="200.00", refund_amount="250.00", review_deadline="2026-06-30")
+    deal(a, amount_paid="1000.00", less_amount="0.00", commission="150.00",
+         review_status="done", form_status="submitted", payment_status="received",
+         mediator_name="Ravi")  # net refund 1150.00; gain 150.00
+    deal(a, amount_paid="500.50", less_amount="0.00", commission="0.00",
+         date_taken="2026-06-01", review_deadline="2026-06-09", mediator_name="Ravi")  # overdue
+    deal(a, amount_paid="0.10", less_amount="0.00", commission="0.10",
+         refund_form_deadline="2026-06-12", mediator_name="Sita")  # urgent; net refund 0.20
+    deal(a, amount_paid="200.00", less_amount="0.00", commission="50.00",
+         review_deadline="2026-06-30")
     s = a.get("/api/summary").json()
     assert s["total_paid"] == "1700.60"
     assert s["refund_pending_amount"] == "750.70"

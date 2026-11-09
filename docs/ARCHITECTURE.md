@@ -45,9 +45,9 @@ Migrations run from the operator's computer with the owner direct URL before dep
 **Why the rewrite:** cookies are first-party on the Vercel domain. Safari (ITP) blocks third-party cookies, and same-origin also removes CORS and makes the CSRF header check sufficient.
 
 ## Isolation model
-- `app_user`: LOGIN, NOSUPERUSER, NOBYPASSRLS, DML only. On Neon the owner role has BYPASSRLS, so it is used **only** for migrations.
+- `app_user`: LOGIN, NOSUPERUSER, NOBYPASSRLS, explicit SELECT/INSERT/UPDATE/DELETE on application tables only (no TRUNCATE, REFERENCES, or TRIGGER). Migration 0005 revokes broader grants and default grants. On Neon the owner role has BYPASSRLS, so it is used **only** for local migrations.
 - Per-user tables (`deals`, `mediators`, `sync_ops`, `import_jobs`): ENABLE + FORCE RLS, policy `user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid` for USING and WITH CHECK. Missing setting → zero rows, writes rejected.
-- `get_user_db` opens one transaction and runs `set_config('app.current_user_id', uid, true)`; `true` = transaction-local, so it is safe through PgBouncer (Neon pooled) and never leaks to the next request.
+- `get_user_db` opens one transaction and runs transaction-local `statement_timeout=15s`, `idle_in_transaction_session_timeout=30s`, and `app.current_user_id` settings; `true` = transaction-local, so they are safe through PgBouncer (Neon pooled) and never leak to the next request.
 - Repos also filter by the same setting and set `user_id` from it (defence in depth; never from input).
 - `users`, `sessions` are not under RLS: they must be read before a user context exists (cookie lookup, login upsert). Only `app/auth/` touches them.
 - FK checks bypass RLS, so deals reference mediators via composite FK `(mediator_id, user_id)` → a deal can only point at its owner's mediator.
@@ -58,6 +58,7 @@ Migrations run from the operator's computer with the owner direct URL before dep
 - **Engine triggers:** app start, `online`, tab visible, 800 ms after a write, every 60 s while visible. One cycle = push outbox in order (batches ≤ 100) → pull.
 - **Push results:** `applied`/`duplicate` → op removed. `rejected` with `stale:`/`deleted:` → server wins, op removed, full re-pull. Other `rejected` → op kept as "needs attention" with the reason (Fix or Discard in the UI). Network errors/timeouts never change an op.
 - **Idempotency:** applied `op_id`s are stored in `sync_ops`; repeats return `duplicate`. `POST /api/deals` with an existing `client_id` returns the existing deal (200).
+- **Retention:** sync pushes prune at most 500 `sync_ops` records older than 30 days per user; a new import commit prunes at most 100 `import_jobs` older than 90 days. Both cleanups are opportunistic and preserve records younger than their retention windows.
 - **Pull:** `GET /api/sync/changes?since=<time>&cursor=<page>&limit=<1..500>` returns stable pages, ordered by update time and record id. The overlap covers transactions that committed late; the client applies all pages, skipping records with unsynced local ops, before saving `server_time`. Empty `since` = paginated full snapshot.
 - **Superseded edits:** when a pull returns a newer server version over a pending local edit, the UI keeps the server copy and shows a notice linked to that deal.
 - **Conflict policy:** last-write-wins per record using `client_updated_at` (device clock, corrected by the server-time offset learned on each pull) compared to the record's last accepted write time. **Limitation:** concurrent edits of the same record on two devices — the later writer overwrites the earlier one entirely for the fields it sent; large clock errors can mis-order writes.

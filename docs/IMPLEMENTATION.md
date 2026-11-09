@@ -87,7 +87,7 @@ Action order: `review_done` → `form_submitted` (needs review done) → `paymen
 Status filters: `open` = not completed; `payment_pending` = payment ≠ received; `completed` = review done + form submitted + payment received. `urgent_count` includes overdue.
 
 ## Database schema
-Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2), `0003_import_jobs.py` (Phase 3), `0004_deal_less_amount.py` (Less/commission net-refund model).
+Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2), `0003_import_jobs.py` (Phase 3), `0004_deal_less_amount.py` (Less/commission net-refund model), `0005_runtime_privileges_and_timeouts.py` (runtime grants and database timeouts).
 
 | Table | RLS | Key columns / constraints | Indexes |
 |---|---|---|---|
@@ -96,9 +96,11 @@ Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2), `0003_
 | mediators | ENABLE+FORCE | `name` non-blank, `updated_at` trigger, `deleted_at`, `client_updated_at`, unique `(id,user_id)` | unique `(user_id, lower(name)) WHERE deleted_at IS NULL`; `(user_id, updated_at)` |
 | deals | ENABLE+FORCE | `amount_paid`, `less_amount`, `commission` are `numeric(12,2)`; checks `amount_paid ≥ 0`, `0 ≤ less_amount ≤ amount_paid`, `commission ≥ 0`; `refund_amount` is stored generated `amount_paid - less_amount + commission`; CHECKs on deal_type/statuses; FK `(mediator_id,user_id)→mediators(id,user_id) ON DELETE SET NULL (mediator_id)`; optional composite FK `(import_job_id,user_id)→import_jobs(id,user_id)`; `mediator_name` snapshot; `updated_at` trigger; `deleted_at`; `client_updated_at` | `(user_id,payment_status)`, `(user_id,review_deadline) WHERE review pending`, `(user_id,refund_form_deadline) WHERE form pending`, `(user_id,date_taken DESC)`, unique `(user_id,client_id) WHERE client_id NOT NULL`, `(user_id,updated_at)`, `(user_id,import_job_id)`, mediator_id |
 | sync_ops | ENABLE+FORCE | pk `(user_id, op_id)`, `record_id` — applied push ops (idempotency); old rows are opportunistically removed, up to 500 per push, after 30 days | pk |
-| import_jobs | ENABLE+FORCE | `import_id` unique per user; status, row counts, totals, options, errors, created/undone timestamps; composite unique `(id,user_id)` for deal ownership FK | `(user_id,created_at DESC)` |
+| import_jobs | ENABLE+FORCE | `import_id` unique per user; status, row counts, totals, options, errors, created/undone timestamps; composite unique `(id,user_id)` for deal ownership FK; jobs older than 90 days are pruned at most 100 per new import commit | `(user_id,created_at DESC)` |
 
 Migration 0004 backfills Less as `greatest(amount_paid - old_refund_amount, 0)`; rows with an old refund above amount paid instead add the excess to commission and set Less to zero. This preserves old total money back (`old refund_amount + old commission`). The migration emits counts for both branches as PostgreSQL NOTICEs. Downgrade recreates a normal `refund_amount` with the previous total semantics; the SQL comment documents that the separate Less/commission breakdown is lost.
+
+Migration 0005 revokes table privileges from `app_user` across the public schema, then grants only SELECT/INSERT/UPDATE/DELETE on the six application tables. It also removes broad default table grants for the migration role and sets role-level `statement_timeout=15s` and `idle_in_transaction_session_timeout=30s`. `get_user_db` repeats the timeouts with transaction-local `set_config` for pooled connections. The downgrade restores prior broad DML grants and resets those role settings. `users` and `sessions` remain outside RLS and accessible to the auth module; this is an accepted isolation risk.
 
 ## Money, imports, and deal numbers
 - Spreadsheet import accepts Less headers `less`, `deduction`, `discount`, `cut`, and `mediator less` (alongside the `less_amount` target) and keeps Commission. If only legacy Refund is mapped, each row derives Less and Commission by the legacy conversion rule and shows that derivation in preview. If Less is mapped, it wins; a Refund mismatch is a warning. Import reconciliation totals are Paid, Net refund, and Gain/loss.
@@ -140,6 +142,6 @@ Migration 0004 backfills Less as `greatest(amount_paid - old_refund_amount, 0)`;
 ## Known issues / tech debt
 - Rate limits are in-memory per instance. Auth endpoints use forwarded-IP limits; authenticated routes, imports, and sync push use per-user limits. Verify forwarded-IP trust from Vercel through Render after deployment.
 - LWW uses device clocks (offset-corrected by server time on each pull); concurrent edits on two devices: last writer wins per record.
-- `sync_ops` cleanup is opportunistic: pushes remove at most 500 rows older than 30 days, so quiet accounts can retain older entries. Sync pulls are paginated at 500 rows.
+- `sync_ops` cleanup is opportunistic: pushes remove at most 500 rows older than 30 days. `import_jobs` cleanup runs on new imports and removes at most 100 jobs older than 90 days. Quiet accounts can retain older entries until the next applicable operation. Sync pulls are paginated at 500 rows.
 - Settings changes need a connection (not queued offline). Logout needs a connection (keeps local data otherwise).
 - Ruff and ESLint run in CI and through `dt lint`. Lighthouse no longer has a PWA category; installability is checked manually.

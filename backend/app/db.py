@@ -26,6 +26,8 @@ def ping() -> None:
 
 def set_user_context(session: Session, user_id: uuid.UUID) -> None:
     # is_local=true: the setting dies with the transaction, so a pooled connection never leaks it.
+    session.execute(text("SELECT set_config('statement_timeout', '15s', true)"))
+    session.execute(text("SELECT set_config('idle_in_transaction_session_timeout', '30s', true)"))
     session.execute(
         text("SELECT set_config('app.current_user_id', :uid, true)"), {"uid": str(user_id)}
     )

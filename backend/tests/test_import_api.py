@@ -1,5 +1,6 @@
 import csv
 import uuid
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
@@ -338,3 +339,25 @@ def test_authenticated_rate_limits_are_isolated_by_user_and_operation():
     assert exc.value.code == "rate_limited"
     limiter.consume(bob, "authenticated", 1, 60, now=1)
     limiter.consume(alice, "sync_push", 1, 60, now=1)
+
+
+def test_import_commit_prunes_at_most_100_jobs_older_than_90_days(api, user_ctx):
+    a, user_id = api("retention")
+    old_jobs = [{"user_id": user_id, "import_id": uuid.uuid4(), "status": "undone",
+                 "created_at": datetime.now(timezone.utc) - timedelta(days=91)}
+                for _ in range(101)]
+    with user_ctx(user_id) as session:
+        session.execute(text("""
+            INSERT INTO import_jobs (user_id, import_id, status, created_at)
+            VALUES (:user_id, :import_id, :status, :created_at)
+        """), old_jobs)
+
+    response = a.post("/api/import/commit", json=commit_body(
+        uuid.uuid4(), [row("new retained import")],
+    ))
+    assert response.status_code == 200, response.text
+    with user_ctx(user_id) as session:
+        remaining_old = session.execute(text("""
+            SELECT count(*) FROM import_jobs WHERE created_at < now() - interval '90 days'
+        """)).scalar_one()
+    assert remaining_old == 1

@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import func, insert, select, update
+from sqlalchemy import delete, func, insert, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -34,6 +34,7 @@ class ImportRepo:
         ).order_by(ImportJob.created_at.desc(), ImportJob.id).limit(limit)))
 
     def create_job(self, values: dict) -> tuple[ImportJob, bool]:
+        self.delete_expired_jobs()
         stmt = pg_insert(ImportJob).values(
             **values, user_id=CURRENT_USER_ID,
         ).on_conflict_do_nothing(
@@ -46,6 +47,17 @@ class ImportRepo:
         if existing is None:
             raise RuntimeError("Import job conflict could not be resolved.")
         return existing, False
+
+    def delete_expired_jobs(self, limit: int = 100) -> int:
+        expired = select(ImportJob.id).where(
+            ImportJob.user_id == CURRENT_USER_ID,
+            ImportJob.created_at < func.now() - text("interval '90 days'"),
+        ).order_by(ImportJob.created_at, ImportJob.id).limit(limit)
+        result = self._s.execute(delete(ImportJob).where(
+            ImportJob.user_id == CURRENT_USER_ID,
+            ImportJob.id.in_(expired),
+        ))
+        return result.rowcount or 0
 
     def update_job(self, job_id: uuid.UUID, values: dict) -> ImportJob | None:
         return self._job(update(ImportJob).where(

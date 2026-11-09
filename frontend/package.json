@@ -42,7 +42,7 @@
     "autoprefixer": "^10.6.2",
     "eslint": "^10",
     "fake-indexeddb": "^6",
-    "globals": "^15",
+    "globals": "^17",
     "jsdom": "^25",
     "pg": "^8.23.1",
     "postcss": "^8.5.32",

@@ -168,6 +168,36 @@ class SyncOp(Strict):
     data: dict[str, Any] = Field(default_factory=dict)
     client_updated_at: AwareDatetime
 
+    @field_validator("data")
+    @classmethod
+    def _bounded_data(cls, value: dict[str, Any]) -> dict[str, Any]:
+        pending: list[tuple[Any, int]] = [(value, 1)]
+        total_keys = 0
+        while pending:
+            item, depth = pending.pop()
+            if depth > 4:
+                raise ValueError("sync operation data cannot be nested more than 4 levels")
+            if isinstance(item, dict):
+                total_keys += len(item)
+                if total_keys > 50:
+                    raise ValueError("sync operation data cannot contain more than 50 keys")
+                for key, child in item.items():
+                    if len(key) > 128:
+                        raise ValueError("sync operation data keys cannot exceed 128 characters")
+                    if isinstance(child, str) and len(child) > 2000:
+                        raise ValueError("sync operation strings cannot exceed 2000 characters")
+                    if isinstance(child, (dict, list)):
+                        pending.append((child, depth + 1))
+            elif isinstance(item, list):
+                if len(item) > 100:
+                    raise ValueError("sync operation arrays cannot contain more than 100 values")
+                for child in item:
+                    if isinstance(child, str) and len(child) > 2000:
+                        raise ValueError("sync operation strings cannot exceed 2000 characters")
+                    if isinstance(child, (dict, list)):
+                        pending.append((child, depth + 1))
+        return value
+
 
 class SyncPushIn(Strict):
     ops: list[SyncOp] = Field(max_length=100)

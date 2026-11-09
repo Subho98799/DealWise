@@ -9,7 +9,7 @@ from app.config import APP_NAME, OAUTH_COOKIE, get_settings
 from app.errors import register_error_handlers
 from app.routes import deals, health, imports, me, mediators, sync
 from app.schemas import ErrorOut
-from app.security import (AccessLogMiddleware, CSRFMiddleware, ImportBodyLimitMiddleware,
+from app.security import (AccessLogMiddleware, CSRFMiddleware, RequestBodyLimitMiddleware,
                           SecurityHeadersMiddleware, limiter)
 
 settings = get_settings()  # fail fast on missing configuration
@@ -40,7 +40,7 @@ app.add_middleware(
 app.add_middleware(CSRFMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(AccessLogMiddleware)
-app.add_middleware(ImportBodyLimitMiddleware)
+app.add_middleware(RequestBodyLimitMiddleware)
 
 app.include_router(health.router)
 app.include_router(auth_router)

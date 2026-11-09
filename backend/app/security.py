@@ -17,6 +17,10 @@ from app.errors import error_response
 AUTH_RATE_LIMIT = "20/minute"
 USER_RATE_LIMIT = 120
 SYNC_PUSH_RATE_LIMIT = 30
+GLOBAL_REQUEST_BODY_LIMIT = 5 * 1024 * 1024
+DEFAULT_REQUEST_BODY_LIMIT = 1024 * 1024
+SYNC_PUSH_BODY_LIMIT = 512 * 1024
+IMPORT_BODY_LIMIT = 5 * 1024 * 1024
 
 # Same policy is served for the SPA by vercel.json. Google avatars are the only external images.
 CONTENT_SECURITY_POLICY = (
@@ -28,9 +32,8 @@ CONTENT_SECURITY_POLICY = (
 
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
-# TODO(rate-limit): limits are in-memory PER INSTANCE and key on the client IP taken from forwarded
-# headers (uvicorn --proxy-headers --forwarded-allow-ips='*'), which a client can spoof. Known limitation,
-# see docs/ARCHITECTURE.md "Known limitations". Fix later with a shared store + trusted proxy list.
+# Auth endpoint limits use forwarded client IPs; authenticated limits use the resolved user ID.
+# All limiters are in-memory per instance; forwarded-IP trust still needs deployment verification.
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=[],
@@ -70,20 +73,33 @@ import_rate_limiter = UserWindowRateLimiter()
 user_rate_limiter = UserWindowRateLimiter()
 
 
-class ImportBodyLimitMiddleware:
-    def __init__(self, app: ASGIApp, max_bytes: int = 5 * 1024 * 1024):
+class _RequestBodyTooLarge(Exception):
+    pass
+
+
+class RequestBodyLimitMiddleware:
+    def __init__(self, app: ASGIApp, max_bytes: int = GLOBAL_REQUEST_BODY_LIMIT):
         self.app = app
         self.max_bytes = max_bytes
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http" or not scope.get("path", "").startswith("/api/import"):
+        path = scope.get("path", "")
+        if scope["type"] != "http" or not path.startswith("/api/"):
             await self.app(scope, receive, send)
             return
 
+        if path.startswith("/api/import"):
+            endpoint_limit = IMPORT_BODY_LIMIT
+        elif path == "/api/sync/push":
+            endpoint_limit = SYNC_PUSH_BODY_LIMIT
+        else:
+            endpoint_limit = DEFAULT_REQUEST_BODY_LIMIT
+        limit = min(self.max_bytes, endpoint_limit)
+
         headers = dict(scope.get("headers", []))
         try:
-            if int(headers.get(b"content-length", b"0")) > self.max_bytes:
-                await self._too_large(scope, receive, send)
+            if int(headers.get(b"content-length", b"0")) > limit:
+                await self._too_large(scope, receive, send, path, limit)
                 return
         except ValueError:
             pass
@@ -95,24 +111,27 @@ class ImportBodyLimitMiddleware:
             message = await receive()
             if message["type"] == "http.request":
                 size += len(message.get("body", b""))
-                if size > self.max_bytes:
-                    raise OverflowError("import request body too large")
+                if size > limit:
+                    raise _RequestBodyTooLarge
             return message
 
         try:
             await self.app(scope, limited_receive, send)
-        except OverflowError as exc:
-            if str(exc) != "import request body too large":
-                raise
-            await self._too_large(scope, receive, send)
+        except _RequestBodyTooLarge:
+            await self._too_large(scope, receive, send, path, limit)
 
     @staticmethod
-    async def _too_large(scope: Scope, receive: Receive, send: Send) -> None:
+    async def _too_large(scope: Scope, receive: Receive, send: Send, path: str, limit: int) -> None:
         from starlette.responses import JSONResponse
 
+        message = (
+            "Import requests are limited to 5 MB."
+            if path.startswith("/api/import")
+            else f"Request bodies are limited to {limit // 1024} KB for this endpoint."
+        )
         response = JSONResponse(
             status_code=413,
-            content={"error": {"code": "request_too_large", "message": "Import requests are limited to 5 MB."}},
+            content={"error": {"code": "request_too_large", "message": message}},
         )
         await response(scope, receive, send)
 

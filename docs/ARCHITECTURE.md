@@ -57,6 +57,7 @@ Migrations run from the operator's computer with the owner direct URL before dep
 - **Ids:** the device generates UUIDs; new deals use the same value for `id` and `client_id`. A colliding id from another account fails the insert (`id_conflict`) and never overwrites.
 - **Engine triggers:** app start, `online`, tab visible, 800 ms after a write, every 60 s while visible. One cycle = push outbox in order (batches ≤ 100) → pull.
 - **Push results:** `applied`/`duplicate` → op removed. `rejected` with `stale:`/`deleted:` → server wins, op removed, full re-pull. Other `rejected` → op kept as "needs attention" with the reason (Fix or Discard in the UI). Network errors/timeouts never change an op.
+- **Payload bounds:** sync push is capped at 100 ops and 512 KiB; each operation's data is limited to 50 total object keys, four nesting levels, 100 array items, 128-character keys, and 2,000-character strings.
 - **Idempotency:** applied `op_id`s are stored in `sync_ops`; repeats return `duplicate`. `POST /api/deals` with an existing `client_id` returns the existing deal (200).
 - **Retention:** sync pushes prune at most 500 `sync_ops` records older than 30 days per user; a new import commit prunes at most 100 `import_jobs` older than 90 days. Both cleanups are opportunistic and preserve records younger than their retention windows.
 - **Pull:** `GET /api/sync/changes?since=<time>&cursor=<page>&limit=<1..500>` returns stable pages, ordered by update time and record id. The overlap covers transactions that committed late; the client applies all pages, skipping records with unsynced local ops, before saving `server_time`. Empty `since` = paginated full snapshot.
@@ -95,7 +96,7 @@ erDiagram
 - `import_jobs` has FORCE RLS. Deals reference jobs through `(import_job_id,user_id)`, so a job cannot be attached across users. Undo within 30 days soft-deletes unchanged imported deals, removes mediators created by that import only when now orphaned, and reports rows that changed since import.
 
 ## Security model
-Session cookie (opaque, hashed at rest) · CSRF header on mutations · CSP/X-Frame-Options/nosniff/Referrer-Policy (API + Vercel) · HSTS in prod · open-redirect-safe `next` · auth limits (20/min per IP), authenticated limits (120/min per user), import (30 previews/hour, 10 commits/hour), and sync push (30/min per user) · strict schemas (`extra="forbid"`, floats rejected) · logs without query strings, tokens or emails · no CORS.
+Session cookie (opaque, hashed at rest) · CSRF header on mutations · CSP/X-Frame-Options/nosniff/Referrer-Policy (API + Vercel) · HSTS in prod · open-redirect-safe `next` · auth limits (20/min per IP), authenticated limits (120/min per user), import (30 previews/hour, 10 commits/hour), and sync push (30/min per user) · API body caps (1 MiB default, 512 KiB sync push, 5 MiB import/global maximum) · strict schemas (`extra="forbid"`, floats rejected) · logs without query strings, tokens or emails · no CORS.
 
 ## Deployment topology and free-tier constraints
 - Render free web service (Docker): sleeps after 15 min idle, ~1 min to wake; runs `alembic upgrade head` (owner URL) then uvicorn. A keep-alive pinger on `/api/health` (no DB) avoids sleeps but uses free instance hours.

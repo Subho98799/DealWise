@@ -71,7 +71,7 @@
 | DELETE | `/api/deals/{deal_id}` | session | soft delete → 204 |
 | POST | `/api/deals/{deal_id}/action` | session | `{action, payment_received_on?}` → Deal (409 `invalid_transition`) |
 | GET | `/api/sync/changes` | session | `?since=ISO&cursor=…&limit=1..500` → `{server_time, deals, mediators, deleted:{deals,mediators}, next_cursor}`; follow pages before advancing the saved sync time |
-| POST | `/api/sync/push` | session | `{ops:[≤100 {op_id,type,op,id,client_id?,data,client_updated_at}]}`; legacy queued `refund_amount` is deprecated but converted → `{results:[{op_id,status,reason?,id?}]}` |
+| POST | `/api/sync/push` | session | `{ops:[≤100 {op_id,type,op,id,client_id?,data,client_updated_at}]}`; request ≤512 KiB, each data object ≤50 total keys, depth ≤4, arrays ≤100, keys ≤128 chars, strings ≤2,000 chars; legacy queued `refund_amount` is deprecated but converted → `{results:[{op_id,status,reason?,id?}]}` |
 | POST | `/api/import/preview` | session | mapped rows and import options → normalized rows, duplicate matches (including matching deal ID for local numbering), errors, and reconciliation totals; does not write |
 | POST | `/api/import/commit` | session | import id, filename, options, and a batch of up to 500 mapped rows → import job and batch results |
 | GET | `/api/import/jobs` | session | → current user's import history |

@@ -68,4 +68,3 @@ export async function apiBlob(path: string): Promise<Blob> {
 }
 
 export const isUnauthorized = (e: unknown) => e instanceof ApiError && e.status === 401
-export const isOfflineError = (e: unknown) => e instanceof NetworkError || e instanceof TimeoutError

@@ -225,29 +225,6 @@ textarea {
   box-shadow: var(--shadow-card);
 }
 
-.ui-field {
-  display: block;
-  min-width: 0;
-}
-
-.ui-field-label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--color-ink);
-  font-size: var(--type-14);
-  font-weight: 600;
-}
-
-.ui-field-hint,
-.ui-field-error {
-  display: block;
-  margin-top: 5px;
-  font-size: var(--type-12);
-}
-
-.ui-field-hint { color: var(--color-muted); }
-.ui-field-error { color: var(--color-danger); }
-
 .ui-input {
   width: 100%;
   min-height: 48px;

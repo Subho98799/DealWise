@@ -31,7 +31,7 @@ To add a theme, define its light and dark palette tokens in `frontend/src/styles
 
 ## Components and interaction
 
-Use the small primitives in `src/components/ui.tsx`: Button, IconButton, Card, Chip, Stat, Sheet, Toast, Skeleton, EmptyState, SegmentedControl, Input, and Select. Use `Avatar` for people and mediators. Keep existing `data-testid` hooks when restyling.
+Use the small primitives in `src/components/ui.tsx`: Button, IconButton, Card, Chip, Stat, Sheet, Toast, Skeleton, EmptyState, and SegmentedControl. Use native labeled `<input>` and `<select>` elements with the shared `ui-input` class where appropriate. Use `Avatar` for people and mediators. Keep existing `data-testid` hooks when restyling.
 
 - Interactive targets are at least 44px tall and have visible keyboard focus.
 - Inputs always have a visible label. Errors use text and an icon or shape alongside color.

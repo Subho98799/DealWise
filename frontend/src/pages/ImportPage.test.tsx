@@ -138,4 +138,26 @@ describe('import wizard', () => {
     expect(apiMock.mock.calls.some(([path]) => path === '/api/import/commit')).toBe(true)
     if (originalOnline) Object.defineProperty(navigator, 'onLine', originalOnline)
   })
+
+  it('terminates the parser worker when the user cancels file reading', async () => {
+    const workers: { terminate: ReturnType<typeof vi.fn> }[] = []
+    class HangingWorker {
+      onmessage: ((event: MessageEvent) => void) | null = null
+      onerror: (() => void) | null = null
+      terminate = vi.fn()
+      constructor() { workers.push(this) }
+      postMessage() {}
+    }
+    vi.stubGlobal('Worker', HangingWorker)
+    render(<MemoryRouter><UserContext.Provider value={user}><ImportPage /></UserContext.Provider></MemoryRouter>)
+    const file = new File(['spreadsheet'], 'deals.csv', { type: 'text/csv' })
+    Object.defineProperty(file, 'arrayBuffer', { value: async () => new ArrayBuffer(4) })
+    fireEvent.change(screen.getByTestId('import-file-input'), { target: { files: [file] } })
+
+    fireEvent.click(await screen.findByTestId('import-cancel-read'))
+
+    expect(workers).toHaveLength(1)
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
+    expect(screen.getByTestId('import-file-error').textContent).toBe('File reading cancelled.')
+  })
 })

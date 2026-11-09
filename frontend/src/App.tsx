@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useLocation, type Location } from 'react-router-dom'
 import { ProtectedLayout } from './components/ProtectedLayout'
 import LoginPage from './pages/Login'
@@ -9,7 +10,8 @@ import DealFormPage from './pages/DealForm'
 import DealDetailPage from './pages/DealDetail'
 import { MediatorDetailPage, MediatorsPage } from './pages/Mediators'
 import SettingsPage from './pages/Settings'
-import ImportPage from './pages/ImportPage'
+
+const ImportPage = lazy(() => import('./pages/ImportPage'))
 
 export default function App() {
   const location = useLocation()
@@ -29,7 +31,7 @@ export default function App() {
           <Route path="mediators" element={<MediatorsPage />} />
           <Route path="mediators/:id" element={<MediatorDetailPage />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="import" element={<ImportPage />} />
+          <Route path="import" element={<Suspense fallback={<p role="status">Loading import tools…</p>}><ImportPage /></Suspense>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

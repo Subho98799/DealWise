@@ -68,6 +68,8 @@ type ParserResponse =
   | { type: 'sheet'; name: string; rows: string[][] }
   | { type: 'error'; message: string }
 
+const IMPORT_WORKER_TIMEOUT_MS = 30_000
+
 const defaultValues = (): Defaults => ({
   platform: '', mediator: '', deal_type: '', date_taken: '',
   statuses: { review_status: '', form_status: '', payment_status: '' },
@@ -128,6 +130,7 @@ export default function ImportPage() {
   const numbering = useMemo(() => deals ? numberDeals(deals) : undefined, [deals])
   const online = useOnline()
   const workerRef = useRef<Worker | null>(null)
+  const workerTimeoutRef = useRef<number | null>(null)
   const previewSequence = useRef(0)
   const [step, setStep] = useState<Step>('upload')
   const [fileName, setFileName] = useState<string | null>(null)
@@ -159,6 +162,23 @@ export default function ImportPage() {
   const [historyBusy, setHistoryBusy] = useState(false)
   const [historyError, setHistoryError] = useState('')
   const [historyReload, setHistoryReload] = useState(0)
+
+  const stopWorker = useCallback((error?: string) => {
+    if (workerTimeoutRef.current !== null) window.clearTimeout(workerTimeoutRef.current)
+    workerTimeoutRef.current = null
+    workerRef.current?.terminate()
+    workerRef.current = null
+    if (error) setFileError(error)
+    setWorkerBusy(false)
+  }, [])
+  const resetWorkerTimeout = useCallback((worker: Worker) => {
+    if (workerTimeoutRef.current !== null) window.clearTimeout(workerTimeoutRef.current)
+    workerTimeoutRef.current = window.setTimeout(() => {
+      if (workerRef.current === worker) {
+        stopWorker('Reading this file timed out. Choose it again or split it into smaller files.')
+      }
+    }, IMPORT_WORKER_TIMEOUT_MS)
+  }, [stopWorker])
 
   const header = rows[headerIndex] ?? []
   const visibleRows = useMemo(() => rows.slice(0, 5), [rows])
@@ -195,7 +215,10 @@ export default function ImportPage() {
     return () => { live = false }
   }, [online, historyReload])
 
-  useEffect(() => () => workerRef.current?.terminate(), [])
+  useEffect(() => () => {
+    if (workerTimeoutRef.current !== null) window.clearTimeout(workerTimeoutRef.current)
+    workerRef.current?.terminate()
+  }, [])
 
   useEffect(() => {
     if (step !== 'fix' && step !== 'review') return
@@ -238,16 +261,18 @@ export default function ImportPage() {
   }, [step, online, dataRows, options, previewReload])
 
   const chooseSheet = useCallback((name: string) => {
+    const worker = workerRef.current
+    if (!worker) return
     setSheetName(name)
     setRows([])
     setWorkerBusy(true)
     setFileError('')
-    workerRef.current?.postMessage({ type: 'sheet', name })
-  }, [])
+    resetWorkerTimeout(worker)
+    worker.postMessage({ type: 'sheet', name })
+  }, [resetWorkerTimeout])
 
   const chooseFile = async (file: File | undefined) => {
-    workerRef.current?.terminate()
-    workerRef.current = null
+    stopWorker()
     setFileError('')
     setFileName(null)
     setRows([])
@@ -283,40 +308,40 @@ export default function ImportPage() {
     setWorkerBusy(true)
     const worker = new Worker(new URL('../imports/importParser.worker.ts', import.meta.url), { type: 'module' })
     workerRef.current = worker
+    resetWorkerTimeout(worker)
     worker.onmessage = (event: MessageEvent<ParserResponse>) => {
       const response = event.data
       if (response.type === 'error') {
-        setFileError(response.message)
-        setWorkerBusy(false)
+        stopWorker(response.message)
         return
       }
       if (response.type === 'opened') {
         setSheets(response.sheets)
         if (!response.sheets.length) {
-          setFileError('This file has no worksheets. Choose another file.')
-          setWorkerBusy(false)
+          stopWorker('This file has no worksheets. Choose another file.')
           return
         }
         setSheetName(response.sheets[0].name)
+        resetWorkerTimeout(worker)
         worker.postMessage({ type: 'sheet', name: response.sheets[0].name })
         return
       }
+      stopWorker()
       setSheetName(response.name)
       setRows(response.rows)
       setHeaderIndex(suggestHeaderRow(response.rows))
       setStep('sheet')
-      setWorkerBusy(false)
     }
     worker.onerror = () => {
-      setFileError('This file could not be read. Check that it is a valid Excel or CSV file.')
-      setWorkerBusy(false)
+      stopWorker('This file could not be read. Check that it is a valid Excel or CSV file.')
     }
     try {
       const buffer = await file.arrayBuffer()
+      if (workerRef.current !== worker) return
+      resetWorkerTimeout(worker)
       worker.postMessage({ type: 'open', buffer }, [buffer])
     } catch {
-      setFileError('This file could not be opened on this device.')
-      setWorkerBusy(false)
+      if (workerRef.current === worker) stopWorker('This file could not be opened on this device.')
     }
   }
 
@@ -435,7 +460,10 @@ export default function ImportPage() {
           Excel or CSV file (up to 5 MB)
           <input data-testid="import-file-input" className={`${input} mt-2`} type="file" accept=".xlsx,.xls,.csv" onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; void chooseFile(file) }} />
         </label>
-        {workerBusy && <p role="status" className="text-sm text-muted">Reading this file in the browser…</p>}
+        {workerBusy && <div role="status" className="flex items-center gap-2 text-sm text-muted">
+          <span>Reading this file in the browser…</span>
+          <button type="button" data-testid="import-cancel-read" className={btn.ghost} onClick={() => stopWorker('File reading cancelled.')}>Cancel</button>
+        </div>}
         {fileError && <p data-testid="import-file-error" role="alert" className="text-sm font-semibold text-danger">{fileError}</p>}
         <div className="flex flex-wrap gap-2">
           <button type="button" className={btn.ghost} onClick={downloadXlsxTemplate}>Download .xlsx template</button>

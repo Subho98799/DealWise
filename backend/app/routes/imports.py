@@ -15,12 +15,16 @@ router = APIRouter(prefix="/api/import", tags=["import"])
 
 def _preview_rate_limit(user: Me) -> None:
     if get_settings().RATE_LIMIT_ENABLED:
-        import_rate_limiter.consume(user.id, "preview", 30, 60 * 60)
+        import_rate_limiter.consume(
+            user.id, "preview", 30, 60 * 60, message="Too many import requests, slow down."
+        )
 
 
 def _commit_rate_limit(user: Me) -> None:
     if get_settings().RATE_LIMIT_ENABLED:
-        import_rate_limiter.consume(user.id, "commit", 10, 60 * 60)
+        import_rate_limiter.consume(
+            user.id, "commit", 10, 60 * 60, message="Too many import requests, slow down."
+        )
 
 
 @router.post("/preview", response_model=ImportPreviewOut, dependencies=[Depends(_preview_rate_limit)])

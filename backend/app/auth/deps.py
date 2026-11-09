@@ -12,9 +12,10 @@ from app.auth.sessions import (
     set_session_cookie,
     utcnow,
 )
-from app.config import SESSION_COOKIE
+from app.config import SESSION_COOKIE, get_settings
 from app.errors import AppError
 from app.models import User, UserSession
+from app.security import USER_RATE_LIMIT, user_rate_limiter
 
 
 @dataclass(frozen=True)
@@ -67,6 +68,9 @@ def current_user(request: Request, response: Response) -> CurrentUser:
             set_session_cookie(response, raw)  # sliding expiry for the cookie too
     if expired:
         raise _unauthorized("Session expired, please log in again.")
+
+    if get_settings().RATE_LIMIT_ENABLED:
+        user_rate_limiter.consume(user.id, "authenticated", USER_RATE_LIMIT, 60)
 
     return CurrentUser(
         id=user.id,

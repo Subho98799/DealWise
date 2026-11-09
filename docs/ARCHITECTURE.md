@@ -94,7 +94,7 @@ erDiagram
 - `import_jobs` has FORCE RLS. Deals reference jobs through `(import_job_id,user_id)`, so a job cannot be attached across users. Undo within 30 days soft-deletes unchanged imported deals, removes mediators created by that import only when now orphaned, and reports rows that changed since import.
 
 ## Security model
-Session cookie (opaque, hashed at rest) · CSRF header on mutations · CSP/X-Frame-Options/nosniff/Referrer-Policy (API + Vercel) · HSTS in prod · open-redirect-safe `next` · rate limits (auth 20/min, others 120/min per IP) · strict schemas (`extra="forbid"`, floats rejected) · logs without query strings, tokens or emails · no CORS.
+Session cookie (opaque, hashed at rest) · CSRF header on mutations · CSP/X-Frame-Options/nosniff/Referrer-Policy (API + Vercel) · HSTS in prod · open-redirect-safe `next` · auth limits (20/min per IP), authenticated limits (120/min per user), import (30 previews/hour, 10 commits/hour), and sync push (30/min per user) · strict schemas (`extra="forbid"`, floats rejected) · logs without query strings, tokens or emails · no CORS.
 
 ## Deployment topology and free-tier constraints
 - Render free web service (Docker): sleeps after 15 min idle, ~1 min to wake; runs `alembic upgrade head` (owner URL) then uvicorn. A keep-alive pinger on `/api/health` (no DB) avoids sleeps but uses free instance hours.
@@ -116,6 +116,6 @@ Session cookie (opaque, hashed at rest) · CSRF header on mutations · CSP/X-Fra
 | Spreadsheet parsing | `.xlsx`, `.xls`, `.csv` in browser | SheetJS CE 0.20.3 in a Web Worker from the official distribution | server upload/parsing | local file stays on-device; worker keeps parsing off the UI thread |
 
 ## Known limitations
-- **Rate limiting is per instance and trusts forwarded headers** (`X-Forwarded-For` via `--forwarded-allow-ips='*'`), so it can be spoofed and resets on restart. Marked TODO in `backend/app/security.py`; not fixed in Phase 2.
+- **Rate limits are per instance and reset on restart.** Auth endpoints alone use the IP address supplied through trusted forwarded headers; the API currently trusts forwarded headers from any peer. Verify the Vercel rewrite → Render forwarding chain and direct-origin access after deployment before relying on IP-based auth limits. Authenticated general, import, and sync-push limits key on the server-resolved user ID.
 - LWW limits above; settings and logout need a connection. `sync_ops` cleanup runs opportunistically on pushes (at most 500 rows older than 30 days), so quiet accounts can retain old rows.
 - Real Neon, Google OAuth, Render, and Vercel integrations are **NOT VERIFIED HERE**.

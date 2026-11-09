@@ -138,7 +138,7 @@ Migration 0004 backfills Less as `greatest(amount_paid - old_refund_amount, 0)`;
 - PWA installation cannot be fully verified locally: real installation can only be verified on a deployed HTTPS URL on a real phone. The manifest includes the 390×844 light and dark Home screenshots, and Workbox precaches the app shell plus install screenshots.
 
 ## Known issues / tech debt
-- Rate limits are in-memory per instance and trust forwarded headers (TODO in `app/security.py`).
+- Rate limits are in-memory per instance. Auth endpoints use forwarded-IP limits; authenticated routes, imports, and sync push use per-user limits. Verify forwarded-IP trust from Vercel through Render after deployment.
 - LWW uses device clocks (offset-corrected by server time on each pull); concurrent edits on two devices: last writer wins per record.
 - `sync_ops` cleanup is opportunistic: pushes remove at most 500 rows older than 30 days, so quiet accounts can retain older entries. Sync pulls are paginated at 500 rows.
 - Settings changes need a connection (not queued offline). Logout needs a connection (keeps local data otherwise).

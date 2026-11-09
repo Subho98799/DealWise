@@ -4,10 +4,12 @@ from fastapi import APIRouter, Query
 from pydantic import AwareDatetime, TypeAdapter, ValidationError
 
 from app.auth.deps import Me
+from app.config import get_settings
 from app.db import UserDB
 from app.errors import AppError
 from app.repos import DealRepo, MediatorRepo
 from app.schemas import SummaryOut, SyncChangesOut, SyncPushIn, SyncPushOut, TopMediator
+from app.security import SYNC_PUSH_RATE_LIMIT, user_rate_limiter
 from app.services import deals as svc
 from app.services import sync as sync_svc
 
@@ -34,6 +36,8 @@ def sync_changes(
 
 @router.post("/sync/push", response_model=SyncPushOut)
 def sync_push(body: SyncPushIn, user: Me, db: UserDB):
+    if get_settings().RATE_LIMIT_ENABLED:
+        user_rate_limiter.consume(user.id, "sync_push", SYNC_PUSH_RATE_LIMIT, 60)
     return SyncPushOut(results=sync_svc.push(db, body.ops, svc.Ctx.of(user)))
 
 

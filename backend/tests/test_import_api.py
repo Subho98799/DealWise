@@ -327,3 +327,14 @@ def test_import_rate_limiter_uses_a_sliding_window_per_owner():
     assert exc.value.code == "rate_limited"
     limiter.consume(bob, "preview", 1, 3600, now=10)
     limiter.consume(alice, "preview", 1, 3600, now=3600)
+
+
+def test_authenticated_rate_limits_are_isolated_by_user_and_operation():
+    limiter = UserWindowRateLimiter()
+    alice, bob = uuid.uuid4(), uuid.uuid4()
+    limiter.consume(alice, "authenticated", 1, 60, now=0)
+    with pytest.raises(AppError) as exc:
+        limiter.consume(alice, "authenticated", 1, 60, now=1)
+    assert exc.value.code == "rate_limited"
+    limiter.consume(bob, "authenticated", 1, 60, now=1)
+    limiter.consume(alice, "sync_push", 1, 60, now=1)

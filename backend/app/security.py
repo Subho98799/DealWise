@@ -15,7 +15,8 @@ from app.config import CSRF_HEADER, CSRF_HEADER_VALUE, get_settings
 from app.errors import error_response
 
 AUTH_RATE_LIMIT = "20/minute"
-DEFAULT_RATE_LIMIT = "120/minute"
+USER_RATE_LIMIT = 120
+SYNC_PUSH_RATE_LIMIT = 30
 
 # Same policy is served for the SPA by vercel.json. Google avatars are the only external images.
 CONTENT_SECURITY_POLICY = (
@@ -32,7 +33,7 @@ UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 # see docs/ARCHITECTURE.md "Known limitations". Fix later with a shared store + trusted proxy list.
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=[DEFAULT_RATE_LIMIT],
+    default_limits=[],
     enabled=get_settings().RATE_LIMIT_ENABLED,
 )
 
@@ -47,7 +48,7 @@ class UserWindowRateLimiter:
         self._lock = Lock()
 
     def consume(self, user_id: UUID, operation: str, limit: int, window: float,
-                now: float | None = None) -> None:
+                now: float | None = None, message: str = "Too many requests, slow down.") -> None:
         current = time.monotonic() if now is None else now
         key = (user_id, operation)
         with self._lock:
@@ -57,7 +58,7 @@ class UserWindowRateLimiter:
             if len(events) >= limit:
                 from app.errors import AppError
 
-                raise AppError(429, "rate_limited", "Too many import requests, slow down.")
+                raise AppError(429, "rate_limited", message)
             events.append(current)
 
     def clear(self) -> None:
@@ -66,6 +67,7 @@ class UserWindowRateLimiter:
 
 
 import_rate_limiter = UserWindowRateLimiter()
+user_rate_limiter = UserWindowRateLimiter()
 
 
 class ImportBodyLimitMiddleware:

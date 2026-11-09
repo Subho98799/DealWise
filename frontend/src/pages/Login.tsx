@@ -1,13 +1,18 @@
-import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { googleLoginHref, useMe } from '../lib/auth'
 import { APP_NAME } from '../config/app'
 import { LoginInstallLink } from '../components/InstallPrompt'
+import { GoogleSignInButton } from '../components/GoogleSignIn'
+import { LandingPreview } from '../components/LandingPreview'
+import { usePageMeta } from '../lib/pageMeta'
 
 const ERRORS: Record<string, string> = {
   access_denied: 'Google sign-in was cancelled.',
   email_unverified: 'Your Google email is not verified. Verify it with Google and try again.',
   oauth_failed: 'Sign-in could not be completed. Please try again.',
 }
+
+const META_DESCRIPTION = 'Every review deal, refund form and deadline in one private place. Sign in with Google, track every mediator and see what is still pending.'
 
 export default function LoginPage() {
   const me = useMe()
@@ -16,43 +21,46 @@ export default function LoginPage() {
   const next = (location.state as { next?: string } | null)?.next ?? '/'
   const error = params.get('error')
 
+  usePageMeta({ title: `${APP_NAME} — Every refund. Every deadline. One place.`, description: META_DESCRIPTION, path: '/' })
+
   if (me.isSuccess) return <Navigate to={next} replace />
 
   return (
-    <div className="safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col px-gutter">
-      <div className="flex flex-1 flex-col justify-end pb-10">
-        <div className="rise mb-8 grid h-16 w-16 place-items-center rounded-lg bg-primary shadow-card">
-          <span className="h-8 w-8 rounded-pill border-[5px] border-primary-ink" />
-        </div>
-        <h1 data-testid="login-title" className="rise text-4xl font-extrabold tracking-tight sm:text-5xl" style={{ animationDelay: '60ms' }}>
-          {APP_NAME}
-        </h1>
-        <p data-testid="login-tagline" className="rise mt-3 text-base text-muted" style={{ animationDelay: '120ms' }}>
-          Every review deal, refund and deadline in one place, so no rupee slips through.
-        </p>
-      </div>
+    <div className="landing-page">
+      <header className="landing-topbar landing-shell">
+        <Link to="/login" className="landing-brand" aria-label={`${APP_NAME} home`}>
+          <span className="landing-logo" aria-hidden="true"><span /></span>
+          <span>{APP_NAME}</span>
+        </Link>
+      </header>
 
-      <div className="rise pb-10" style={{ animationDelay: '180ms' }}>
-        {error && (
-          <p data-testid="login-error" role="alert" className="mb-4 rounded-sm bg-danger-soft px-4 py-3 text-sm font-semibold text-danger">
-            {ERRORS[error] ?? ERRORS.oauth_failed}
-          </p>
-        )}
-        <a
-          data-testid="login-google-button"
-          href={googleLoginHref(next)}
-          className="flex h-14 w-full items-center justify-center gap-3 rounded-pill bg-ink text-base font-bold text-bg shadow-card transition-transform active:scale-[0.98]"
-        >
-          <GoogleMark />
-          Continue with Google
-        </a>
-        <LoginInstallLink />
-        <p className="mt-4 text-center text-xs text-muted">Your deals are private to your account.</p>
-      </div>
+      <main className="landing-shell">
+        <section className="landing-hero" aria-labelledby="landing-title">
+          <div className="landing-hero-copy">
+            <p className="landing-eyebrow">Built for review deals</p>
+            <h1 id="landing-title" data-testid="login-title" className="landing-title">
+              Every refund.<br />Every deadline.<br /><span className="landing-title-accent">One place.</span>
+            </h1>
+            <p data-testid="login-tagline" className="landing-subhead">
+              Track every review deal, refund form and mediator payment, so no rupee slips through.
+            </p>
+
+            {error && (
+              <p data-testid="login-error" role="alert" className="landing-error">
+                {ERRORS[error] ?? ERRORS.oauth_failed}
+              </p>
+            )}
+
+            <div className="landing-actions">
+              <GoogleSignInButton href={googleLoginHref(next)} testId="login-google-button" />
+              <LoginInstallLink />
+            </div>
+            <p className="landing-fineprint">Sign in with Google. No password needed.</p>
+          </div>
+
+          <LandingPreview />
+        </section>
+      </main>
     </div>
   )
-}
-
-function GoogleMark() {
-  return <span className="font-display text-lg font-bold text-primary" aria-hidden="true">G</span>
 }

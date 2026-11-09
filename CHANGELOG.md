@@ -28,8 +28,8 @@
 - Hero count-up always settles on its exact value and skips animation under reduced motion. Negative net-return heroes use a muted danger surface.
 - Recaptured the 390 × 844 light/dark screens after hero animation completion. The only demo seeding and capture helper is dev-only and refuses production environments; no login bypass route was added.
 
-## Phase 5 — visual design and interaction polish (2026-11)
-### Added
+## Phase 5 — visual design and interaction polish (2026-11; ongoing)
+### Delivered
 - A token-based light/dark design system with bundled Inter and Plus Jakarta Sans fonts, shared accessible UI primitives, Lucide icons, and a persistent System/Light/Dark appearance choice.
 - A 480px centered desktop shell, mobile bottom navigation, dashboard summaries, deal cards and filters, quick-add sheet, deal progress timeline, mediator overview, WhatsApp reminder drafts for phone contacts, and a visually guided import wizard.
 - PWA icons generated from the design palette, a source check preventing raw hex colors outside the token file, and twelve 390 × 844 light/dark screenshots in `docs/screenshots/`.

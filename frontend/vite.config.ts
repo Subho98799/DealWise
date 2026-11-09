@@ -56,7 +56,7 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          // App shell only. /api is NEVER cached in Phase 1 and never served the SPA fallback,
+          // App shell only. The service worker never caches /api responses or serves the SPA fallback for them,
           // so OAuth redirects and /api/me always hit the network.
           globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
           navigateFallback: '/index.html',

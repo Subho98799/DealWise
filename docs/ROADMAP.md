@@ -1,10 +1,11 @@
 # ROADMAP
 
 **TL;DR**
-- Phases 1–3 are done. Phases 4–6 below are short specs, not built.
+- Phases 1–3 are done; Phase 5 polish is in progress. Phase 4 admin and Phase 6 web push are not started.
 - Each phase lists prerequisites from the current code so work can start without re-reading everything.
 - All phases must keep the invariants in [AGENTS.md](../AGENTS.md) (RLS on every per-user table, repos only, money as strings).
 - Status per feature: [IMPLEMENTATION.md](IMPLEMENTATION.md#status).
+- Product roadmap phases describe feature work; Alembic revision numbers are independent.
 
 ## Phase 3 — Excel/CSV import with mapping and undo (done)
 - `.xlsx`, `.xls`, and `.csv` files up to 5 MB are parsed in a browser Web Worker with SheetJS CE 0.20.3 from its official tarball; the file itself stays on the device.
@@ -20,12 +21,12 @@
 - Audit log: append-only `audit_log` (actor, action, target, at) for logins, deletions, grants and admin views; RLS for owners, insert-only for app_user.
 - Prerequisites: `users.role` (exists), `ADMIN_EMAILS` (exists), RLS policy pattern (exists; update all policies in one migration).
 
-## Phase 5 — distinctive UI polish
-- Redesign via the tokens in `frontend/src/styles/tokens.css` and `tailwind.config.js` (colors, radius, spacing, fonts) — no component logic changes needed.
-- Motion for one-tap actions, better empty states/illustrations, swipe actions on cards, haptics where supported.
+## Phase 5 — distinctive UI polish (in progress)
+- Delivered: token-based design system, light/dark and selectable themes, install experience, responsive 480px shell, shared UI primitives, and screen refinements; see [CHANGELOG](../CHANGELOG.md).
+- Remaining: additional motion for one-tap actions, empty-state illustrations, swipe actions on cards, and haptics where supported.
 - Prerequisites: all screens use tokens and `data-testid`s (exists); Playwright e2e guards behavior.
 
-## Phase 6 — optional web push
+## Phase 6 — optional web push (not started)
 - VAPID keys (env), `push_subscriptions` per-user table with RLS, a scheduled job (Render cron or GitHub Actions) that computes urgent/overdue in SQL per user timezone and sends notifications.
 - iOS requires the PWA to be installed (16.4+); keep the in-app banner and `setAppBadge` as the fallback.
 - Prerequisites: urgency SQL twins in `app/repos/deals.py` (exist), `users.timezone` + `alert_days` (exist), service worker (exists; add a `push` handler).

@@ -40,7 +40,7 @@ limiter = Limiter(
     enabled=get_settings().RATE_LIMIT_ENABLED,
 )
 
-access_log = logging.getLogger("dealtracker.access")
+access_log = logging.getLogger("dealbook.access")
 
 
 class UserWindowRateLimiter:

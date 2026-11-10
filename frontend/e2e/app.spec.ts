@@ -84,7 +84,7 @@ test('two accounts on one browser never see each other\'s data', async ({ page, 
   await page.waitForURL('**/login')
   const leftovers = await page.evaluate(async () => {
     const dbs = await indexedDB.databases()
-    return { dbs: dbs.map((d) => d.name), keys: Object.keys(localStorage).filter((k) => k.startsWith('dealtracker:')) }
+    return { dbs: dbs.map((d) => d.name), keys: Object.keys(localStorage).filter((k) => k.startsWith('dealbook:')) }
   })
   expect(leftovers.keys).toEqual([])
   expect(leftovers.dbs.filter(Boolean).length).toBeLessThanOrEqual(1) // a fresh empty store may be re-created

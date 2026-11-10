@@ -7,8 +7,8 @@ from pydantic import Field, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Single source of truth for naming (rename = edit these lines; see docs/IMPLEMENTATION.md).
-APP_NAME = "DealTracker"
-APP_SLUG = "dealtracker"
+APP_NAME = "DealBook"
+APP_SLUG = "dealbook"
 COOKIE_PREFIX = "dt"
 SESSION_COOKIE = f"{COOKIE_PREFIX}_session"
 OAUTH_COOKIE = f"{COOKIE_PREFIX}_oauth"

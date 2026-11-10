@@ -11,7 +11,7 @@
 - Money = decimal strings; dates = `YYYY-MM-DD`; timestamps ISO-8601 UTC.
 - Deal money uses `net refund = amount_paid - less_amount + commission`; `refund_amount` is a generated response/database value, while `net_amount = commission - less_amount`.
 - All errors: `{"error": {"code": "...", "message": "..."}}`.
-- Every private route needs the local `dt_session` cookie or production `__Host-dt_session`; sessions expire after 30 days idle or 90 days absolute. Mutations need `X-Requested-With: dealtracker`.
+- Every private route needs the local `dt_session` cookie or production `__Host-dt_session`; sessions expire after 30 days idle or 90 days absolute. Mutations need `X-Requested-With: dealbook`.
 - Auth limits are IP-keyed; authenticated limits and stricter import/sync-push limits are user-keyed. All limits are in-memory per instance, and forwarded-IP trust through Vercel/Render must be verified after deployment.
 - API request bodies are limited to 1 MiB by default, 512 KiB for sync push, and 5 MiB for imports (the global ceiling). Sync operation data is bounded; request transactions also set 15-second statement and 30-second idle-transaction timeouts.
 - The API runs without the owner migration URL. Run migrations locally before deploying; migration 0005 applies the runtime grants and role-level timeouts.
@@ -131,7 +131,7 @@ Migration 0005 revokes table privileges from `app_user` across the public schema
 **Add a per-user table:** migration with `user_id … ON DELETE CASCADE`, ENABLE+FORCE RLS, the standard policy, `GRANT … TO app_user` DO-block (copy `0002`); model in `models.py`; repo in `app/repos/` filtering `CURRENT_USER_ID`; isolation tests (other user / no context / cross insert / cross update-delete); update schema table here.
 **Add an endpoint:** schema in `schemas.py` (`Strict` base) → service in `app/services/` → route using `Me` and `UserDB`; add a row to the API table (CI checks); tests incl. isolation.
 **Add a migration:** `alembic revision -m "…"`, rename to `000N_name.py`, set `revision="000N"`, raw SQL + downgrade; mention the file here; `dt migrate` + `dt migrate-test`.
-**Rename the app:** edit `APP_NAME`/`APP_SLUG` (and `COOKIE_PREFIX` if wanted) in `backend/app/config.py` and `frontend/src/config/app.ts`; keep `CSRF_HEADER_VALUE` equal on both sides; update `SESSION_COOKIE` in `frontend/e2e/helpers.ts`; manifest and `<title>` follow automatically. Changing the slug changes the local DB name (users re-sync once) and cookie names (users log in again).
+**Rename the app:** edit `APP_NAME`/`APP_SLUG` (and `COOKIE_PREFIX` if wanted) in `backend/app/config.py` and `frontend/src/config/app.ts`; keep `CSRF_HEADER_VALUE` equal on both sides; update `frontend/public/theme-init.js` and `SESSION_COOKIE` in `frontend/e2e/helpers.ts`; manifest and `<title>` follow automatically. Changing the slug changes the local DB name and storage keys (users re-sync once); changing `COOKIE_PREFIX` also logs users out.
 **Add a screen:** page in `src/pages/`, route in `App.tsx`, read via `data/hooks.ts`, write via `data/mutations.ts`, `data-testid` on every control, empty/loading states.
 
 ## Testing

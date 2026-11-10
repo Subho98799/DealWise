@@ -47,7 +47,7 @@ from alembic.script import ScriptDirectory  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
-CSRF = {"X-Requested-With": "dealtracker"}
+CSRF = {"X-Requested-With": "dealbook"}
 
 
 @pytest.fixture(scope="session", autouse=True)

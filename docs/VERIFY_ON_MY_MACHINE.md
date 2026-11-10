@@ -19,7 +19,7 @@ Expected: it appears instantly, chip shows "Offline" / "1 pending". Go online �
 
 ## 4. Logout wipes local data
 Steps: logged in with deals → Settings → Log out → DevTools → Application → IndexedDB / Local Storage.
-Expected: no `dealtracker-local` data with deals and no `dealtracker:` keys; going offline and opening the app shows the login page, not the old deals.
+Expected: no `dealbook-local` data with deals and no `dealbook:` keys; going offline and opening the app shows the login page, not the old deals.
 
 ## 5. Deploy to Render + Vercel
 Steps: Render Blueprint from `render.yaml` with all env vars (`ENV=prod`, `FRONTEND_URL=https://<app>.vercel.app`) → set the Render host in `frontend/vercel.json` → Vercel project with root `frontend` → add the Vercel origin + redirect URI in Google.

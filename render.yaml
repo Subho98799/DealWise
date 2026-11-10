@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: dealtracker-api
+    name: dealbook-api
     runtime: docker
     plan: free
     region: singapore

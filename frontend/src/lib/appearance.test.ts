@@ -12,8 +12,8 @@ describe('appearance preferences', () => {
     saveColorTheme('forest')
     saveAppearance('dark')
 
-    expect(localStorage.getItem('dealtracker:color-theme')).toBe('forest')
-    expect(localStorage.getItem('dealtracker:appearance')).toBe('dark')
+    expect(localStorage.getItem('dealbook:color-theme')).toBe('forest')
+    expect(localStorage.getItem('dealbook:appearance')).toBe('dark')
 
     document.documentElement.removeAttribute('data-theme')
     document.documentElement.removeAttribute('data-mode')
@@ -24,8 +24,8 @@ describe('appearance preferences', () => {
   })
 
   it('defaults to Indigo and System when stored values are missing or invalid', () => {
-    localStorage.setItem('dealtracker:color-theme', 'violet')
-    localStorage.setItem('dealtracker:appearance', 'sepia')
+    localStorage.setItem('dealbook:color-theme', 'violet')
+    localStorage.setItem('dealbook:appearance', 'sepia')
 
     expect(readColorTheme()).toBe('indigo')
     expect(readAppearance()).toBe('system')

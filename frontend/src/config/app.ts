@@ -1,8 +1,8 @@
 // Single source of truth for naming on the frontend (rename = edit this file + backend app/config.py).
-export const APP_NAME = 'DealTracker'
+export const APP_NAME = 'DealBook'
 export const APP_SHORT_NAME = 'Deals'
 export const APP_DESCRIPTION = 'Track review deals, refunds, mediators and deadlines.'
-export const APP_SLUG = 'dealtracker'
+export const APP_SLUG = 'dealbook'
 // Replace with the real support mailbox before public launch.
 export const CONTACT_EMAIL = 'dealbook@vfinite.com'
 export const CSRF_HEADER = 'X-Requested-With'

@@ -17,10 +17,10 @@ def ev(rd=None, fd=None, rs="pending", fs="pending", alert=2):
 
 def test_guard_refuses_non_test_database():
     with pytest.raises(UnsafeTestDatabase):
-        assert_test_database("postgresql://app_user:x@localhost/dealtracker")
+        assert_test_database("postgresql://app_user:x@localhost/dealbook")
     with pytest.raises(UnsafeTestDatabase):
         assert_test_database("postgresql+psycopg://app_user:x@ep.neon.tech/neondb?sslmode=require")
-    assert_test_database("postgresql://app_user:x@localhost/dealtracker_test")
+    assert_test_database("postgresql://app_user:x@localhost/dealbook_test")
 
 
 @pytest.mark.parametrize("rd,urgent,overdue,reason", [

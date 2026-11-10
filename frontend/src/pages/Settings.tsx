@@ -140,7 +140,7 @@ function AppearanceSettings() {
     saveColorTheme(next)
   }
   return <section data-testid="settings-appearance" className="settings-section">
-    <div className="settings-section-heading"><span className="settings-section-icon"><Sun size={19} aria-hidden="true" /></span><div><h2>Appearance</h2><p>Choose how DealTracker looks on this device.</p></div></div>
+    <div className="settings-section-heading"><span className="settings-section-icon"><Sun size={19} aria-hidden="true" /></span><div><h2>Appearance</h2><p>Choose how DealBook looks on this device.</p></div></div>
     <SegmentedControl label="appearance" value={mode} onChange={changeMode} options={[
       { value: 'system', label: 'System' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' },
     ]} />

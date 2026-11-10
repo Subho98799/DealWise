@@ -32,13 +32,13 @@ jobs:
     services:
       postgres:
         image: postgres:16
-        env: { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: dealtracker_test }
+        env: { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: dealbook_test }
         ports: ["5432:5432"]
         options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
     env:
       APP_USER_PASSWORD: ci_only_app_user_password
-      TEST_MIGRATION_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dealtracker_test
-      TEST_DATABASE_URL: postgresql+psycopg://app_user:ci_only_app_user_password@localhost:5432/dealtracker_test
+      TEST_MIGRATION_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dealbook_test
+      TEST_DATABASE_URL: postgresql+psycopg://app_user:ci_only_app_user_password@localhost:5432/dealbook_test
     defaults: { run: { working-directory: backend } }
     steps:
       - uses: actions/checkout@v4
@@ -54,14 +54,14 @@ jobs:
     services:
       postgres:
         image: postgres:16
-        env: { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: dealtracker_test }
+        env: { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: dealbook_test }
         ports: ["5432:5432"]
         options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
     env:
       APP_USER_PASSWORD: ci_only_app_user_password
-      MIGRATION_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dealtracker_test
-      TEST_MIGRATION_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dealtracker_test
-      E2E_DATABASE_URL: postgresql://app_user:ci_only_app_user_password@localhost:5432/dealtracker_test
+      MIGRATION_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dealbook_test
+      TEST_MIGRATION_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dealbook_test
+      E2E_DATABASE_URL: postgresql://app_user:ci_only_app_user_password@localhost:5432/dealbook_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -82,7 +82,7 @@ jobs:
           pip install -q -r requirements.txt
           python scripts/create_role.py --test
           alembic upgrade head
-          ENV=dev DATABASE_URL=postgresql+psycopg://app_user:ci_only_app_user_password@localhost:5432/dealtracker_test \
+          ENV=dev DATABASE_URL=postgresql+psycopg://app_user:ci_only_app_user_password@localhost:5432/dealbook_test \
           GOOGLE_CLIENT_ID=ci-only.apps.googleusercontent.com GOOGLE_CLIENT_SECRET=ci SESSION_SECRET=ci-only-session-secret-0123456789abcdef \
           FRONTEND_URL=http://localhost:4173 RATE_LIMIT_ENABLED=false nohup uvicorn app.main:app --port 8000 > /tmp/api.log 2>&1 &
       - name: Playwright e2e

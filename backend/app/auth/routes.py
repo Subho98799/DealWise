@@ -12,7 +12,7 @@ from app.config import get_settings, session_cookie_name
 from app.errors import AppError
 from app.security import AUTH_RATE_LIMIT, limiter
 
-log = logging.getLogger("dealtracker.auth")
+log = logging.getLogger("dealbook.auth")
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 

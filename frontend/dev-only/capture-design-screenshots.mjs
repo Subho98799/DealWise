@@ -11,7 +11,9 @@ if (process.env.ENV?.trim().toLowerCase() === 'prod' || process.env.NODE_ENV ===
 
 const baseURL = process.env.DESIGN_CAPTURE_URL || 'http://127.0.0.1:5173'
 const outDir = fileURLToPath(new URL('../../docs/screenshots/', import.meta.url))
+const installDir = fileURLToPath(new URL('../public/install-screenshots/', import.meta.url))
 await mkdir(outDir, { recursive: true })
+await mkdir(installDir, { recursive: true })
 
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
 const plusDays = (date, days) => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10)
@@ -25,11 +27,17 @@ const mediators = [
   { id: 'mediator-ravi', name: 'Ravi Kumar', contact: 'tg:@ravi', created_at: now, updated_at: now },
   { id: 'mediator-nisha', name: 'Nisha Patel', contact: null, created_at: now, updated_at: now },
 ]
+const toPaise = (value) => Math.round(Number(value) * 100)
+const fromPaise = (paise) => (paise / 100).toFixed(2)
 function deal(id, product, mediator, date_taken, options = {}) {
+  const paid = options.paid ?? '1499.00'
+  const less = options.less ?? '100.00'
+  const commission = options.commission ?? '100.00'
   return {
     id, client_id: id, product, platform: options.platform ?? 'Amazon', mediator_id: mediator.id, mediator_name: mediator.name,
-    deal_type: 'review', date_taken, amount_paid: options.paid ?? '1499.00', less_amount: options.less ?? '100.00',
-    commission: options.commission ?? '100.00', review_deadline: options.reviewDeadline ?? plusDays(today, 5),
+    deal_type: 'review', date_taken, amount_paid: paid, less_amount: less,
+    commission, refund_amount: fromPaise(toPaise(paid) - toPaise(less) + toPaise(commission)),
+    review_deadline: options.reviewDeadline ?? plusDays(today, 5),
     refund_form_deadline: options.formDeadline ?? plusDays(today, 12), review_status: options.review ?? 'pending',
     form_status: options.form ?? 'pending', payment_status: options.payment ?? 'pending',
     payment_received_on: options.receivedOn ?? null, notes: options.notes ?? null, created_at: now, updated_at: now,
@@ -42,30 +50,38 @@ const deals = [
   deal('deal-organizers', 'Kitchen organizer set', mediators[2], monthDate(-4), { paid: '2199.00', less: '0.00', commission: '0.00', review: 'done', form: 'submitted', payment: 'received', receivedOn: plusDays(today, -6), formDeadline: null }),
 ]
 
+async function mockApi(targetPage) {
+  await targetPage.route('**/api/me', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    id: 'demo-user', name: 'Aarav Mehta', email: 'aarav@example.test', avatar_url: null, role: 'user', alert_days: 7, timezone: 'Asia/Kolkata',
+  }) }))
+  await targetPage.route('**/api/sync/push', async (route) => {
+    const ops = route.request().postDataJSON()?.ops ?? []
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ results: ops.map(({ op_id }) => ({ op_id, status: 'applied' })) }) })
+  })
+  await targetPage.route('**/api/sync/changes*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    server_time: new Date().toISOString(), deals: [], mediators: [], deleted: { deals: [], mediators: [] }, next_cursor: null,
+  }) }))
+}
+
+async function seedFixtures(targetPage) {
+  await targetPage.evaluate(async ({ deals: dealRows, mediators: mediatorRows }) => {
+    const localDb = await import('/src/data/db.ts')
+    await localDb.db.mediators.bulkPut(mediatorRows)
+    await localDb.db.deals.bulkPut(dealRows)
+  }, { deals, mediators })
+  await targetPage.getByText('Linen storage baskets').first().waitFor()
+}
+
 const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) })
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, serviceWorkers: 'block', reducedMotion: 'no-preference' })
 const page = await context.newPage()
-await page.route('**/api/me', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-  id: 'demo-user', name: 'Aarav Mehta', email: 'aarav@example.test', avatar_url: null, role: 'user', alert_days: 7, timezone: 'Asia/Kolkata',
-}) }))
-await page.route('**/api/sync/push', async (route) => {
-  const ops = route.request().postDataJSON()?.ops ?? []
-  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ results: ops.map(({ op_id }) => ({ op_id, status: 'applied' })) }) })
-})
-await page.route('**/api/sync/changes*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-  server_time: new Date().toISOString(), deals: [], mediators: [], deleted: { deals: [], mediators: [] }, next_cursor: null,
-}) }))
+await mockApi(page)
 
 try {
   await page.goto(baseURL, { waitUntil: 'domcontentloaded' })
   await page.getByTestId('home-page').waitFor()
   await page.waitForFunction(() => document.querySelector('[data-testid="sync-chip"]')?.getAttribute('data-state') === 'synced')
-  await page.evaluate(async ({ deals: dealRows, mediators: mediatorRows }) => {
-    const localDb = await import('/src/data/db.ts')
-    await localDb.db.mediators.bulkPut(mediatorRows)
-    await localDb.db.deals.bulkPut(dealRows)
-  }, { deals, mediators })
-  await page.getByText('Linen storage baskets').first().waitFor()
+  await seedFixtures(page)
 
   async function shot(targetPage, mode, name) {
     await targetPage.waitForTimeout(280)
@@ -136,8 +152,8 @@ try {
   for (const mode of ['light', 'dark']) {
     const landingContext = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, serviceWorkers: 'block', reducedMotion: 'no-preference' })
     await landingContext.addInitScript((savedMode) => {
-      globalThis.localStorage.setItem('dealtracker:appearance', savedMode)
-      globalThis.localStorage.setItem('dealtracker:color-theme', 'indigo')
+      globalThis.localStorage.setItem('dealbook:appearance', savedMode)
+      globalThis.localStorage.setItem('dealbook:color-theme', 'indigo')
     }, mode)
     const landingPage = await landingContext.newPage()
     await landingPage.route('**/api/me', (route) => route.fulfill({
@@ -160,6 +176,26 @@ try {
       if (layout.documentWidth > layout.viewportWidth + 1) throw new Error(`${mode} landing at ${width}px overflows horizontally`)
     }
     await landingContext.close()
+  }
+
+  for (const mode of ['light', 'dark']) {
+    const installContext = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, serviceWorkers: 'block', reducedMotion: 'no-preference' })
+    await installContext.addInitScript((savedMode) => {
+      globalThis.localStorage.setItem('dealbook:appearance', savedMode)
+      globalThis.localStorage.setItem('dealbook:color-theme', 'indigo')
+      globalThis.localStorage.setItem('dealbook:pwa-install-dismissed-until', String(Date.now() + 13 * 86_400_000))
+    }, mode)
+    const installPage = await installContext.newPage()
+    await mockApi(installPage)
+    await installPage.goto(baseURL, { waitUntil: 'domcontentloaded' })
+    await installPage.getByTestId('home-page').waitFor()
+    await installPage.waitForFunction(() => document.querySelector('[data-testid="sync-chip"]')?.getAttribute('data-state') === 'synced')
+    await seedFixtures(installPage)
+    await installPage.locator('[data-testid="summary-pending"][data-animation-done="true"]').waitFor()
+    await installPage.waitForTimeout(280)
+    await installPage.screenshot({ path: join(installDir, `home-${mode}.png`) })
+    await installContext.close()
+    console.log(`${mode} install screenshot updated`)
   }
 } finally {
   await context.close()

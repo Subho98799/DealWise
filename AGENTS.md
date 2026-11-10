@@ -36,7 +36,7 @@ Run migrations from your own computer with the owner URL before deploying a rele
 3. **Per-user data only through `app/repos/*` inside `get_user_db`** (one transaction, `set_config(..., true)`). Routes never touch sessions/SQL (enforced by `tests/test_data_access_scan.py`). `users`/`sessions` only via `app/auth/`.
 4. **Runtime role is `app_user`** (NOSUPERUSER, NOBYPASSRLS). Owner role only for migrations. Never connect the app as the owner.
 5. **Money**: `numeric(12,2)` in DB, decimal **string** in JSON (`"1299.00"`), integer paise in frontend math. Floats are rejected. Dates are `DATE`, timestamps `timestamptz` UTC, "today" in the user's timezone.
-6. Browser calls **same-origin `/api` only**; mutating requests need `X-Requested-With: dealtracker` (CSRF).
+6. Browser calls **same-origin `/api` only**; mutating requests need `X-Requested-With: dealbook` (CSRF).
 7. Every private `/api` route depends on `current_user` (enforced by `tests/test_route_auth.py`). **No auth bypass/test-login route may exist.**
 8. Never log or commit secrets, tokens, cookies or full emails. `.env` files are git-ignored; CI fails if one is tracked.
 9. Naming lives in one place: backend `app/config.py` (`APP_NAME`, `COOKIE_PREFIX`, `CSRF_HEADER_VALUE`), frontend `src/config/app.ts`.

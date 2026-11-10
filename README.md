@@ -1,4 +1,4 @@
-# DealTracker
+# DealBook
 
 Track **review deals** on your phone: what you bought, what you paid, which mediator owes you a refund, and which review or refund-form deadline is coming up. Works offline, syncs when you're back online, money in ₹ with Indian grouping. Each account's data is isolated in the database itself (Postgres row-level security).
 

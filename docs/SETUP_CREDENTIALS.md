@@ -32,18 +32,18 @@
 
 ## 2. Test database (TEST_DATABASE_URL, TEST_MIGRATION_DATABASE_URL)
 Tests refuse any database whose name does not contain `test`. `TEST_MIGRATION_DATABASE_URL` is required: pytest uses it for migrations and migration-revision checks, while the application tests continue to connect as `app_user`.
-1. Neon → **Databases** → **New database** → name `dealtracker_test`, owner `neondb_owner`. (Or create a **branch** named `test` and a database `dealtracker_test` in it.)
-2. **Connect** → database `dealtracker_test`, owner, pooling OFF → `TEST_MIGRATION_DATABASE_URL=postgresql+psycopg://neondb_owner:FAKEpass123@ep-cool-name-123456.ap-southeast-1.aws.neon.tech/dealtracker_test?sslmode=require`
+1. Neon → **Databases** → **New database** → name `dealbook_test`, owner `neondb_owner`. (Or create a **branch** named `test` and a database `dealbook_test` in it.)
+2. **Connect** → database `dealbook_test`, owner, pooling OFF → `TEST_MIGRATION_DATABASE_URL=postgresql+psycopg://neondb_owner:FAKEpass123@ep-cool-name-123456.ap-southeast-1.aws.neon.tech/dealbook_test?sslmode=require`
 3. Grant `app_user` on it: bash `scripts/dt.sh create-role-test` · PowerShell `.\scripts\dt.ps1 create-role-test` (same app_user password).
 4. Migrate it: `dt migrate-test`.
-5. `TEST_DATABASE_URL=postgresql+psycopg://app_user:FAKEappPass456@ep-cool-name-123456-pooler.ap-southeast-1.aws.neon.tech/dealtracker_test?sslmode=require`
+5. `TEST_DATABASE_URL=postgresql+psycopg://app_user:FAKEappPass456@ep-cool-name-123456-pooler.ap-southeast-1.aws.neon.tech/dealbook_test?sslmode=require`
 
 | Variable | Goes to |
 |---|---|
 | `TEST_DATABASE_URL`, `TEST_MIGRATION_DATABASE_URL` | local `backend/.env` only (GitHub CI uses its own throwaway Postgres) |
 
 ## 3. Google OAuth (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
-1. <https://console.cloud.google.com/> → create project "DealTracker".
+1. <https://console.cloud.google.com/> → create project "DealBook".
 2. **APIs & Services → OAuth consent screen** → External → app name, support email → scopes `openid`, `email`, `profile` → add your two Google accounts as **Test users** (needed for the two-account check).
 3. **Credentials → Create credentials → OAuth client ID → Web application**.
 4. **Authorized JavaScript origins:** `http://localhost:5173` and later `https://<your-app>.vercel.app`.

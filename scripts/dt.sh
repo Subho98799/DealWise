@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# DealTracker helper for macOS/Linux. Usage: scripts/dt.sh <command>
+# DealBook helper for macOS/Linux. Usage: scripts/dt.sh <command>
 #   install       create backend venv + install deps, install frontend deps, create blank .env files
 #   create-role   create/refresh app_user on the app database (asks for its password)
 #   create-role-test   same on the test database (TEST_MIGRATION_DATABASE_URL)

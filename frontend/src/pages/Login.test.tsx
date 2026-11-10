@@ -104,7 +104,7 @@ describe('Login landing page', () => {
     installState({ canPrompt: false })
     renderLogin()
     fireEvent.click(screen.getByTestId('login-install-link'))
-    expect(screen.getByRole('dialog', { name: 'Install DealTracker' })).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Install DealBook' })).toBeTruthy()
     expect(screen.getByText(/Open the browser menu/i)).toBeTruthy()
   })
 })

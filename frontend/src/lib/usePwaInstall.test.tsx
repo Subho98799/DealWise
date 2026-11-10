@@ -63,7 +63,7 @@ describe('usePwaInstall', () => {
   })
 
   it('detects standalone mode and the appinstalled event, not local storage', () => {
-    localStorage.setItem('dealtracker:pwa-installed', 'true')
+    localStorage.setItem('dealbook:pwa-installed', 'true')
     const { result, unmount } = renderHook(() => usePwaInstall(), { wrapper })
     expect(result.current.isInstalled).toBe(false)
     unmount()
@@ -114,7 +114,7 @@ describe('usePwaInstall', () => {
 
     act(() => result.current.dismiss())
     expect(result.current.isDismissed).toBe(true)
-    expect(Number(localStorage.getItem('dealtracker:pwa-install-dismissed-until'))).toBe(Date.now() + fourteenDays)
+    expect(Number(localStorage.getItem('dealbook:pwa-install-dismissed-until'))).toBe(Date.now() + fourteenDays)
 
     act(() => vi.advanceTimersByTime(fourteenDays))
     expect(result.current.isDismissed).toBe(false)

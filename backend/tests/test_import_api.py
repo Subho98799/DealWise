@@ -291,7 +291,7 @@ def test_import_jobs_and_duplicate_detection_are_isolated_in_rls(api, user_ctx):
 def test_body_and_row_limits_and_formula_neutralization(client, api):
     too_large = b"x" * (5 * 1024 * 1024 + 1)
     response = client.post("/api/import/preview", content=too_large,
-                           headers={"X-Requested-With": "dealtracker"})
+                           headers={"X-Requested-With": "dealbook"})
     assert response.status_code == 413
     a, _ = api("alice")
     too_many = a.post("/api/import/preview", json={"rows": [{}] * 5001})

@@ -13,7 +13,7 @@ def _settings(secret):
     return Settings(
         _env_file=None,
         ENV="dev",
-        DATABASE_URL="postgresql+psycopg://app_user:unused@localhost/dealtracker_test",
+        DATABASE_URL="postgresql+psycopg://app_user:unused@localhost/dealbook_test",
         GOOGLE_CLIENT_ID="test-client.apps.googleusercontent.com",
         GOOGLE_CLIENT_SECRET="unused",
         SESSION_SECRET=secret,
@@ -27,7 +27,7 @@ def test_app_starts_without_migration_database_url(tmp_path):
     env.pop("MIGRATION_DATABASE_URL", None)
     env.update({
         "ENV": "dev",
-        "DATABASE_URL": "postgresql+psycopg://app_user:unused@localhost/dealtracker_test",
+        "DATABASE_URL": "postgresql+psycopg://app_user:unused@localhost/dealbook_test",
         "GOOGLE_CLIENT_ID": "test-client.apps.googleusercontent.com",
         "GOOGLE_CLIENT_SECRET": "unused",
         "SESSION_SECRET": "a7f21c0941e64f3c9b308ac58e712d6f",
@@ -35,7 +35,7 @@ def test_app_starts_without_migration_database_url(tmp_path):
         "PYTHONPATH": backend,
     })
     result = subprocess.run(
-        [sys.executable, "-c", "from app.main import app; assert app.title == 'DealTracker API'"],
+        [sys.executable, "-c", "from app.main import app; assert app.title == 'DealBook API'"],
         cwd=tmp_path,
         env=env,
         capture_output=True,

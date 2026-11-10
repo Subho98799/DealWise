@@ -5,8 +5,8 @@
   let theme = 'indigo'
 
   try {
-    const savedMode = localStorage.getItem('dealtracker:appearance')
-    const savedTheme = localStorage.getItem('dealtracker:color-theme')
+    const savedMode = localStorage.getItem('dealbook:appearance')
+    const savedTheme = localStorage.getItem('dealbook:color-theme')
     if (savedMode === 'light' || savedMode === 'dark') mode = savedMode
     if (themes.includes(savedTheme)) theme = savedTheme
   } catch {

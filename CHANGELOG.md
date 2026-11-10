@@ -1,5 +1,12 @@
 # Changelog
 
+## Renamed to DealBook (2026-11)
+### Changed
+- Renamed the product and internal slug from DealTracker/`dealtracker` to DealBook/`dealbook` across the API, frontend, PWA manifest, package and service names, tests, and docs. Mutations now send `X-Requested-With: dealbook`.
+- Updated the local storage prefix and IndexedDB name, so existing browsers re-sync from the server once after this release. Cookies keep the `dt` prefix, so sessions are unaffected.
+- Renamed the local Docker/CI databases and example Neon database names to `dealbook` / `dealbook_test`.
+- Regenerated the design and install screenshots with the new name.
+
 # Security hardening (2026-11)
 ### Changed
 - Removed owner database credentials and automatic Alembic execution from the API runtime; migrations must be run locally before deployment.

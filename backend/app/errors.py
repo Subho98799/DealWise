@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-log = logging.getLogger("dealtracker.errors")
+log = logging.getLogger("dealbook.errors")
 
 _STATUS_CODES = {
     400: "bad_request",

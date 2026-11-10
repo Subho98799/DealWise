@@ -117,7 +117,7 @@ Migration 0005 revokes table privileges from `app_user` across the public schema
 | `DATABASE_URL` | yes | app | app_user, **pooled**, `postgresql+psycopg://…?sslmode=require` |
 | `MIGRATION_DATABASE_URL` | yes (local tooling only) | alembic, create-role | owner, **direct**; never Render |
 | `TEST_DATABASE_URL` | tests | pytest | app_user, DB name contains `test` |
-| `TEST_MIGRATION_DATABASE_URL` | optional | pytest, migrate-test | owner, direct, test DB |
+| `TEST_MIGRATION_DATABASE_URL` | pytest + migrations | pytest, migrate-test | owner, direct, same test DB as `TEST_DATABASE_URL`; used for migrations and revision checks |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | yes | app | Google OAuth web client |
 | `SESSION_SECRET` | yes | app | ≥ 32 random chars |
 | `FRONTEND_URL` | yes | app | browser origin, OAuth redirect base |

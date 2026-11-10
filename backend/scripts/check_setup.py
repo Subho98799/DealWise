@@ -40,16 +40,40 @@ if settings:
         eng = sa.create_engine(settings.DATABASE_URL, connect_args={"prepare_threshold": None})
         with eng.connect() as c:
             who = c.execute(sa.text("SELECT current_user")).scalar_one()
+            app_database = c.execute(sa.text("SELECT current_database()")).scalar_one()
             check(who == "app_user", f"DATABASE_URL connects as app_user (got {who!r})")
             sup, byp = c.execute(sa.text(
                 "SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user")).one()
             check(not sup and not byp, f"app_user is not superuser and has no BYPASSRLS (super={sup}, bypassrls={byp})")
             head = ScriptDirectory.from_config(Config(str(BACKEND / "alembic.ini"))).get_current_head()
-            try:
-                cur = c.execute(sa.text("SELECT version_num FROM alembic_version")).scalar_one()
-            except Exception:
-                c.rollback()
+            migration_url = env("MIGRATION_DATABASE_URL")
+            if migration_url:
+                migration_engine = sa.create_engine(
+                    migration_url, connect_args={"prepare_threshold": None}
+                )
+                try:
+                    with migration_engine.connect() as migration_connection:
+                        migration_user = migration_connection.execute(
+                            sa.text("SELECT current_user")
+                        ).scalar_one()
+                        migration_database = migration_connection.execute(
+                            sa.text("SELECT current_database()")
+                        ).scalar_one()
+                        cur = migration_connection.execute(
+                            sa.text("SELECT version_num FROM alembic_version")
+                        ).scalar_one()
+                    check(migration_user != "app_user",
+                          "MIGRATION_DATABASE_URL connects with the owner/migration role")
+                    check(migration_database == app_database,
+                          "MIGRATION_DATABASE_URL and DATABASE_URL point to the same database")
+                except Exception:
+                    cur = None
+                    check(False, "cannot read migration revision using MIGRATION_DATABASE_URL; check owner URL")
+                finally:
+                    migration_engine.dispose()
+            else:
                 cur = None
+                check(False, "MIGRATION_DATABASE_URL is required to check the migration revision")
             check(cur == head, f"migrations are at the latest revision (db={cur}, latest={head}); "
                                "if not, run the migrate command")
             if cur == head:

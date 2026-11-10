@@ -31,7 +31,7 @@
 | `MIGRATION_DATABASE_URL` | local `backend/.env` and migration tooling only; never Render |
 
 ## 2. Test database (TEST_DATABASE_URL, TEST_MIGRATION_DATABASE_URL)
-Tests refuse any database whose name does not contain `test`.
+Tests refuse any database whose name does not contain `test`. `TEST_MIGRATION_DATABASE_URL` is required: pytest uses it for migrations and migration-revision checks, while the application tests continue to connect as `app_user`.
 1. Neon → **Databases** → **New database** → name `dealtracker_test`, owner `neondb_owner`. (Or create a **branch** named `test` and a database `dealtracker_test` in it.)
 2. **Connect** → database `dealtracker_test`, owner, pooling OFF → `TEST_MIGRATION_DATABASE_URL=postgresql+psycopg://neondb_owner:FAKEpass123@ep-cool-name-123456.ap-southeast-1.aws.neon.tech/dealtracker_test?sslmode=require`
 3. Grant `app_user` on it: bash `scripts/dt.sh create-role-test` · PowerShell `.\scripts\dt.ps1 create-role-test` (same app_user password).

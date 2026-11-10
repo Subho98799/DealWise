@@ -1,4 +1,4 @@
-"""Test setup. Everything runs as the restricted app_user against TEST_DATABASE_URL (name must contain "test").
+"""Test setup. App operations use app_user; migrations/revision checks use the test owner URL.
 
 Each test creates users with google_sub 'test-...' and deletes them (cascade) before and after.
 """
@@ -24,9 +24,14 @@ if not TEST_DB:
     raise SystemExit("TEST_DATABASE_URL is not set (app_user URL of a database whose name contains 'test').")
 assert_test_database(TEST_DB)
 
+TEST_MIGRATION_DB = _env("TEST_MIGRATION_DATABASE_URL")
+if not TEST_MIGRATION_DB:
+    raise SystemExit("TEST_MIGRATION_DATABASE_URL is required for test migrations and revision checks (owner URL of a test database).")
+assert_test_database(TEST_MIGRATION_DB)
+
 # The app under test must use the test database, whatever backend/.env says.
 os.environ["DATABASE_URL"] = TEST_DB
-os.environ["MIGRATION_DATABASE_URL"] = _env("TEST_MIGRATION_DATABASE_URL") or TEST_DB
+os.environ["MIGRATION_DATABASE_URL"] = TEST_MIGRATION_DB
 os.environ["ENV"] = "dev"
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 os.environ["FRONTEND_URL"] = "http://localhost:5173"
@@ -49,18 +54,28 @@ CSRF = {"X-Requested-With": "dealtracker"}
 def migrated_db():
     cfg = Config(str(BACKEND / "alembic.ini"))
     cfg.set_main_option("script_location", str(BACKEND / "alembic"))
-    if _env("TEST_MIGRATION_DATABASE_URL"):
-        assert_test_database(_env("TEST_MIGRATION_DATABASE_URL"))
-        os.environ["MIGRATION_DATABASE_URL"] = _env("TEST_MIGRATION_DATABASE_URL")
-        command.upgrade(cfg, "head")  # additive only; never downgrades or drops
+    command.upgrade(cfg, "head")  # additive only; never downgrades or drops
     from app.db import engine
+    from sqlalchemy import create_engine
 
     head = ScriptDirectory.from_config(cfg).get_current_head()
     with engine.connect() as c:
         who = c.execute(text("SELECT current_user")).scalar_one()
-        current = c.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+        app_database = c.execute(text("SELECT current_database()")).scalar_one()
+    owner_engine = create_engine(TEST_MIGRATION_DB, connect_args={"prepare_threshold": None})
+    try:
+        with owner_engine.connect() as c:
+            owner = c.execute(text("SELECT current_user")).scalar_one()
+            migration_database = c.execute(text("SELECT current_database()")).scalar_one()
+            current = c.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+    finally:
+        owner_engine.dispose()
     if who != "app_user":
         raise SystemExit(f"Tests must connect as app_user, TEST_DATABASE_URL connects as {who!r}.")
+    if owner == "app_user":
+        raise SystemExit("TEST_MIGRATION_DATABASE_URL must connect as the database owner, not app_user.")
+    if migration_database != app_database:
+        raise SystemExit("TEST_DATABASE_URL and TEST_MIGRATION_DATABASE_URL must point to the same test database.")
     if current != head:
         raise SystemExit(f"Test database is at {current}, head is {head}: run the migrate script on it.")
     yield

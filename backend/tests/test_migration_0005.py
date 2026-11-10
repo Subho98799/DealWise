@@ -10,6 +10,9 @@ FORBIDDEN_PRIVILEGES = ("TRUNCATE", "REFERENCES", "TRIGGER")
 
 def test_app_user_has_only_explicit_dml_table_privileges(app_engine):
     with app_engine.connect() as connection:
+        assert not connection.execute(
+            text("SELECT has_table_privilege('app_user', 'alembic_version', 'SELECT')")
+        ).scalar_one()
         for table in TABLES:
             for privilege in REQUIRED_PRIVILEGES:
                 allowed = connection.execute(

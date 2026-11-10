@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://REPLACE-WITH-RENDER-URL/api/$1" },
+    { "source": "/api/(.*)", "destination": "https://dealbook-0fkv.onrender.com/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [

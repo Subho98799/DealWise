@@ -5,12 +5,9 @@ import { DealCard } from '../components/DealCard'
 import { Avatar } from '../components/Avatar'
 import { HomeInstallBanner } from '../components/InstallPrompt'
 import { AppLogo } from '../components/AppLogo'
-import { Button, Card, Chip, EmptyState, Skeleton, Stat } from '../components/ui'
+import { Card, EmptyState, Skeleton, Stat } from '../components/ui'
 import { useDeals, useMediators, useSummary, useToday, useUser, mediatorStats } from '../data/hooks'
-import { dealAction, updateDeal } from '../data/mutations'
-import { useToast } from '../components/Toast'
-import { ACTION_LABEL, evaluate, isCompleted, nextAction, sortDeals, type Action } from '../lib/rules'
-import { countdown } from '../lib/dates'
+import { evaluate, sortDeals } from '../lib/rules'
 import { formatINR } from '../lib/money'
 import type { Deal } from '../data/types'
 import { monthlyOverview } from './homeData'
@@ -125,8 +122,8 @@ export default function HomePage() {
         <div><p className="section-eyebrow">Next up</p><h2 id="needs-action-title" className="section-title">Needs action</h2></div>
         {urgent.length > 0 && <Link to="/deals?chip=needs_action" className="inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold text-primary">See all <ArrowRight size={16} aria-hidden="true" /></Link>}
       </div>
-      {!deals ? <Skeleton rows={2} /> : urgent.length ? <div data-testid="urgent-list" className="urgent-carousel -mx-gutter flex snap-x gap-3 overflow-x-auto px-gutter pb-2">
-        {urgent.map((deal) => <UrgentDeal key={deal.id} deal={deal} number={numbering!.byId.get(deal.id)!} today={today} alertDays={me.alert_days} />)}
+      {!deals ? <Skeleton rows={2} /> : urgent.length ? <div data-testid="urgent-list" className="space-y-3">
+        {urgent.slice(0, 5).map((deal) => <DealCard key={deal.id} deal={deal} number={numbering!.byId.get(deal.id)!} />)}
       </div> : <EmptyState title="Nothing urgent today" testId="urgent-empty">You’re all caught up. We’ll flag a deal when a deadline needs your attention.</EmptyState>}
     </section>
 
@@ -164,30 +161,6 @@ export default function HomePage() {
       </EmptyState>}
     </section>
   </div>
-}
-
-function UrgentDeal({ deal, number, today, alertDays }: { deal: Deal; number: number; today: string; alertDays: number }) {
-  const toast = useToast()
-  const urgency = evaluate(deal, today, alertDays)
-  const action = nextAction(deal)
-  const accent = urgency.isOverdue ? 'urgent-card-overdue' : 'urgent-card-due'
-  const perform = async (next: Action) => {
-    const previous = await dealAction(deal, next, today)
-    if ('vibrate' in navigator) navigator.vibrate?.(10)
-    toast({ message: `${ACTION_LABEL[next]}: ${deal.product}`, action: { label: 'Undo', run: () => void updateDeal(deal.id, previous) } })
-  }
-  return <Card className={`urgent-card ${accent}`}>
-    <div className="urgent-card-heading">
-      <div className="min-w-0">
-        <p className="urgent-card-title font-display text-base font-bold">{deal.product}</p>
-        <span className="text-xs font-semibold text-muted">#{number}</span>
-        {urgency.due && <Chip className="urgent-card-deadline" variant={urgency.isOverdue ? 'danger' : 'warning'}>{countdown(urgency.due, today)}</Chip>}
-        <p className="mt-1 truncate text-xs text-muted">{deal.mediator_name || deal.platform || 'No mediator yet'}</p>
-      </div>
-    </div>
-    <p className="money mt-4 font-display text-xl font-bold">{formatINR(deal.refund_amount)} <span className="font-sans text-xs font-medium text-muted">net refund</span></p>
-    {action && !isCompleted(deal) && <Button data-testid="deal-card-action-button" className="mt-4 w-full" onClick={() => void perform(action)}>{ACTION_LABEL[action]}</Button>}
-  </Card>
 }
 
 function MonthlyOverview({ deals, today }: { deals: Deal[] | undefined; today: string }) {

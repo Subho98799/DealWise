@@ -62,6 +62,21 @@
   --color-tile-received-soft: var(--color-success-soft);
   --color-tile-taken: var(--color-warning);
   --color-tile-taken-soft: var(--color-warning-soft);
+  --color-platform-amazon: #8A4B08;
+  --color-platform-flipkart: #1D4ED8;
+  --color-platform-myntra: #9D174D;
+  --color-platform-meesho: #7C2D6B;
+  --color-platform-ajio: #6D28D9;
+  --color-platform-nykaa: #BE185D;
+  --color-platform-tatacliq: #334155;
+  --color-platform-jiomart: #126E4A;
+  --color-platform-snapdeal: #B91C1C;
+  --color-platform-alt-1: #0F766E;
+  --color-platform-alt-2: #1D4ED8;
+  --color-platform-alt-3: #7E22CE;
+  --color-platform-alt-4: #B45309;
+  --color-platform-alt-5: #9D174D;
+  --color-platform-alt-6: #334155;
   --radius-control: 12px;
   --radius-card: 20px;
   --radius-chip: 999px;
@@ -156,6 +171,21 @@
   --color-danger-soft: #3B1717;
   --color-overlay: rgb(0 0 0 / 64%);
   --shadow-card: none;
+  --color-platform-amazon: #F59E0B;
+  --color-platform-flipkart: #93C5FD;
+  --color-platform-myntra: #F9A8D4;
+  --color-platform-meesho: #D8B4FE;
+  --color-platform-ajio: #C4B5FD;
+  --color-platform-nykaa: #FDA4AF;
+  --color-platform-tatacliq: #CBD5E1;
+  --color-platform-jiomart: #6EE7B7;
+  --color-platform-snapdeal: #FCA5A5;
+  --color-platform-alt-1: #5EEAD4;
+  --color-platform-alt-2: #93C5FD;
+  --color-platform-alt-3: #D8B4FE;
+  --color-platform-alt-4: #FCD34D;
+  --color-platform-alt-5: #F9A8D4;
+  --color-platform-alt-6: #CBD5E1;
 }
 
 :root[data-mode='light'] {
@@ -173,6 +203,21 @@
     --color-danger-soft: #3B1717;
     --color-overlay: rgb(0 0 0 / 64%);
     --shadow-card: none;
+    --color-platform-amazon: #F59E0B;
+    --color-platform-flipkart: #93C5FD;
+    --color-platform-myntra: #F9A8D4;
+    --color-platform-meesho: #D8B4FE;
+    --color-platform-ajio: #C4B5FD;
+    --color-platform-nykaa: #FDA4AF;
+    --color-platform-tatacliq: #CBD5E1;
+    --color-platform-jiomart: #6EE7B7;
+    --color-platform-snapdeal: #FCA5A5;
+    --color-platform-alt-1: #5EEAD4;
+    --color-platform-alt-2: #93C5FD;
+    --color-platform-alt-3: #D8B4FE;
+    --color-platform-alt-4: #FCD34D;
+    --color-platform-alt-5: #F9A8D4;
+    --color-platform-alt-6: #CBD5E1;
   }
 
   :root[data-theme='indigo']:not([data-mode]) {

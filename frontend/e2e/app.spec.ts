@@ -51,13 +51,13 @@ test('one-tap actions with undo', async ({ page, context, baseURL }) => {
   await page.getByTestId('saved-done-button').click()
 
   const action = page.getByTestId('deal-card-action-button')
-  await expect(action).toHaveText('Review done')
+  await expect(action).toHaveAttribute('aria-label', 'Review done')
   await action.click()
-  await expect(action).toHaveText('Form submitted')
+  await expect(action).toHaveAttribute('aria-label', 'Form submitted')
   await page.getByTestId('toast-action-button').click() // Undo
-  await expect(action).toHaveText('Review done')
+  await expect(action).toHaveAttribute('aria-label', 'Review done')
   await action.click()
-  await expect(action).toHaveText('Form submitted')
+  await expect(action).toHaveAttribute('aria-label', 'Form submitted')
   await expect(chip(page)).toHaveAttribute('data-state', 'synced', { timeout: 30_000 })
   await expect.poll(async () => (await serverDeals(u.id))[0]?.review_status).toBe('done')
 })

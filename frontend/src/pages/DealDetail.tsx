@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Check, Circle, CircleCheck, Clock3, LockKeyhole, PencilLine, Trash2 } from 'lucide-react'
+import { Check, ChevronDown, Circle, CircleCheck, Clock3, LockKeyhole, PencilLine, Trash2 } from 'lucide-react'
 import { useDeal, useDeals, useToday, useUser } from '../data/hooks'
 import { dealAction, deleteDeal, updateDeal } from '../data/mutations'
 import { useToast } from '../components/Toast'
@@ -85,12 +85,17 @@ export default function DealDetailPage() {
         </ol>
       </section>
       <section className="deal-detail-section" aria-labelledby="deal-info-heading">
-        <div className="deal-detail-section-heading"><div><span className="section-eyebrow">Deal information</span><h2 id="deal-info-heading" className="section-title">Details</h2></div></div>
-        <dl className="deal-detail-list">
-          {rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
-        </dl>
+        <details className="deal-detail-fold" data-testid="deal-detail-more">
+          <summary>
+            <span><span className="section-eyebrow">Deal information</span><span id="deal-info-heading" className="section-title">Details, deadlines and notes</span></span>
+            <ChevronDown size={20} aria-hidden="true" className="deal-fold-chevron" />
+          </summary>
+          <dl className="deal-detail-list">
+            {rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+          </dl>
+          {deal.notes && <><span className="section-eyebrow deal-fold-notes-label">Notes</span><p className="deal-detail-notes">{deal.notes}</p></>}
+        </details>
       </section>
-      {deal.notes && <section className="deal-detail-section"><span className="section-eyebrow">Notes</span><p className="deal-detail-notes">{deal.notes}</p></section>}
       <section className="deal-danger-zone" aria-labelledby="deal-delete-heading">
         <div><h2 id="deal-delete-heading">Delete deal</h2><p>This removes the deal from your list and syncs the change.</p></div>
         {!confirm ? (

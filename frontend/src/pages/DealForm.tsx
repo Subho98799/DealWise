@@ -76,7 +76,7 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
     deal_type: 'review', commission: '0.00', date_taken: today, review_deadline: '', refund_form_deadline: '', payment_status: 'pending', notes: '',
   }
   const [form, setForm] = useState<Form>(deal ? fromDeal(deal) : blank)
-  const [more, setMore] = useState(!!deal)
+  const [more, setMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<{ id: string; product: string } | null>(null)
   const on = (key: keyof Form) => (event: { target: { value: string } }) => setForm((current) => ({ ...current, [key]: event.target.value }))

@@ -5,7 +5,7 @@ import { useDeal, useDeals, useToday, useUser } from '../data/hooks'
 import { dealAction, deleteDeal, updateDeal } from '../data/mutations'
 import { useToast } from '../components/Toast'
 import { btn, Empty, PageTitle, Skeleton } from '../components/ui'
-import { ACTION_LABEL, evaluate, netPaise, nextAction, type Action } from '../lib/rules'
+import { ACTION_LABEL, evaluate, nextAction, type Action } from '../lib/rules'
 import { formatINR, refundBreakdown } from '../lib/money'
 import { countdown, formatShort } from '../lib/dates'
 import { numberDeals } from '../lib/dealNumbers'
@@ -33,11 +33,10 @@ export default function DealDetailPage() {
     { key: 'form', title: 'Refund form submitted', done: formDone, date: formDone ? null : deal.refund_form_deadline ? `Due ${formatShort(deal.refund_form_deadline)}` : null, action: 'form_submitted' as const },
     { key: 'payment', title: 'Payment received', done: paymentDone, date: deal.payment_received_on ? formatShort(deal.payment_received_on) : null, action: 'payment_received' as const },
   ]
-  const gainLoss = netPaise(deal)
   const rows: [string, string][] = [
     ['Platform', deal.platform ?? '—'], ['Mediator', deal.mediator_name ?? '—'], ['Date taken', formatShort(deal.date_taken)],
     ['Amount paid', formatINR(deal.amount_paid)], ['Less', formatINR(deal.less_amount)],
-    ['Commission', formatINR(deal.commission)], ['Gain/loss', formatINR(gainLoss)],
+    ['Commission', formatINR(deal.commission)],
     ['Review deadline', formatShort(deal.review_deadline) || '—'],
     ['Form deadline', formatShort(deal.refund_form_deadline) || '—'], ['Payment status', deal.payment_status + (deal.payment_received_on ? ` · ${formatShort(deal.payment_received_on)}` : '')],
   ]

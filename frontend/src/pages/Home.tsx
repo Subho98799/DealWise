@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CircleCheck, CircleDollarSign, TrendingUp } from 'lucide-react'
+import { ArrowRight, CircleCheck, Wallet } from 'lucide-react'
 import { DealCard } from '../components/DealCard'
 import { Avatar } from '../components/Avatar'
 import { HomeInstallBanner } from '../components/InstallPrompt'
@@ -80,12 +80,9 @@ export default function HomePage() {
 
     {!summary ? <Skeleton rows={2} /> : <>
       <section data-testid="refund-hero" className={`refund-hero ${pendingForDisplay < 0 ? 'refund-hero-negative' : ''}`}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold opacity-90">Refund pending</p>
-            <p data-testid="summary-pending" data-animation-done={pendingAnimation.complete} className="hero-amount money mt-2">{formatINR(pendingForDisplay)}</p>
-          </div>
-          <span className="hero-mark" aria-hidden="true"><CircleDollarSign size={22} /></span>
+        <div>
+          <p className="text-sm font-semibold opacity-90">Refund pending</p>
+          <p data-testid="summary-pending" data-animation-done={pendingAnimation.complete} className="hero-amount money mt-2">{formatINR(pendingForDisplay)}</p>
         </div>
         <div className="mt-5">
           <div className="hero-progress-track" role="progressbar" aria-label="Refunds received" aria-valuemin={0}
@@ -105,10 +102,9 @@ export default function HomePage() {
 
       <HomeInstallBanner />
 
-      <section aria-label="Money summary" className="grid grid-cols-3 gap-2.5">
-        <Stat label="Paid" value={formatINR(summary.paid)} icon={CircleDollarSign} />
+      <section aria-label="Money summary" className="grid grid-cols-2 gap-2.5">
+        <Stat label="Paid" value={formatINR(summary.paid)} icon={Wallet} />
         <Stat label="Received" value={formatINR(summary.received)} icon={CircleCheck} />
-        <Stat label="Gain/loss" value={formatINR(summary.gainLoss)} icon={TrendingUp} />
       </section>
     </>}
 

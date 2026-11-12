@@ -6,7 +6,7 @@ import { Button, Chip, IconButton, Sheet } from './ui'
 import { deleteDeal, dealAction, updateDeal } from '../data/mutations'
 import { useToast } from './Toast'
 import { useToday, useUser } from '../data/hooks'
-import { ACTION_LABEL, evaluate, isCompleted, netPaise, nextAction, type Action } from '../lib/rules'
+import { ACTION_LABEL, evaluate, isCompleted, nextAction, type Action } from '../lib/rules'
 import { formatINR } from '../lib/money'
 import { countdown } from '../lib/dates'
 import type { Deal } from '../data/types'
@@ -16,7 +16,6 @@ export function DealCard({ deal, number }: { deal: Deal; number: number }) {
   const today = useToday()
   const toast = useToast()
   const next = nextAction(deal)
-  const gainLoss = netPaise(deal)
   const urgency = evaluate(deal, today, me.alert_days)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -75,7 +74,6 @@ export function DealCard({ deal, number }: { deal: Deal; number: number }) {
     <div className="deal-card-flags">
       {Number(deal.less_amount) > 0 && <Chip variant="neutral">Less {formatINR(deal.less_amount)}</Chip>}
       {Number(deal.commission) > 0 && <Chip variant="neutral">Commission +{formatINR(deal.commission)}</Chip>}
-      {gainLoss !== 0 && <Chip variant={gainLoss > 0 ? 'success' : 'danger'}>{gainLoss > 0 ? 'Gain' : 'Loss'} {gainLoss > 0 ? '+' : ''}{formatINR(gainLoss)}</Chip>}
       {urgency.isUrgent && urgency.due && <Chip testId="deal-card-countdown" variant={urgency.isOverdue ? 'danger' : 'warning'} icon={Clock3}>
         {countdown(urgency.due, today)}
       </Chip>}

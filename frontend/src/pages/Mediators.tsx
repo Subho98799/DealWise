@@ -2,10 +2,10 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { ArrowRight, MessageCircle, PencilLine, Trash2, UsersRound } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { mediatorStats, useDeals, useMediators } from '../data/hooks'
-import { createMediator, deleteMediator, renameMediator } from '../data/mutations'
+import { createMediator, deleteMediator, updateMediator } from '../data/mutations'
 import { DealCard } from '../components/DealCard'
 import { Avatar } from '../components/Avatar'
-import { btn, Empty, input, PageTitle, Skeleton } from '../components/ui'
+import { btn, Button, Empty, IconButton, input, PageTitle, Sheet, Skeleton } from '../components/ui'
 import { formatINR, toPaise } from '../lib/money'
 import type { Deal } from '../data/types'
 import { numberDeals } from '../lib/dealNumbers'
@@ -84,44 +84,48 @@ export function MediatorDetailPage() {
   const deals = useDeals()
   const numbering = useMemo(() => deals ? numberDeals(deals) : undefined, [deals])
   const mediator = meds?.find((item) => item.id === id)
-  const [name, setName] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState('')
+  const [contact, setContact] = useState('')
   const [confirm, setConfirm] = useState(false)
-  const [renameError, setRenameError] = useState<string | null>(null)
+  const [editError, setEditError] = useState<string | null>(null)
   if (!meds || !deals) return <Skeleton rows={3} />
   if (!mediator) return <Empty title="Mediator not found" testId="mediator-not-found"><Link to="/mediators" className="font-bold text-primary">Back to mediators</Link></Empty>
   const theirs = deals.filter((deal) => deal.mediator_id === mediator.id)
   const pending = theirs.filter((deal) => deal.payment_status !== 'received')
   const summary = mediatorStats(theirs).get(mediator.id)
   const href = reminderHref(mediator.name, mediator.contact, pending)
+  const openEditor = () => {
+    setName(mediator.name)
+    setContact(mediator.contact ?? '')
+    setEditError(null)
+    setEditing(true)
+  }
+  const save = async (event: FormEvent) => {
+    event.preventDefault()
+    const clean = name.trim()
+    if (!clean) return setEditError('Enter a name.')
+    if (meds.some((item) => item.id !== mediator.id && item.name.toLowerCase() === clean.toLowerCase())) return setEditError('Another mediator already has that name.')
+    setEditError(null)
+    setEditing(false)
+    await updateMediator(mediator.id, { name: clean, contact: contact.trim() || null })
+  }
   return (
     <div data-testid="mediator-detail" className="mediator-detail-page">
       <PageTitle><span data-testid="mediator-detail-name">{mediator.name}</span></PageTitle>
       <section className="mediator-detail-hero">
         <Avatar name={mediator.name} url={null} size={60} />
         <div className="mediator-detail-identity"><span className="section-eyebrow">Mediator overview</span><strong>{mediator.name}</strong><span>{mediator.contact || 'No contact saved'}</span></div>
-        {href && <a className="mediator-remind-button" data-testid="mediator-whatsapp-reminder" href={href} target="_blank" rel="noopener noreferrer"><MessageCircle size={17} aria-hidden="true" /> Remind</a>}
+        <div className="mediator-detail-actions">
+          <IconButton label="Edit mediator details" data-testid="mediator-edit-button" onClick={openEditor}><PencilLine size={17} aria-hidden="true" /></IconButton>
+          {href && <a className="mediator-remind-button" data-testid="mediator-whatsapp-reminder" href={href} target="_blank" rel="noopener noreferrer"><MessageCircle size={17} aria-hidden="true" /> Remind</a>}
+        </div>
       </section>
       <div className="mediator-stat-grid" aria-label="Mediator totals">
         <div><span>Pending net refund</span><strong className="money">{formatINR(summary?.pendingPaise ?? 0)}</strong></div>
         <div><span>Open deals</span><strong>{summary?.openCount ?? 0}</strong></div>
         <div><span>Total deals</span><strong>{theirs.length}</strong></div>
       </div>
-      <section className="mediator-detail-section">
-        <div className="mediator-section-title"><span className="mediator-section-icon"><PencilLine size={18} aria-hidden="true" /></span><div><h2>Contact name</h2><p>Update how this mediator appears in your deals.</p></div></div>
-        <form className="mediator-rename-form" onSubmit={async (event) => {
-          event.preventDefault()
-          const clean = name?.trim()
-          if (!clean) return
-          if (meds.some((item) => item.id !== mediator.id && item.name.toLowerCase() === clean.toLowerCase())) return setRenameError('Another mediator already has that name.')
-          setRenameError(null)
-          setName(null)
-          await renameMediator(mediator.id, clean)
-        }}>
-          <input data-testid="mediator-rename-input" aria-label="Mediator name" value={name ?? mediator.name} onChange={(event) => setName(event.target.value)} className={input} maxLength={120} />
-          <button data-testid="mediator-rename-button" className={btn.ghost} disabled={!name || name.trim() === mediator.name}>Save</button>
-        </form>
-        {renameError && <p role="alert" data-testid="mediator-rename-error" className="mt-2 text-sm font-semibold text-danger">{renameError}</p>}
-      </section>
       <section className="mediator-deals-section">
         <div className="mediator-deals-heading"><div><span className="section-eyebrow">History</span><h2 className="section-title">Deals</h2></div><span className="deal-progress-count">{theirs.length}</span></div>
         <div className="space-y-3">{theirs.length ? theirs.map((deal) => <DealCard key={deal.id} deal={deal} number={numbering!.byId.get(deal.id)!} />) : <Empty title="No deals with this mediator">Add a deal and choose this mediator to see it here.</Empty>}</div>
@@ -135,6 +139,21 @@ export function MediatorDetailPage() {
           </div>
         )}
       </section>
+      <Sheet open={editing} onClose={() => setEditing(false)} title="Edit mediator" closeTestId="mediator-edit-close">
+        <form className="space-y-3" onSubmit={save} noValidate>
+          <label className="form-field"><span className="form-field-label">Name</span>
+            <input data-testid="mediator-edit-name" value={name} onChange={(event) => setName(event.target.value)} className={input} maxLength={120} autoFocus />
+          </label>
+          <label className="form-field"><span className="form-field-label">Phone or WhatsApp</span>
+            <input data-testid="mediator-edit-phone" value={contact} onChange={(event) => setContact(event.target.value)} className={input} maxLength={200} inputMode="tel" placeholder="+91 98765 43210" />
+          </label>
+          {editError && <p role="alert" data-testid="mediator-edit-error" className="form-error">{editError}</p>}
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button type="submit" className="flex-1">Save</Button>
+          </div>
+        </form>
+      </Sheet>
     </div>
   )
 }

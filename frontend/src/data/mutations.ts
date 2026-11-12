@@ -91,13 +91,13 @@ export async function createMediator(name: string): Promise<Mediator | null> {
   return m
 }
 
-export async function renameMediator(id: string, name: string): Promise<void> {
+export async function updateMediator(id: string, patch: { name: string; contact: string | null }): Promise<void> {
   await db.transaction('rw', tables(), async () => {
     const cur = await db.mediators.get(id)
     if (!cur) return
-    await db.mediators.put({ ...cur, name, updated_at: nowIso() })
-    await db.deals.where('mediator_id').equals(id).modify({ mediator_name: name })
-    await enqueue({ type: 'mediator', op: 'upsert', id, data: { name }, label: `Rename to ${name}` })
+    await db.mediators.put({ ...cur, name: patch.name, contact: patch.contact, updated_at: nowIso() })
+    if (patch.name !== cur.name) await db.deals.where('mediator_id').equals(id).modify({ mediator_name: patch.name })
+    await enqueue({ type: 'mediator', op: 'upsert', id, data: { name: patch.name, contact: patch.contact }, label: `Update ${patch.name}` })
   })
   engine.poke()
 }

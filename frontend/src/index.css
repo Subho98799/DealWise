@@ -522,13 +522,13 @@ textarea {
 
 .mediators-page { display: grid; gap: 16px; }
 .mediators-page > .mb-5 { margin-bottom: 0; }
-.mediator-add-card,.mediator-detail-section,.mediator-deals-section,.mediator-detail-hero,.mediator-stat-grid > div,.settings-section,.settings-account-card,.settings-danger-zone,.import-stage-card,.import-history-card { border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); padding: 16px; box-shadow: var(--shadow-card); }
+.mediator-add-card,.mediator-deals-section,.mediator-detail-hero,.mediator-stat-grid > div,.settings-section,.settings-account-card,.settings-danger-zone,.import-stage-card,.import-history-card { border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); padding: 16px; box-shadow: var(--shadow-card); }
 .mediator-section-title,.settings-section-heading { display: flex; align-items: center; gap: 11px; }
 .mediator-section-title h2,.settings-section-heading h2,.settings-import-card h2 { font-family: var(--font-display); font-size: var(--type-16); font-weight: 700; }
 .mediator-section-title p,.settings-section-heading p,.settings-import-card p { margin-top: 2px; color: var(--color-muted); font-size: var(--type-12); }
 .mediator-section-icon,.settings-section-icon { display: grid; width: 40px; height: 40px; flex: 0 0 auto; place-items: center; border-radius: var(--radius-control); background: var(--color-brand-soft); color: var(--color-brand); }
-.mediator-add-form,.mediator-rename-form { display: flex; gap: 8px; margin-top: 14px; }
-.mediator-add-form > input,.mediator-rename-form > input { min-width: 0; }
+.mediator-add-form { display: flex; gap: 8px; margin-top: 14px; }
+.mediator-add-form > input { min-width: 0; }
 .mediator-list { display: grid; gap: 11px; }
 .mediator-card { overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); box-shadow: var(--shadow-card); }
 .mediator-card-main { display: grid; min-height: 76px; grid-template-columns: 48px minmax(0,1fr) auto 18px; align-items: center; gap: 10px; padding: 13px; color: var(--color-ink); text-decoration: none; }
@@ -545,6 +545,7 @@ textarea {
 .mediator-detail-identity { display: grid; min-width: 0; flex: 1; gap: 2px; }
 .mediator-detail-identity strong { overflow-wrap: anywhere; font-family: var(--font-display); font-size: var(--type-16); }
 .mediator-detail-identity > span:last-child { overflow: hidden; color: var(--color-muted); font-size: var(--type-12); text-overflow: ellipsis; white-space: nowrap; }
+.mediator-detail-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
 .mediator-remind-button { display: inline-flex; min-height: 44px; flex: 0 0 auto; align-items: center; gap: 6px; border-radius: var(--radius-chip); background: var(--color-success-soft); padding: 0 11px; color: var(--color-success); font-size: var(--type-12); font-weight: 700; text-decoration: none; }
 .mediator-stat-grid { display: grid; grid-template-columns: 1.2fr .8fr .8fr; gap: 8px; }
 .mediator-stat-grid > div { display: grid; min-width: 0; gap: 5px; padding: 12px 10px; }

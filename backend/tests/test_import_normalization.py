@@ -99,6 +99,8 @@ def test_disputed_is_payment_only_and_unknown_status_can_be_mapped():
 @pytest.mark.parametrize(("raw", "expected"), [
     ("review", "review"), ("rating", "rating_only"), ("rating only", "rating_only"),
     ("photo review", "review_photo"), ("video review", "review_video"), ("other", "other"),
+    ("only order", "only_order"), ("order only", "only_order"),
+    ("negative review", "negative_review"), ("negative", "negative_review"),
     ("custom label", "review"),
 ])
 def test_deal_type_mapping_and_default(raw, expected):

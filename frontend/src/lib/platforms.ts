@@ -1,4 +1,4 @@
-export const POPULAR_PLATFORMS = ['Amazon', 'Flipkart', 'Myntra', 'Meesho', 'Ajio', 'Nykaa', 'Tata CLiQ', 'JioMart', 'Snapdeal']
+export const POPULAR_PLATFORMS = ['Amazon', 'Flipkart', 'Myntra', 'Meesho', 'Ajio', 'Nykaa', 'Blinkit', 'Zepto']
 
 export const platformSlug = (name: string) => name.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
 

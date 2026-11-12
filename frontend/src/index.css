@@ -387,7 +387,17 @@ textarea {
   font-weight: 700;
   line-height: 1;
 }
-.platform-badge img { width: 72%; height: 72%; object-fit: contain; }
+.platform-badge-logo {
+  width: 72%;
+  height: 72%;
+  background: currentColor;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
 .platform-badge-mark { transform: translateY(0.02em); }
 .platform-badge-empty { border-color: var(--color-border); background: var(--color-surface-2); color: var(--color-muted); }
 .deal-card-meta { display: grid; min-width: 0; gap: 7px; margin-top: 13px; }
@@ -412,7 +422,7 @@ textarea {
 .deals-controls {
   position: sticky;
   z-index: 8;
-  top: calc(env(safe-area-inset-top) + 44px);
+  top: calc(env(safe-area-inset-top) + 60px);
   margin: 0 calc(var(--space-gutter) * -1);
   border-bottom: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-bg) 96%, transparent);
@@ -458,7 +468,7 @@ textarea {
 .platform-option-add { color: var(--color-brand); font-weight: 600; }
 .platform-option-add-icon { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; border-radius: 8px; background: var(--color-brand-soft); color: var(--color-brand); }
 .platform-filter-row { margin-top: 7px; }
-.deal-net-preview { display: flex; align-items: baseline; justify-content: space-between; border-radius: var(--radius-control); background: var(--color-brand-soft); padding: 12px 14px; color: var(--color-muted); font-size: var(--type-14); }
+.deal-net-preview { display: flex; align-items: center; gap: 8px; border-radius: var(--radius-control); background: var(--color-brand-soft); padding: 12px 14px; color: var(--color-brand); font-family: var(--font-display); font-size: var(--type-20); }
 .deal-net-preview .money { color: var(--color-brand); font-family: var(--font-display); font-size: var(--type-20); }
 .more-details-toggle { display: flex; min-height: 48px; align-items: center; justify-content: space-between; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); color: var(--color-ink); font-size: var(--type-14); font-weight: 650; }
 .more-details-toggle > span:last-child { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; background: var(--color-surface-2); color: var(--color-brand); font-size: 20px; }
@@ -584,7 +594,7 @@ textarea {
 .settings-theme-picker { display: grid; gap: 10px; }
 .settings-theme-picker-heading { display: flex; align-items: center; gap: 7px; color: var(--color-muted); }
 .settings-theme-picker-heading h3 { color: var(--color-ink); font-size: var(--type-14); font-weight: 700; }
-.settings-theme-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.settings-theme-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .settings-theme-option { position: relative; display: grid; min-width: 0; min-height: 76px; align-content: center; gap: 7px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface); padding: 9px; color: var(--color-ink); text-align: left; }
 .settings-theme-option.is-selected { border: 2px solid var(--color-brand); background: var(--color-brand-soft); padding: 8px; }
 .settings-theme-option:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
@@ -1604,6 +1614,36 @@ textarea {
 .legal-footer-inner > p {
   color: var(--color-muted);
   font-size: var(--type-12);
+}
+
+@media (min-width: 420px) {
+  .settings-theme-options { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 380px) {
+  :root { --space-gutter: 14px; }
+  .app-topbar { gap: 8px; }
+  .app-wordmark { gap: 6px; }
+  .sync-chip { max-width: 132px; padding: 0 9px; }
+  .ui-stat { padding: 12px 8px; }
+  .ui-stat .money { font-size: clamp(0.8125rem, 3.6vw, 1rem); }
+  .mediator-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mediator-stat-grid > div:first-child { grid-column: 1 / -1; }
+  .refund-ring-row { gap: 12px; }
+  .refund-ring { width: 96px; height: 96px; }
+  .refund-ring-logo { width: 46px; height: 46px; border-radius: 14px; }
+  .refund-ring-logo .app-logo { width: 38px; height: 38px; }
+  .urgent-card { min-width: 244px; max-width: 244px; }
+  .ui-sheet { padding-inline: 16px; }
+  .deal-detail-hero { padding: 16px; }
+  .deal-form-submit.is-sticky { margin-inline: calc(var(--space-gutter) * -1); padding-inline: var(--space-gutter); }
+}
+
+@media (max-width: 340px) {
+  .app-wordmark > span { display: none; }
+  .sync-chip { font-size: 10px; }
+  .deals-sort-button { padding: 0 8px; }
+  .deals-sort-button > span { display: none; }
 }
 
 @media (min-width: 640px) {

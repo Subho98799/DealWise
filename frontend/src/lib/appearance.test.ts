@@ -23,14 +23,14 @@ describe('appearance preferences', () => {
     expect(document.documentElement.getAttribute('data-mode')).toBe('dark')
   })
 
-  it('defaults to Indigo and System when stored values are missing or invalid', () => {
+  it('defaults to Sky and System when stored values are missing or invalid', () => {
     localStorage.setItem('dealbook:color-theme', 'violet')
     localStorage.setItem('dealbook:appearance', 'sepia')
 
-    expect(readColorTheme()).toBe('indigo')
+    expect(readColorTheme()).toBe('sky')
     expect(readAppearance()).toBe('system')
     applyAppearance(readAppearance(), readColorTheme())
-    expect(document.documentElement.getAttribute('data-theme')).toBe('indigo')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('sky')
     expect(document.documentElement.hasAttribute('data-mode')).toBe(false)
   })
 })

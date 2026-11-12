@@ -7,7 +7,7 @@ import { useToast } from '../components/Toast'
 import { btn, Empty, PageTitle, Skeleton } from '../components/ui'
 import { PlatformBadge } from '../components/PlatformBadge'
 import { ACTION_LABEL, evaluate, nextAction, type Action } from '../lib/rules'
-import { formatINR, refundBreakdown } from '../lib/money'
+import { formatINR } from '../lib/money'
 import { countdown, formatShort } from '../lib/dates'
 import { numberDeals } from '../lib/dealNumbers'
 
@@ -52,13 +52,12 @@ export default function DealDetailPage() {
       </div>}
       <section className="deal-detail-hero" aria-label="Deal net refund summary">
         <span className="section-eyebrow">Net refund</span>
-        <strong className="deal-detail-net money">{formatINR(deal.refund_amount)}</strong>
+        <strong data-testid="deal-refund-breakdown" className="deal-detail-net money">{formatINR(deal.refund_amount)}</strong>
         <div className="deal-detail-amounts">
           <span>Paid <b className="money">{formatINR(deal.amount_paid)}</b></span>
           <span>Less <b className="money">{formatINR(deal.less_amount)}</b></span>
           <span>Commission <b className="money">{formatINR(deal.commission)}</b></span>
         </div>
-        <p data-testid="deal-refund-breakdown" className="mt-3 text-sm font-semibold">{refundBreakdown(deal.amount_paid, deal.less_amount, deal.commission)}</p>
       </section>
       {u.due && <p className={`deal-detail-deadline ${u.isOverdue ? 'is-overdue' : ''}`}><Clock3 size={17} aria-hidden="true" />{u.reason?.startsWith('review') ? 'Review' : 'Refund form'}: {countdown(u.due, today)}</p>}
       <section className="deal-detail-section" aria-labelledby="deal-progress-heading">

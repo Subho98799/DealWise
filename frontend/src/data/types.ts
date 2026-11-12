@@ -1,7 +1,7 @@
 export type ReviewStatus = 'pending' | 'done'
 export type FormStatus = 'pending' | 'submitted'
 export type PaymentStatus = 'pending' | 'received' | 'disputed'
-export type DealType = 'review' | 'rating_only' | 'review_photo' | 'review_video' | 'other'
+export type DealType = 'review' | 'rating_only' | 'review_photo' | 'review_video' | 'only_order' | 'negative_review' | 'other'
 
 export type Deal = {
   id: string

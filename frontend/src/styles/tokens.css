@@ -1,6 +1,33 @@
 :root,
-[data-theme='indigo'] {
+[data-theme='sky'] {
   color-scheme: light;
+  --color-bg: #EFF7FD;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #E2EEF8;
+  --color-ink: #0D2436;
+  --color-muted: #5A7286;
+  --color-border: #D2E3F1;
+  --color-brand: #0870B0;
+  --color-brand-ink: #FFFFFF;
+  --color-brand-soft: #DEF1FD;
+  --color-success: #137A3B;
+  --color-success-soft: #DDF3E4;
+  --color-warning: #A54A08;
+  --color-warning-soft: #FCEBD0;
+  --color-danger: #C62828;
+  --color-danger-soft: #FBE1E1;
+  --color-overlay: rgb(13 36 54 / 48%);
+  --color-avatar-a: var(--color-brand-soft);
+  --color-avatar-b: var(--color-success-soft);
+  --color-avatar-c: var(--color-warning-soft);
+  --color-avatar-d: var(--color-danger-soft);
+  --color-avatar-e: var(--color-surface-2);
+  --gradient-brand-hero: linear-gradient(135deg, #075E94 0%, #2FA3DC 100%);
+  --color-hero-ink: #FFFFFF;
+  --color-hero-accent: var(--color-hero-ink);
+}
+
+[data-theme='indigo'] {
   --color-bg: #F6F4EF;
   --color-surface: #FFFFFF;
   --color-surface-2: #EFECE4;
@@ -10,18 +37,6 @@
   --color-brand: #4338CA;
   --color-brand-ink: #FFFFFF;
   --color-brand-soft: #E8E6FB;
-  --color-success: #137A3B;
-  --color-success-soft: #DDF3E4;
-  --color-warning: #A54A08;
-  --color-warning-soft: #FCEBD0;
-  --color-danger: #C62828;
-  --color-danger-soft: #FBE1E1;
-  --color-overlay: rgb(22 22 26 / 48%);
-  --color-avatar-a: var(--color-brand-soft);
-  --color-avatar-b: var(--color-success-soft);
-  --color-avatar-c: var(--color-warning-soft);
-  --color-avatar-d: var(--color-danger-soft);
-  --color-avatar-e: var(--color-surface-2);
   --gradient-brand-hero: linear-gradient(135deg, #4338CA 0%, #6D5BFF 100%);
   --color-hero-ink: #FFFFFF;
   --color-hero-accent: var(--color-hero-ink);
@@ -68,9 +83,8 @@
   --color-platform-meesho: #7C2D6B;
   --color-platform-ajio: #6D28D9;
   --color-platform-nykaa: #BE185D;
-  --color-platform-tatacliq: #334155;
-  --color-platform-jiomart: #126E4A;
-  --color-platform-snapdeal: #B91C1C;
+  --color-platform-blinkit: #A16207;
+  --color-platform-zepto: #6D28D9;
   --color-platform-alt-1: #0F766E;
   --color-platform-alt-2: #1D4ED8;
   --color-platform-alt-3: #7E22CE;
@@ -131,6 +145,22 @@
   --color-hero-accent: var(--color-hero-ink);
 }
 
+:root[data-theme='sky'][data-mode='dark'],
+:root:not([data-theme])[data-mode='dark'] {
+  --color-bg: #07131C;
+  --color-surface: #0E1D29;
+  --color-surface-2: #152A39;
+  --color-ink: #EAF3FA;
+  --color-muted: #93A9BA;
+  --color-border: #20384A;
+  --color-brand: #59C3F0;
+  --color-brand-ink: #05121B;
+  --color-brand-soft: #103247;
+  --gradient-brand-hero: linear-gradient(135deg, #0B3A57 0%, #16759F 100%);
+  --color-hero-ink: #EAF3FA;
+  --color-hero-accent: var(--color-hero-ink);
+}
+
 :root[data-theme='forest'][data-mode='dark'] {
   --color-bg: #0B1210;
   --color-surface: #121B17;
@@ -177,9 +207,8 @@
   --color-platform-meesho: #D8B4FE;
   --color-platform-ajio: #C4B5FD;
   --color-platform-nykaa: #FDA4AF;
-  --color-platform-tatacliq: #CBD5E1;
-  --color-platform-jiomart: #6EE7B7;
-  --color-platform-snapdeal: #FCA5A5;
+  --color-platform-blinkit: #FCD34D;
+  --color-platform-zepto: #C4B5FD;
   --color-platform-alt-1: #5EEAD4;
   --color-platform-alt-2: #93C5FD;
   --color-platform-alt-3: #D8B4FE;
@@ -209,9 +238,8 @@
     --color-platform-meesho: #D8B4FE;
     --color-platform-ajio: #C4B5FD;
     --color-platform-nykaa: #FDA4AF;
-    --color-platform-tatacliq: #CBD5E1;
-    --color-platform-jiomart: #6EE7B7;
-    --color-platform-snapdeal: #FCA5A5;
+    --color-platform-blinkit: #FCD34D;
+    --color-platform-zepto: #C4B5FD;
     --color-platform-alt-1: #5EEAD4;
     --color-platform-alt-2: #93C5FD;
     --color-platform-alt-3: #D8B4FE;
@@ -232,6 +260,22 @@
     --color-brand-soft: #25234A;
     --gradient-brand-hero: linear-gradient(135deg, #25234A 0%, #4B44A0 100%);
     --color-hero-ink: #F2F1ED;
+    --color-hero-accent: var(--color-hero-ink);
+  }
+
+  :root[data-theme='sky']:not([data-mode]),
+  :root:not([data-theme]):not([data-mode]) {
+    --color-bg: #07131C;
+    --color-surface: #0E1D29;
+    --color-surface-2: #152A39;
+    --color-ink: #EAF3FA;
+    --color-muted: #93A9BA;
+    --color-border: #20384A;
+    --color-brand: #59C3F0;
+    --color-brand-ink: #05121B;
+    --color-brand-soft: #103247;
+    --gradient-brand-hero: linear-gradient(135deg, #0B3A57 0%, #16759F 100%);
+    --color-hero-ink: #EAF3FA;
     --color-hero-accent: var(--color-hero-ink);
   }
 

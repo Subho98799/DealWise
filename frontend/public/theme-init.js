@@ -1,8 +1,8 @@
 (() => {
   const root = document.documentElement
-  const themes = ['indigo', 'forest', 'saffron']
+  const themes = ['sky', 'indigo', 'forest', 'saffron']
   let mode = 'system'
-  let theme = 'indigo'
+  let theme = 'sky'
 
   try {
     const savedMode = localStorage.getItem('dealbook:appearance')

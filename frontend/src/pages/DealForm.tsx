@@ -162,7 +162,7 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
         <Field label="Date taken"><input data-testid="deal-date-input" type="date" value={form.date_taken} onChange={on('date_taken')} className={input} /></Field>
         <Field label="Deal type"><select data-testid="deal-type-select" value={form.deal_type} onChange={on('deal_type')} className={input}>
           <option value="review">Review</option><option value="rating_only">Rating only</option><option value="review_photo">Review + photo</option>
-          <option value="review_video">Review + video</option><option value="other">Other</option>
+          <option value="review_video">Review + video</option><option value="only_order">Only order</option><option value="negative_review">Negative review</option><option value="other">Other</option>
         </select></Field>
         <Field label="Review deadline"><input data-testid="deal-review-deadline-input" type="date" value={form.review_deadline} onChange={on('review_deadline')} className={input} /></Field>
         <Field label="Form deadline"><input data-testid="deal-form-deadline-input" type="date" value={form.refund_form_deadline} onChange={on('refund_form_deadline')} className={input} /></Field>

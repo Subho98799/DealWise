@@ -148,7 +148,7 @@ function AppearanceSettings() {
     <div className="settings-theme-picker">
       <div className="settings-theme-picker-heading"><Palette size={17} aria-hidden="true" /><h3>Color theme</h3></div>
       <div className="settings-theme-options" role="group" aria-label="Color theme">
-        {(['indigo', 'forest', 'saffron'] as const).map((option) => {
+        {(['sky', 'indigo', 'forest', 'saffron'] as const).map((option) => {
           const selected = theme === option
           const label = option[0].toUpperCase() + option.slice(1)
           return <button

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { AlertTriangle, Circle, CircleCheck, Clock3, X, type LucideIcon } from 'lucide-react'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -87,7 +88,7 @@ export function Sheet({ open, title, onClose, children, labelledBy, closeTestId 
     }
   }, [open, onClose])
   if (!open) return null
-  return <div className="ui-sheet-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+  return createPortal(<div className="ui-sheet-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section ref={sheetRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="ui-sheet">
       <div className="ui-sheet-handle" aria-hidden="true" />
       <header className="mb-4 flex items-center justify-between gap-3">
@@ -96,7 +97,7 @@ export function Sheet({ open, title, onClose, children, labelledBy, closeTestId 
       </header>
       {children}
     </section>
-  </div>
+  </div>, document.body)
 }
 
 export function Toast({ children, action }: { children: ReactNode; action?: ReactNode }) {

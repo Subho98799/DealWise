@@ -1,12 +1,21 @@
 # Changelog
 
+## Theme, platform and mobile pass (2026-11)
+### Changed
+- Added the Sky (light blue) theme and made it the default on new devices; Indigo, Forest, and Saffron remain selectable in Settings and follow light, dark, and system appearance.
+- Bundled monochrome platform marks for Amazon, Flipkart, Myntra, Meesho, Ajio, Nykaa, Blinkit, and Zepto, tinted with the platform colour tokens. Tata CLiQ, JioMart, and Snapdeal were removed from the suggestions.
+- The Add deal preview now shows only `Net refund ₹X` instead of the paid − less + commission equation.
+- Added the Only order and Negative review deal types to the form, import defaults, import mapping, API schema, and a new database constraint migration.
+- The Changes needing attention sheet now renders above the whole page, so opening it from the top bar no longer traps the app behind the header.
+- Tightened spacing, typography, theme tiles, stat tiles, and the top bar for 320–390 px phones while keeping 44 px tap targets.
+
 ## UI polish pass (2026-11)
 ### Changed
 - Startup no longer waits for `/api/me`: a cached user renders the app immediately, only a real 401 logs out, and the local database opens behind a lightweight shell. The first uncached load shows a neutral “Opening DealBook…” splash, and the sync chip says “Reconnecting…” instead of mentioning a waking server.
 - Home now leads with a circular refund ring around the app logo, received/pending legend, Paid/Received/Deals taken tiles, and compact expandable deal cards instead of the urgent carousel. Dollar and gain/loss decorations were removed from Home, cards, and deal detail.
 - Deal cards are compact rows with a platform badge, deal number, product, net refund, three-step progress, quick action, and a chevron that reveals chips, meta, edit, and delete.
 - Added a platform combobox that merges popular names with platforms already used, plus a Deals platform filter and detail badge. Logos can be dropped into `src/assets/platforms/<slug>.svg`; otherwise a token-coloured lettermark is shown.
-- Money fields start empty with a `0` placeholder, accept decimals only, select on focus, format to two decimals on blur, and keep the live net-refund breakdown.
+- Money fields start empty with a `0` placeholder, accept decimals only, select on focus, format to two decimals on blur, and keep a live net-refund preview.
 - The top-bar avatar now opens Settings and closes it again when tapped there. The mediator page replaced the contact-name card with a pencil sheet that edits name and phone.
 - Deals sorting is now Needs action (default), Newest, Oldest, Refund high, and Refund low, with stable date/created/id tie-breaks and session memory. The sort button shows the active choice.
 

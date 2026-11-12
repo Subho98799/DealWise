@@ -33,7 +33,7 @@ export function legacyRefundToComponents(amountPaid: string, refundAmount: strin
 
 export function refundBreakdown(amountPaid: string, lessAmount: string, commission: string): string {
   const netRefund = toPaise(amountPaid) - toPaise(lessAmount) + toPaise(commission)
-  return `${formatINR(amountPaid)} - ${formatINR(lessAmount)} + ${formatINR(commission)} = Net refund ${formatINR(netRefund)}`
+  return `Net refund ${formatINR(netRefund)}`
 }
 
 function groupIndian(int: string): string {

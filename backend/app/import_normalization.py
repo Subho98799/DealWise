@@ -266,6 +266,8 @@ def normalize_import_row(
         "review": "review", "rating": "rating_only", "rating only": "rating_only",
         "photo review": "review_photo", "review photo": "review_photo", "photo": "review_photo",
         "video review": "review_video", "review video": "review_video", "video": "review_video",
+        "only order": "only_order", "order only": "only_order",
+        "negative review": "negative_review", "negative": "negative_review",
         "other": "other",
     }.get(deal_type_text, "review")
 

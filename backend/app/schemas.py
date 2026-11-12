@@ -23,7 +23,7 @@ def _money_str(d: Decimal) -> str:
 Money = Annotated[Decimal, BeforeValidator(_no_float), Field(ge=0, le=10_000_000, decimal_places=2),
                   PlainSerializer(_money_str, return_type=str)]
 MoneyOut = Annotated[Decimal, PlainSerializer(_money_str, return_type=str)]
-DealType = Literal["review", "rating_only", "review_photo", "review_video", "other"]
+DealType = Literal["review", "rating_only", "review_photo", "review_video", "only_order", "negative_review", "other"]
 Name = Annotated[str, Field(min_length=1, max_length=120)]
 
 

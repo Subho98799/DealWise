@@ -90,7 +90,7 @@ Action order: `review_done` → `form_submitted` (needs review done) → `paymen
 Status filters: `open` = not completed; `payment_pending` = payment ≠ received; `completed` = review done + form submitted + payment received. `urgent_count` includes overdue.
 
 ## Database schema
-Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2), `0003_import_jobs.py` (Phase 3), `0004_deal_less_amount.py` (Less/commission net-refund model), `0005_runtime_privileges_and_timeouts.py` (runtime grants and database timeouts).
+Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2), `0003_import_jobs.py` (Phase 3), `0004_deal_less_amount.py` (Less/commission net-refund model), `0005_runtime_privileges_and_timeouts.py` (runtime grants and database timeouts), `0006_deal_types.py` (Only order and Negative review deal types).
 
 | Table | RLS | Key columns / constraints | Indexes |
 |---|---|---|---|
@@ -104,6 +104,8 @@ Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2), `0003_
 Migration 0004 backfills Less as `greatest(amount_paid - old_refund_amount, 0)`; rows with an old refund above amount paid instead add the excess to commission and set Less to zero. This preserves old total money back (`old refund_amount + old commission`). The migration emits counts for both branches as PostgreSQL NOTICEs. Downgrade recreates a normal `refund_amount` with the previous total semantics; the SQL comment documents that the separate Less/commission breakdown is lost.
 
 Migration 0005 revokes table privileges from `app_user` across the public schema, then grants only SELECT/INSERT/UPDATE/DELETE on the six application tables. It also removes broad default table grants for the migration role and sets role-level `statement_timeout=15s` and `idle_in_transaction_session_timeout=30s`. `get_user_db` repeats the timeouts with transaction-local `set_config` for pooled connections. The downgrade restores prior broad DML grants and resets those role settings. `users` and `sessions` remain outside RLS and accessible to the auth module; this is an accepted isolation risk.
+
+Migration 0006 replaces the `deals_deal_type_check` constraint so `deal_type` also accepts `only_order` and `negative_review`. The downgrade maps those rows to `other` before restoring the previous list.
 
 ## Money, imports, and deal numbers
 - Spreadsheet import accepts Less headers `less`, `deduction`, `discount`, `cut`, and `mediator less` (alongside the `less_amount` target) and keeps Commission. If only legacy Refund is mapped, each row derives Less and Commission by the legacy conversion rule and shows that derivation in preview. If Less is mapped, it wins; a Refund mismatch is a warning. Import reconciliation totals are Paid, Net refund, and Gain/loss.

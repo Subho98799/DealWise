@@ -387,6 +387,8 @@ textarea {
   font-weight: 700;
   line-height: 1;
 }
+.platform-badge-has-logo { border-color: var(--color-border); background: var(--color-surface); }
+.platform-badge-image { width: 100%; height: 100%; object-fit: contain; display: block; }
 .platform-badge-logo {
   width: 72%;
   height: 72%;

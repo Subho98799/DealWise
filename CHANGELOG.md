@@ -3,8 +3,8 @@
 ## Theme, platform and mobile pass (2026-11)
 ### Changed
 - Added the Sky (light blue) theme and made it the default on new devices; Indigo, Forest, and Saffron remain selectable in Settings and follow light, dark, and system appearance.
-- Bundled monochrome platform marks for Amazon, Flipkart, Myntra, Meesho, Ajio, Nykaa, Blinkit, and Zepto, tinted with the platform colour tokens. Tata CLiQ, JioMart, and Snapdeal were removed from the suggestions.
-- The Add deal preview now shows only `Net refund ₹X` instead of the paid − less + commission equation.
+- Bundled real platform logos for Amazon, Flipkart, Myntra, Meesho, Ajio, Blinkit, and Zepto, shown in full colour; Nykaa keeps its token-tinted mark. Tata CLiQ, JioMart, and Snapdeal were removed from the suggestions.
+- The Add deal preview now shows `Net Refund = ₹X` instead of the paid − less + commission equation.
 - Added the Only order and Negative review deal types to the form, import defaults, import mapping, API schema, and a new database constraint migration.
 - The Changes needing attention sheet now renders above the whole page, so opening it from the top bar no longer traps the app behind the header.
 - Tightened spacing, typography, theme tiles, stat tiles, and the top bar for 320–390 px phones while keeping 44 px tap targets.

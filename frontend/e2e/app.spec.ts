@@ -18,7 +18,7 @@ test('add a deal while offline, then it syncs after reconnecting', async ({ page
   await page.getByTestId('deal-less-input').fill('100')
   await page.getByTestId('deal-commission-input').fill('50')
   await expect(page.getByTestId('deal-net-preview')).toHaveText(
-    'Net refund ₹1,249.00',
+    'Net Refund = ₹1,249.00',
   )
   await page.getByTestId('deal-save-button').click()
   await expect(page.getByTestId('deal-saved')).toBeVisible() // no spinner, no network wait

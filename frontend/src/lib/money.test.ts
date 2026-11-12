@@ -18,6 +18,6 @@ describe('exact rupee arithmetic', () => {
 
   it('renders the live net refund preview with Indian grouping', () => {
     expect(refundBreakdown('1100', '100', '200'))
-      .toBe('Net refund ₹1,200.00')
+      .toBe('Net Refund = ₹1,200.00')
   })
 })

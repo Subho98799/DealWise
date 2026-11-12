@@ -1,5 +1,15 @@
 # Changelog
 
+## UI polish pass (2026-11)
+### Changed
+- Startup no longer waits for `/api/me`: a cached user renders the app immediately, only a real 401 logs out, and the local database opens behind a lightweight shell with the sync chip showing “Waking server…” after a long cold start.
+- Home now leads with a circular refund ring around the app logo, received/pending legend, Paid/Received/Deals taken tiles, and compact expandable deal cards instead of the urgent carousel. Dollar and gain/loss decorations were removed from Home, cards, and deal detail.
+- Deal cards are compact rows with a platform badge, deal number, product, net refund, three-step progress, quick action, and a chevron that reveals chips, meta, edit, and delete.
+- Added a platform combobox that merges popular names with platforms already used, plus a Deals platform filter and detail badge. Logos can be dropped into `src/assets/platforms/<slug>.svg`; otherwise a token-coloured lettermark is shown.
+- Money fields start empty with a `0` placeholder, accept decimals only, select on focus, format to two decimals on blur, and keep the live net-refund breakdown.
+- The top-bar avatar now opens Settings and closes it again when tapped there. The mediator page replaced the contact-name card with a pencil sheet that edits name and phone.
+- Deals sorting is now Needs action (default), Newest, Oldest, Refund high, and Refund low, with stable date/created/id tie-breaks and session memory. The sort button shows the active choice.
+
 ## Renamed to DealBook (2026-11)
 ### Changed
 - Renamed the product and internal slug from DealTracker/`dealtracker` to DealBook/`dealbook` across the API, frontend, PWA manifest, package and service names, tests, and docs. Mutations now send `X-Requested-With: dealbook`.

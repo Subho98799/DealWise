@@ -36,7 +36,7 @@ export function ProtectedLayout({ quickAddModal = false }: { quickAddModal?: boo
   }, [uid, qc])
 
   if (me.isError && isUnauthorized(me.error)) return <Navigate to="/login" replace state={{ next: location.pathname + location.search }} />
-  if (me.isPending) return <Splash message="Waking up the server…" hint="The first load can take up to a minute." />
+  if (me.isPending) return <Splash message="Opening DealBook…" />
   if (me.isError && !me.data) {
     return <Splash message="Can't reach the server right now." hint="Check your connection and try again."
       action={{ label: 'Try again', onClick: () => me.refetch() }} />

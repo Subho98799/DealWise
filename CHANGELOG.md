@@ -2,7 +2,7 @@
 
 ## UI polish pass (2026-11)
 ### Changed
-- Startup no longer waits for `/api/me`: a cached user renders the app immediately, only a real 401 logs out, and the local database opens behind a lightweight shell with the sync chip showing “Waking server…” after a long cold start.
+- Startup no longer waits for `/api/me`: a cached user renders the app immediately, only a real 401 logs out, and the local database opens behind a lightweight shell. The first uncached load shows a neutral “Opening DealBook…” splash, and the sync chip says “Reconnecting…” instead of mentioning a waking server.
 - Home now leads with a circular refund ring around the app logo, received/pending legend, Paid/Received/Deals taken tiles, and compact expandable deal cards instead of the urgent carousel. Dollar and gain/loss decorations were removed from Home, cards, and deal detail.
 - Deal cards are compact rows with a platform badge, deal number, product, net refund, three-step progress, quick action, and a chevron that reveals chips, meta, edit, and delete.
 - Added a platform combobox that merges popular names with platforms already used, plus a Deals platform filter and detail badge. Logos can be dropped into `src/assets/platforms/<slug>.svg`; otherwise a token-coloured lettermark is shown.

@@ -7,7 +7,7 @@ import { engine } from '../sync/engine'
 import { Sheet } from './ui'
 
 const LABEL = {
-  synced: 'Synced', syncing: 'Syncing…', offline: 'Offline', waking: 'Waking server…', attention: 'Needs attention',
+  synced: 'Synced', syncing: 'Syncing…', offline: 'Offline', waking: 'Reconnecting…', attention: 'Needs attention',
 } as const
 
 export function SyncChip() {

@@ -4,6 +4,7 @@ import { useDeal, useMediators, useToday } from '../data/hooks'
 import { createDeal, deleteDeal, updateDeal } from '../data/mutations'
 import { local } from '../data/db'
 import { btn, input, PageTitle, Sheet, Skeleton } from '../components/ui'
+import { PlatformCombobox } from '../components/PlatformCombobox'
 import { useToast } from '../components/Toast'
 import { fromPaise, isValidMoney, refundBreakdown, toPaise } from '../lib/money'
 import type { Deal } from '../data/types'
@@ -136,7 +137,7 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
     </button>
     {more && <div className="more-details rise" data-testid="deal-more-section">
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Platform"><input data-testid="deal-platform-input" value={form.platform} onChange={on('platform')} className={input} placeholder="Amazon" /></Field>
+        <div className="form-field"><span className="form-field-label">Platform</span><PlatformCombobox value={form.platform} onChange={(platform) => setForm((current) => ({ ...current, platform }))} /></div>
         <Field label="Date taken"><input data-testid="deal-date-input" type="date" value={form.date_taken} onChange={on('date_taken')} className={input} /></Field>
         <Field label="Deal type"><select data-testid="deal-type-select" value={form.deal_type} onChange={on('deal_type')} className={input}>
           <option value="review">Review</option><option value="rating_only">Rating only</option><option value="review_photo">Review + photo</option>

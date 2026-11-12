@@ -1,6 +1,6 @@
-const logos = import.meta.glob('../assets/platforms/*.svg', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
+import { platformSlug } from '../lib/platforms'
 
-export const platformSlug = (name: string) => name.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+const logos = import.meta.glob('../assets/platforms/*.svg', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
 
 const KNOWN = new Set(['amazon', 'flipkart', 'myntra', 'meesho', 'ajio', 'nykaa', 'tatacliq', 'jiomart', 'snapdeal'])
 const FALLBACKS = ['alt-1', 'alt-2', 'alt-3', 'alt-4', 'alt-5', 'alt-6']

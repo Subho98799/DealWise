@@ -3,8 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowUpDown, Check, Search, X } from 'lucide-react'
 import { useDeals, useToday, useUser } from '../data/hooks'
 import { DealCard } from '../components/DealCard'
+import { PlatformBadge } from '../components/PlatformBadge'
 import { Button, EmptyState, IconButton, PageTitle, Sheet, Skeleton } from '../components/ui'
 import { CHIPS, matchesChip, sortDeals, type Chip, type Sort } from '../lib/rules'
+import { platformSlug } from '../lib/platforms'
 import { numberDeals } from '../lib/dealNumbers'
 
 const SORTS: { value: Sort; label: string; detail: string }[] = [
@@ -21,6 +23,7 @@ export default function DealsPage() {
   const [sortOpen, setSortOpen] = useState(false)
   const chip = (params.get('chip') as Chip) || 'all'
   const sort = (params.get('sort') as Sort) || 'urgency'
+  const platform = params.get('platform') ?? ''
   const q = params.get('q') ?? ''
   const set = (key: string, value: string) => {
     const next = new URLSearchParams(params)
@@ -37,12 +40,26 @@ export default function DealsPage() {
     const filtered = deals.filter((deal) => numberQuery !== null
       ? numbering?.byId.get(deal.id) === numberQuery
       : matchesChip(deal, chip, today, me.alert_days) &&
+        (!platform || platformSlug(deal.platform ?? '') === platform) &&
         (!needle || deal.product.toLowerCase().includes(needle) || (deal.notes ?? '').toLowerCase().includes(needle)))
     return sortDeals(filtered, sort)
-  }, [deals, numbering, chip, sort, q, today, me.alert_days])
+  }, [deals, numbering, chip, sort, platform, q, today, me.alert_days])
   const counts = useMemo(() => new Map(CHIPS.map(([id]) => [id, deals?.filter((deal) => matchesChip(deal, id, today, me.alert_days)).length ?? 0])), [deals, today, me.alert_days])
+  const platforms = useMemo(() => {
+    if (!deals) return []
+    const map = new Map<string, { name: string; count: number }>()
+    for (const deal of [...deals].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
+      const name = deal.platform?.trim()
+      if (!name) continue
+      const slug = platformSlug(name)
+      const entry = map.get(slug) ?? { name, count: 0 }
+      entry.count += 1
+      map.set(slug, entry)
+    }
+    return [...map.entries()].map(([slug, entry]) => ({ slug, ...entry })).sort((a, b) => a.name.localeCompare(b.name))
+  }, [deals])
   const currentSort = SORTS.find((option) => option.value === sort)?.label ?? SORTS[0].label
-  const isFiltered = chip !== 'all' || !!q.trim()
+  const isFiltered = chip !== 'all' || !!q.trim() || !!platform
 
   return <div data-testid="deals-page" className="deals-page">
     <PageTitle right={list && deals ? <span data-testid="deals-count" className="text-sm font-semibold text-muted">
@@ -67,6 +84,14 @@ export default function DealsPage() {
           <span>{label}</span><span className="filter-chip-count">{counts.get(id) ?? 0}</span>
         </button>)}
       </div>
+      {platforms.length > 0 && <div className="deals-filter-row platform-filter-row" role="group" aria-label="Filter by platform">
+        <button data-testid="platform-filter-all" aria-pressed={!platform} onClick={() => set('platform', '')}
+          className={`filter-chip ${!platform ? 'is-active' : ''}`}><span>All platforms</span></button>
+        {platforms.map((item) => <button key={item.slug} data-testid={`platform-filter-${item.slug}`} aria-pressed={platform === item.slug}
+          onClick={() => set('platform', platform === item.slug ? '' : item.slug)} className={`filter-chip ${platform === item.slug ? 'is-active' : ''}`}>
+          <PlatformBadge platform={item.name} size={20} /><span>{item.name}</span><span className="filter-chip-count">{item.count}</span>
+        </button>)}
+      </div>}
     </div>
 
     <div className="mt-4 space-y-3" data-testid="deals-list">

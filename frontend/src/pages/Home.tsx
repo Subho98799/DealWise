@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CircleCheck, Wallet } from 'lucide-react'
+import { ArrowRight, CircleCheck, Layers, Wallet } from 'lucide-react'
 import { DealCard } from '../components/DealCard'
 import { Avatar } from '../components/Avatar'
 import { HomeInstallBanner } from '../components/InstallPrompt'
@@ -75,7 +75,7 @@ export default function HomePage() {
     <header className="home-greeting">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Your deals, at a glance</p>
       <h1 data-testid="home-user-name" className="mt-1 truncate font-display text-2xl font-bold tracking-tight">Welcome back, {me.name?.split(' ')[0] ?? 'there'}</h1>
-      {deals && <p data-testid="home-deal-count" className="mt-1 text-sm text-muted">{deals.length} deals - {summary?.open ?? 0} open</p>}
+      {deals && <p data-testid="home-deal-count" className="mt-1 text-sm text-muted">Total deals {deals.length} · Open deals {summary?.open ?? 0}</p>}
     </header>
 
     {!summary ? <Skeleton rows={2} /> : <>
@@ -102,9 +102,10 @@ export default function HomePage() {
 
       <HomeInstallBanner />
 
-      <section aria-label="Money summary" className="grid grid-cols-2 gap-2.5">
+      <section aria-label="Money summary" className="grid grid-cols-3 gap-2.5">
         <Stat label="Paid" value={formatINR(summary.paid)} icon={Wallet} />
         <Stat label="Received" value={formatINR(summary.received)} icon={CircleCheck} />
+        <Stat label="Deals taken till date" value={deals?.length ?? 0} icon={Layers} />
       </section>
     </>}
 

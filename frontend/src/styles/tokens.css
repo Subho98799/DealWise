@@ -56,6 +56,12 @@
   --space-gutter: 20px;
   --nav-height: 68px;
 
+  --color-tile-paid: var(--color-brand);
+  --color-tile-paid-soft: var(--color-brand-soft);
+  --color-tile-received: var(--color-success);
+  --color-tile-received-soft: var(--color-success-soft);
+  --color-tile-taken: var(--color-warning);
+  --color-tile-taken-soft: var(--color-warning-soft);
   --radius-control: 12px;
   --radius-card: 20px;
   --radius-chip: 999px;

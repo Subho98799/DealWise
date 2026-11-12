@@ -1,9 +1,10 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CircleCheck, Layers, Wallet } from 'lucide-react'
 import { DealCard } from '../components/DealCard'
 import { Avatar } from '../components/Avatar'
 import { HomeInstallBanner } from '../components/InstallPrompt'
+import { AppLogo } from '../components/AppLogo'
 import { Button, Card, Chip, EmptyState, Skeleton, Stat } from '../components/ui'
 import { useDeals, useMediators, useSummary, useToday, useUser, mediatorStats } from '../data/hooks'
 import { dealAction, updateDeal } from '../data/mutations'
@@ -62,6 +63,13 @@ export default function HomePage() {
   const pendingForDisplay = pendingAnimation.value
   const urgent = deals ? sortDeals(deals.filter((deal) => evaluate(deal, today, me.alert_days).isUrgent), 'urgency') : []
   const recent = deals ? sortDeals(deals, 'newest').slice(0, 5) : []
+  const refundTotal = (summary?.received ?? 0) + (summary?.pending ?? 0)
+  const receivedShare = refundTotal > 0 ? (summary?.received ?? 0) / refundTotal : 0
+  const ringCircumference = 2 * Math.PI * 52
+  const ringStyle = {
+    '--ring-circumference': `${ringCircumference}`,
+    '--ring-offset': `${ringCircumference * (1 - receivedShare)}`,
+  } as CSSProperties
   const topMediators = useMemo(() => {
     if (!mediators || !deals) return undefined
     const stats = mediatorStats(deals)
@@ -80,19 +88,22 @@ export default function HomePage() {
 
     {!summary ? <Skeleton rows={2} /> : <>
       <section data-testid="refund-hero" className={`refund-hero ${pendingForDisplay < 0 ? 'refund-hero-negative' : ''}`}>
-        <div>
-          <p className="text-sm font-semibold opacity-90">Refund pending</p>
-          <p data-testid="summary-pending" data-animation-done={pendingAnimation.complete} className="hero-amount money mt-2">{formatINR(pendingForDisplay)}</p>
+        <div className="refund-ring-row">
+          <div className="refund-ring" role="img" aria-label={`${Math.round(receivedShare * 100)}% of refunds received`}>
+            <svg className="refund-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+              <circle className="refund-ring-track" cx="60" cy="60" r="52" />
+              <circle className="refund-ring-value" cx="60" cy="60" r="52" style={ringStyle} />
+            </svg>
+            <span className="refund-ring-logo" aria-hidden="true"><AppLogo size={44} /></span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold opacity-90">Refund pending</p>
+            <p data-testid="summary-pending" data-animation-done={pendingAnimation.complete} className="hero-amount money mt-2">{formatINR(pendingForDisplay)}</p>
+          </div>
         </div>
-        <div className="mt-5">
-          <div className="hero-progress-track" role="progressbar" aria-label="Refunds received" aria-valuemin={0}
-            aria-valuemax={summary.received + summary.pending} aria-valuenow={summary.received}>
-            <span style={{ width: `${summary.received + summary.pending ? Math.round(summary.received / (summary.received + summary.pending) * 100) : 0}%` }} />
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3 text-xs">
-            <span><span className="font-semibold">{formatINR(summary.received)}</span><span className="ml-1 opacity-80">received</span></span>
-            <span className="text-right"><span className="font-semibold">{formatINR(summary.pending)}</span><span className="ml-1 opacity-80">still pending</span></span>
-          </div>
+        <div className="refund-legend">
+          <span className="refund-legend-item"><i className="refund-legend-dot" aria-hidden="true" />Received<b>{formatINR(summary.received)}</b></span>
+          <span className="refund-legend-item"><i className="refund-legend-dot is-pending" aria-hidden="true" />Still pending<b>{formatINR(summary.pending)}</b></span>
         </div>
         {summary.urgent > 0 && <Link to="/deals?chip=needs_action" data-testid="deadline-banner" className="hero-deadline mt-5">
           <span>{summary.overdue > 0 ? `${summary.overdue} overdue` : `${summary.urgent} need attention`}</span>
@@ -103,9 +114,9 @@ export default function HomePage() {
       <HomeInstallBanner />
 
       <section aria-label="Money summary" className="grid grid-cols-3 gap-2.5">
-        <Stat label="Paid" value={formatINR(summary.paid)} icon={Wallet} />
-        <Stat label="Received" value={formatINR(summary.received)} icon={CircleCheck} />
-        <Stat label="Deals taken till date" value={deals?.length ?? 0} icon={Layers} />
+        <Stat label="Paid" value={formatINR(summary.paid)} icon={Wallet} tone="paid" />
+        <Stat label="Received" value={formatINR(summary.received)} icon={CircleCheck} tone="received" />
+        <Stat label="Deals taken till date" value={deals?.length ?? 0} icon={Layers} tone="taken" />
       </section>
     </>}
 

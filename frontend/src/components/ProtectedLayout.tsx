@@ -13,6 +13,7 @@ import { Splash } from './Splash'
 import { SyncChip } from './SyncChip'
 import { ToastProvider, useToast } from './Toast'
 import { Avatar } from './Avatar'
+import { AppLogo } from './AppLogo'
 import { Skeleton } from './ui'
 import type { Me } from '../data/types'
 import { APP_NAME } from '../config/app'
@@ -49,7 +50,7 @@ function Booting({ me }: { me: Me }) {
     <div className="app-stage min-h-dvh">
       <div className="app-frame mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
         <header className="app-topbar safe-top sticky top-0 z-10 px-gutter py-2">
-          <span className="app-wordmark">{APP_NAME}</span>
+          <span className="app-wordmark"><AppLogo size={30} /><span>{APP_NAME}</span></span>
           <SyncChip />
           <span className="account-avatar-link"><Avatar name={me.name} url={me.avatar_url} size={38} /></span>
         </header>
@@ -81,7 +82,7 @@ function Shell({ me, quickAddModal }: { me: Me; quickAddModal: boolean }) {
         <div className="app-stage min-h-dvh">
         <div className="app-frame mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
           <header className="app-topbar safe-top sticky top-0 z-10 px-gutter py-2">
-            <Link to="/" aria-label={`${APP_NAME} home`} className="app-wordmark">{APP_NAME}</Link>
+            <Link to="/" aria-label={`${APP_NAME} home`} className="app-wordmark"><AppLogo size={30} /><span>{APP_NAME}</span></Link>
             <SyncChip />
             <Link to="/settings" className="account-avatar-link" aria-label="Account and settings">
               <Avatar name={me.name} url={me.avatar_url} size={38} />

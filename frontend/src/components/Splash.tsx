@@ -1,3 +1,5 @@
+import { AppLogo } from './AppLogo'
+
 type Props = {
   message: string
   hint?: string
@@ -7,6 +9,7 @@ type Props = {
 export function Splash({ message, hint, action }: Props) {
   return (
     <div data-testid="splash" className="flex min-h-dvh flex-col items-center justify-center gap-3 px-gutter text-center">
+      <AppLogo size={72} className="splash-logo" />
       {!action && <span className="h-10 w-10 animate-spin rounded-full border-4 border-line border-t-primary" aria-hidden />}
       <p data-testid="splash-message" className="text-base font-semibold">{message}</p>
       {hint && <p className="text-sm text-muted">{hint}</p>}

@@ -49,9 +49,15 @@ export function Chip({ children, variant = 'neutral', icon: Icon, className = ''
   return <span data-testid={testId} className={`ui-chip ${chipStyles[variant]} ${className}`}><StatusIcon size={14} strokeWidth={2.2} aria-hidden="true" />{children}</span>
 }
 
-export function Stat({ label, value, icon: Icon, className = '' }: { label: string; value: ReactNode; icon: LucideIcon; className?: string }) {
-  return <Card className={`ui-stat ${className}`}>
-    <span className="grid h-9 w-9 place-items-center rounded-control bg-brand-soft text-primary"><Icon size={18} aria-hidden="true" /></span>
+export function Stat({ label, value, icon: Icon, tone = 'paid', className = '' }: {
+  label: string
+  value: ReactNode
+  icon: LucideIcon
+  tone?: 'paid' | 'received' | 'taken'
+  className?: string
+}) {
+  return <Card className={`ui-stat ui-stat-${tone} ${className}`}>
+    <span className="ui-stat-icon"><Icon size={18} aria-hidden="true" /></span>
     <span className="mt-3 block text-xs font-semibold text-muted">{label}</span>
     <span className="money mt-1 block truncate font-display text-xl font-bold tracking-tight">{value}</span>
   </Card>

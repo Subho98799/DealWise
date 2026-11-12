@@ -13,6 +13,7 @@ import { Splash } from './Splash'
 import { SyncChip } from './SyncChip'
 import { ToastProvider, useToast } from './Toast'
 import { Avatar } from './Avatar'
+import { Skeleton } from './ui'
 import type { Me } from '../data/types'
 import { APP_NAME } from '../config/app'
 import DealFormPage from '../pages/DealForm'
@@ -32,14 +33,30 @@ export function ProtectedLayout({ quickAddModal = false }: { quickAddModal?: boo
     return () => { alive = false; engine.stop() }
   }, [uid, qc])
 
+  if (me.isError && isUnauthorized(me.error)) return <Navigate to="/login" replace state={{ next: location.pathname + location.search }} />
   if (me.isPending) return <Splash message="Waking up the server…" hint="The first load can take up to a minute." />
-  if (me.isError) {
-    if (isUnauthorized(me.error)) return <Navigate to="/login" replace state={{ next: location.pathname + location.search }} />
+  if (me.isError && !me.data) {
     return <Splash message="Can't reach the server right now." hint="Check your connection and try again."
       action={{ label: 'Try again', onClick: () => me.refetch() }} />
   }
-  if (readyFor !== uid) return <Splash message="Opening your deals…" />
+  if (!me.data) return <Splash message="Opening your deals…" />
+  if (readyFor !== uid) return <Booting me={me.data} />
   return <Shell me={me.data} quickAddModal={quickAddModal} />
+}
+
+function Booting({ me }: { me: Me }) {
+  return (
+    <div className="app-stage min-h-dvh">
+      <div className="app-frame mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
+        <header className="app-topbar safe-top sticky top-0 z-10 px-gutter py-2">
+          <span className="app-wordmark">{APP_NAME}</span>
+          <SyncChip />
+          <span className="account-avatar-link"><Avatar name={me.name} url={me.avatar_url} size={38} /></span>
+        </header>
+        <main className="flex-1 px-gutter pt-3"><Skeleton rows={4} /></main>
+      </div>
+    </div>
+  )
 }
 
 function Shell({ me, quickAddModal }: { me: Me; quickAddModal: boolean }) {

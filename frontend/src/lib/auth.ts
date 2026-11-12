@@ -8,6 +8,18 @@ import type { Me } from '../data/types'
 export type { Me }
 export const ME_KEY = ['me'] as const
 
+/** Last known user, read synchronously so a returning user never waits for the server. */
+export function cachedMe(): Me | undefined {
+  const cached = local.get('me')
+  if (!cached) return undefined
+  try {
+    return JSON.parse(cached) as Me
+  } catch {
+    local.remove('me')
+    return undefined
+  }
+}
+
 /** /api/me, with a cached copy so the app opens offline. A 401 clears the cache and means "logged out". */
 export async function fetchMe(): Promise<Me> {
   try {
@@ -19,8 +31,8 @@ export async function fetchMe(): Promise<Me> {
       if (e.status === 401) local.remove('me')
       throw e
     }
-    const cached = local.get('me')
-    if (cached) return JSON.parse(cached) as Me
+    const cached = cachedMe()
+    if (cached) return cached
     throw e
   }
 }
@@ -29,6 +41,8 @@ export function useMe() {
   return useQuery({
     queryKey: ME_KEY,
     queryFn: fetchMe,
+    initialData: cachedMe,
+    initialDataUpdatedAt: 0,
     staleTime: 5 * 60 * 1000,
     retry: (count, err) => !isUnauthorized(err) && count < 3,
     retryDelay: (n) => Math.min(2000 * 2 ** n, 15000),

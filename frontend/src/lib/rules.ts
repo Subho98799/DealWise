@@ -90,11 +90,23 @@ const nextDeadline = (d: Deal) =>
   [d.review_status === 'pending' ? d.review_deadline : null, d.form_status === 'pending' ? d.refund_form_deadline : null]
     .filter(Boolean).sort()[0] ?? FAR
 
-export type Sort = 'urgency' | 'newest' | 'amount'
+export type Sort = 'needs_action' | 'newest' | 'oldest' | 'refund_high' | 'refund_low'
+
+/** Stable fallback: newest taken first, then oldest write, then id. */
+const newestFirst = (a: Deal, b: Deal) =>
+  b.date_taken.localeCompare(a.date_taken) || b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id)
+const oldestFirst = (a: Deal, b: Deal) =>
+  a.date_taken.localeCompare(b.date_taken) || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)
+const refundOrder = (direction: 1 | -1) => (a: Deal, b: Deal) =>
+  direction * (toPaise(b.refund_amount) - toPaise(a.refund_amount)) || newestFirst(a, b)
+
 export function sortDeals(list: Deal[], sort: Sort): Deal[] {
   const out = [...list]
-  if (sort === 'urgency') out.sort((a, b) => nextDeadline(a).localeCompare(nextDeadline(b)) || b.date_taken.localeCompare(a.date_taken))
-  if (sort === 'newest') out.sort((a, b) => b.date_taken.localeCompare(a.date_taken) || b.created_at.localeCompare(a.created_at))
-  if (sort === 'amount') out.sort((a, b) => toPaise(b.amount_paid) - toPaise(a.amount_paid))
+  if (sort === 'needs_action') out.sort((a, b) =>
+    Number(isCompleted(a)) - Number(isCompleted(b)) || nextDeadline(a).localeCompare(nextDeadline(b)) || newestFirst(a, b))
+  if (sort === 'newest') out.sort(newestFirst)
+  if (sort === 'oldest') out.sort(oldestFirst)
+  if (sort === 'refund_high') out.sort(refundOrder(1))
+  if (sort === 'refund_low') out.sort(refundOrder(-1))
   return out
 }

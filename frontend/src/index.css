@@ -427,7 +427,8 @@ textarea {
 .deals-search-input::placeholder { color: var(--color-muted); opacity: 1; }
 .deals-search-input:focus { border-color: var(--color-brand); outline: 2px solid var(--color-brand-soft); }
 .deals-search-clear { position: absolute; right: 3px; min-height: 40px; min-width: 40px; }
-.deals-sort-button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface); padding: 0 12px; color: var(--color-ink); font-size: var(--type-14); font-weight: 600; }
+.deals-sort-button { display: inline-flex; max-width: 52%; min-height: 48px; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface); padding: 0 12px; color: var(--color-ink); font-size: var(--type-14); font-weight: 600; }
+.deals-sort-button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .deals-filter-row { display: flex; gap: 7px; overflow-x: auto; margin: 8px calc(var(--space-gutter) * -1) 0; padding: 0 var(--space-gutter) 2px; scrollbar-width: none; }
 .deals-filter-row::-webkit-scrollbar { display: none; }
 .filter-chip { display: inline-flex; min-height: 44px; flex: 0 0 auto; align-items: center; gap: 7px; border: 1px solid var(--color-border); border-radius: var(--radius-chip); background: var(--color-surface); padding: 0 11px; color: var(--color-muted); font-size: var(--type-12); font-weight: 600; }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyAction, evaluate, matchesChip, nextAction, RuleError } from './rules'
+import { applyAction, evaluate, matchesChip, nextAction, RuleError, sortDeals } from './rules'
 import { formatINR, fromPaise, isValidMoney, toPaise } from './money'
 import { countdown, formatShort, todayIn } from './dates'
 import type { Deal } from '../data/types'
@@ -49,6 +49,34 @@ describe('actions', () => {
     expect(applyAction({ ...d, review_status: 'done', form_status: 'submitted' }, 'payment_received', T))
       .toEqual({ payment_status: 'received', payment_received_on: T })
     expect(() => applyAction({ ...d, review_status: 'done', form_status: 'submitted' }, 'reopen_review', T)).toThrow('Reopen the refund form first.')
+  })
+})
+
+describe('sorting', () => {
+  const ids = (list: Deal[]) => list.map((deal) => deal.id)
+
+  it('puts unfinished deals first, then the closest deadline', () => {
+    const done = deal({ id: 'done', review_status: 'done', form_status: 'submitted', payment_status: 'received', review_deadline: '2026-06-02' })
+    const later = deal({ id: 'later', review_deadline: '2026-06-20', date_taken: '2026-06-05' })
+    const sooner = deal({ id: 'sooner', review_deadline: '2026-06-12', date_taken: '2026-06-01' })
+    expect(ids(sortDeals([done, later, sooner], 'needs_action'))).toEqual(['sooner', 'later', 'done'])
+  })
+
+  it('sorts newest and oldest with date, created time, then id', () => {
+    const a = deal({ id: 'a', date_taken: '2026-06-02', created_at: '2026-06-02T10:00:00Z' })
+    const b = deal({ id: 'b', date_taken: '2026-06-02', created_at: '2026-06-02T11:00:00Z' })
+    const c = deal({ id: 'c', date_taken: '2026-06-03', created_at: '2026-06-03T09:00:00Z' })
+    expect(ids(sortDeals([a, b, c], 'newest'))).toEqual(['c', 'b', 'a'])
+    expect(ids(sortDeals([b, c, a], 'oldest'))).toEqual(['a', 'b', 'c'])
+  })
+
+  it('sorts by net refund and keeps equal refunds stable', () => {
+    const high = deal({ id: 'high', refund_amount: '500.00', date_taken: '2026-06-01' })
+    const low = deal({ id: 'low', refund_amount: '100.00', date_taken: '2026-06-02' })
+    const tieNew = deal({ id: 'tie-new', refund_amount: '300.00', date_taken: '2026-06-05' })
+    const tieOld = deal({ id: 'tie-old', refund_amount: '300.00', date_taken: '2026-06-03' })
+    expect(ids(sortDeals([low, high, tieOld, tieNew], 'refund_high'))).toEqual(['high', 'tie-new', 'tie-old', 'low'])
+    expect(ids(sortDeals([high, low, tieNew, tieOld], 'refund_low'))).toEqual(['low', 'tie-new', 'tie-old', 'high'])
   })
 })
 

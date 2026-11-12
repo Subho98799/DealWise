@@ -58,7 +58,7 @@ export default function HomePage() {
   const numbering = useMemo(() => deals ? numberDeals(deals) : undefined, [deals])
   const pendingAnimation = useFirstCountUp(summary?.pending ?? 0, !!summary)
   const pendingForDisplay = pendingAnimation.value
-  const urgent = deals ? sortDeals(deals.filter((deal) => evaluate(deal, today, me.alert_days).isUrgent), 'urgency') : []
+  const urgent = deals ? sortDeals(deals.filter((deal) => evaluate(deal, today, me.alert_days).isUrgent), 'needs_action') : []
   const recent = deals ? sortDeals(deals, 'newest').slice(0, 5) : []
   const refundTotal = (summary?.received ?? 0) + (summary?.pending ?? 0)
   const receivedShare = refundTotal > 0 ? (summary?.received ?? 0) / refundTotal : 0

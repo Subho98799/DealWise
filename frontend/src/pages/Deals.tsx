@@ -10,10 +10,23 @@ import { platformSlug } from '../lib/platforms'
 import { numberDeals } from '../lib/dealNumbers'
 
 const SORTS: { value: Sort; label: string; detail: string }[] = [
-  { value: 'urgency', label: 'Urgent first', detail: 'Closest deadlines at the top' },
-  { value: 'newest', label: 'Newest', detail: 'Recently added deals first' },
-  { value: 'amount', label: 'Amount', detail: 'Highest amount paid first' },
+  { value: 'needs_action', label: 'Needs action', detail: 'Unfinished deals first, closest deadline on top' },
+  { value: 'newest', label: 'Newest', detail: 'Recently taken deals first' },
+  { value: 'oldest', label: 'Oldest', detail: 'Earliest taken deals first' },
+  { value: 'refund_high', label: 'Refund high', detail: 'Highest net refund first' },
+  { value: 'refund_low', label: 'Refund low', detail: 'Lowest net refund first' },
 ]
+const SORT_KEY = 'dealbook.deals.sort'
+const VALID_SORTS = new Set<Sort>(SORTS.map((option) => option.value))
+
+function savedSort(): Sort | null {
+  try {
+    const value = sessionStorage.getItem(SORT_KEY) as Sort | null
+    return value && VALID_SORTS.has(value) ? value : null
+  } catch {
+    return null
+  }
+}
 
 export default function DealsPage() {
   const me = useUser()
@@ -22,7 +35,8 @@ export default function DealsPage() {
   const [params, setParams] = useSearchParams()
   const [sortOpen, setSortOpen] = useState(false)
   const chip = (params.get('chip') as Chip) || 'all'
-  const sort = (params.get('sort') as Sort) || 'urgency'
+  const sortParam = params.get('sort') as Sort | null
+  const sort = sortParam && VALID_SORTS.has(sortParam) ? sortParam : savedSort() ?? 'needs_action'
   const platform = params.get('platform') ?? ''
   const q = params.get('q') ?? ''
   const set = (key: string, value: string) => {
@@ -30,6 +44,11 @@ export default function DealsPage() {
     if (value) next.set(key, value)
     else next.delete(key)
     setParams(next, { replace: true })
+  }
+  const chooseSort = (value: Sort) => {
+    try { sessionStorage.setItem(SORT_KEY, value) } catch { /* session storage may be unavailable */ }
+    set('sort', value === 'needs_action' ? '' : value)
+    setSortOpen(false)
   }
 
   const numbering = useMemo(() => deals ? numberDeals(deals) : undefined, [deals])
@@ -75,7 +94,7 @@ export default function DealsPage() {
           {q && <IconButton label="Clear search" className="deals-search-clear" onClick={() => set('q', '')}><X size={17} aria-hidden="true" /></IconButton>}
         </div>
         <button data-testid="deals-sort-button" aria-label={`Sort deals: ${currentSort}`} onClick={() => setSortOpen(true)} className="deals-sort-button">
-          <ArrowUpDown size={17} aria-hidden="true" /><span>Sort</span>
+          <ArrowUpDown size={17} aria-hidden="true" /><span>{currentSort}</span>
         </button>
       </div>
       <div className="deals-filter-row" role="group" aria-label="Filter deals">
@@ -104,7 +123,7 @@ export default function DealsPage() {
       <p className="mb-3 text-sm text-muted">Choose how your list is ordered.</p>
       <div className="space-y-2">{SORTS.map((option) => <button key={option.value} type="button" aria-pressed={sort === option.value}
         className={`sort-option ${sort === option.value ? 'is-selected' : ''}`}
-        onClick={() => { set('sort', option.value === 'urgency' ? '' : option.value); setSortOpen(false) }}>
+        onClick={() => chooseSort(option.value)}>
         <span><span className="block font-semibold">{option.label}</span><span className="mt-1 block text-xs text-muted">{option.detail}</span></span>
         {sort === option.value && <Check size={18} aria-hidden="true" />}
       </button>)}</div>

@@ -49,6 +49,27 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="form-field"><span className="form-field-label">{label}</span>{children}</label>
 }
 
+/** Digits and a single dot, at most 8 whole digits and 2 decimals. Never negative. */
+function sanitizeMoney(raw: string): string {
+  const cleaned = raw.replace(/[^\d.]/g, '')
+  const [whole = '', ...rest] = cleaned.split('.')
+  const integer = whole.slice(0, 8)
+  return rest.length ? `${integer}.${rest.join('').slice(0, 2)}` : integer
+}
+
+function MoneyInput({ testId, value, onChange, className = '' }: {
+  testId: string
+  value: string
+  onChange: (value: string) => void
+  className?: string
+}) {
+  return <input data-testid={testId} inputMode="decimal" autoComplete="off" value={value}
+    onChange={(event) => onChange(sanitizeMoney(event.target.value))}
+    onFocus={(event) => event.target.select()}
+    onBlur={() => { if (!value) return; const formatted = fromPaise(toPaise(value)); if (formatted !== value) onChange(formatted) }}
+    className={`${input} money-field-input ${className}`} placeholder="0" />
+}
+
 export default function DealFormPage({ modal = false, onClose }: { modal?: boolean; onClose?: () => void }) {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -73,8 +94,8 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
     return a.name.localeCompare(b.name)
   }), [mediators, lastMediator])
   const blank: Form = {
-    product: '', mediator_name: lastMediator, amount_paid: '', less_amount: '0.00', platform: local.get('last_platform') ?? '',
-    deal_type: 'review', commission: '0.00', date_taken: today, review_deadline: '', refund_form_deadline: '', payment_status: 'pending', notes: '',
+    product: '', mediator_name: lastMediator, amount_paid: '', less_amount: '', platform: local.get('last_platform') ?? '',
+    deal_type: 'review', commission: '', date_taken: today, review_deadline: '', refund_form_deadline: '', payment_status: 'pending', notes: '',
   }
   const [form, setForm] = useState<Form>(deal ? fromDeal(deal) : blank)
   const [more, setMore] = useState(false)
@@ -126,10 +147,10 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
       <datalist id="mediator-names">{suggestions.map((mediator) => <option key={mediator.id} value={mediator.name} />)}</datalist>
     </Field>
     <div className="grid grid-cols-2 gap-3">
-      <Field label="Amount paid"><input data-testid="deal-amount-paid-input" inputMode="decimal" value={form.amount_paid} onChange={on('amount_paid')} className={`${input} money-field-input`} placeholder="₹ 0" /></Field>
-      <Field label="Less"><input data-testid="deal-less-input" inputMode="decimal" value={form.less_amount} onChange={on('less_amount')} className={`${input} money-field-input`} placeholder="₹ 0" /></Field>
+      <Field label="Amount paid"><MoneyInput testId="deal-amount-paid-input" value={form.amount_paid} onChange={(amount_paid) => setForm((current) => ({ ...current, amount_paid }))} /></Field>
+      <Field label="Less"><MoneyInput testId="deal-less-input" value={form.less_amount} onChange={(less_amount) => setForm((current) => ({ ...current, less_amount }))} /></Field>
     </div>
-    <Field label="Commission (optional)"><input data-testid="deal-commission-input" inputMode="decimal" value={form.commission} onChange={on('commission')} className={`${input} money-field-input`} placeholder="₹ 0" /></Field>
+    <Field label="Commission (optional)"><MoneyInput testId="deal-commission-input" value={form.commission} onChange={(commission) => setForm((current) => ({ ...current, commission }))} /></Field>
     <p data-testid="deal-net-preview" className="deal-net-preview font-semibold" aria-live="polite">{breakdown}</p>
 
     <button type="button" data-testid="deal-more-toggle" aria-expanded={more} onClick={() => setMore((value) => !value)} className="more-details-toggle">

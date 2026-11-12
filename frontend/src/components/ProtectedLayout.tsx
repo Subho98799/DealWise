@@ -14,6 +14,7 @@ import { SyncChip } from './SyncChip'
 import { ToastProvider, useToast } from './Toast'
 import { Avatar } from './Avatar'
 import { AppLogo } from './AppLogo'
+import { AccountButton } from './AccountButton'
 import { Skeleton } from './ui'
 import type { Me } from '../data/types'
 import { APP_NAME } from '../config/app'
@@ -84,9 +85,7 @@ function Shell({ me, quickAddModal }: { me: Me; quickAddModal: boolean }) {
           <header className="app-topbar safe-top sticky top-0 z-10 px-gutter py-2">
             <Link to="/" aria-label={`${APP_NAME} home`} className="app-wordmark"><AppLogo size={30} /><span>{APP_NAME}</span></Link>
             <SyncChip />
-            <Link to="/settings" className="account-avatar-link" aria-label="Account and settings">
-              <Avatar name={me.name} url={me.avatar_url} size={38} />
-            </Link>
+            <AccountButton name={me.name} url={me.avatar_url} />
           </header>
           <main className="flex-1 px-gutter pb-[calc(var(--nav-height)+env(safe-area-inset-bottom)+24px)] pt-3">
             <div key={location.pathname} className="page-transition"><Outlet /></div>

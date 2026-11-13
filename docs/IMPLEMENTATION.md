@@ -90,7 +90,7 @@ Action order: `review_done` → `form_submitted` (needs review done; keeps a fil
 
 The refund-form filled date (`refund_form_filled_on`) is free to edit on any deal, not only submitted forms; it must not be before `date_taken` and should not be after `payment_received_on`.
 
-Sync push ops are full snapshots: every deal upsert carries the whole record (minus server-owned columns) plus `client_id`, so the server can create a deal it never received instead of rejecting a partial edit. When a newer op for a deal applies, the client drops older rejected ops for the same deal. A bare patch for a missing record is rejected as `missing: …`.
+Sync push ops are full snapshots: every deal upsert carries the whole record (minus server-owned columns) plus `client_id`, so the server can create a deal it never received instead of rejecting a partial edit. When a newer op for a deal applies, the client drops older rejected ops for the same deal. A bare patch for a missing record is rejected as `missing: …`. On startup the engine also replaces every stuck rejected deal edit with one fresh full-snapshot op per deal, so an old attention backlog clears without manual Fix or Discard taps.
 Status filters: `open` = not completed; `payment_pending` = payment ≠ received; `completed` = review done + form submitted + payment received. `urgent_count` includes overdue.
 
 ## Database schema

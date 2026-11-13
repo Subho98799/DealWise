@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, local, openFor, wipeLocal } from '../data/db'
-import { enqueue, pendingOps } from '../data/outbox'
+import { enqueue, pendingOps, repairRejectedDeals } from '../data/outbox'
 import { createDeal, updateDeal } from '../data/mutations'
 import { SyncEngine } from './engine'
 import { ApiError, TimeoutError } from '../lib/api'
@@ -108,6 +108,38 @@ describe('sync engine', () => {
     expect(engine.status).toMatchObject({ state: 'synced', rejected: 0 })
     const pushed = srv.calls.filter((call) => call.path === '/api/sync/push').at(-1)!.init!.json!.ops.filter((o) => o.id === 'a')
     expect(pushed.at(-1)!.data).toMatchObject({ product: 'Horlicks', date_taken: '2026-06-10', amount_paid: '1.00' })
+  })
+
+  it('repairs stuck rejected deal edits into one full snapshot', async () => {
+    const srv = fakeServer()
+    const engine = new SyncEngine(srv.fetcher as never)
+    const deal = makeDeal('a')
+    await db.deals.put(deal)
+    for (let i = 0; i < 3; i++) {
+      await enqueue({ type: 'deal', op: 'upsert', id: 'a', data: { review_status: 'done' } })
+      srv.state.rejectNext = 'product: Field required'
+      await engine.sync()
+    }
+    expect(await db.outbox.where('status').equals('rejected').count()).toBe(3)
+
+    expect(await repairRejectedDeals()).toEqual([deal.product])
+
+    const ops = await pendingOps()
+    expect(ops).toHaveLength(1)
+    expect(ops[0].data).toMatchObject({ product: deal.product, date_taken: '2026-06-10' })
+    await engine.sync()
+    expect(await db.outbox.count()).toBe(0)
+    expect(engine.status).toMatchObject({ state: 'synced', rejected: 0 })
+  })
+
+  it('drops rejected deal edits whose deal is gone locally', async () => {
+    await db.outbox.add({
+      op_id: crypto.randomUUID(), type: 'deal', op: 'upsert', id: 'missing-deal', data: { product: 'Gone' },
+      client_updated_at: new Date().toISOString(), status: 'rejected', reason: 'product: Field required', label: 'Gone',
+    })
+
+    expect(await repairRejectedDeals()).toEqual([])
+    expect(await db.outbox.count()).toBe(0)
   })
 
   it('notifies the user when a stale offline deal edit loses to the server', async () => {

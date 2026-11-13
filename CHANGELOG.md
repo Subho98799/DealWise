@@ -3,6 +3,7 @@
 ## Stuck "Changes needing attention" fixed (2026-11)
 ### Fixed
 - A deal whose first sync was rejected could never be saved again: every later edit sent only the changed fields, and the server answered `product: Field required`. Every deal upsert now carries the full record (plus `client_id`), so saving a deal recreates it on the server, and a successful push clears older rejected changes for that deal. A bare patch for a missing record now says `missing: the server has no copy of this deal; open it and save again`.
+- Existing rejected deal edits repair themselves: on startup the app replaces every stuck rejected edit with one fresh full-snapshot op per deal, so the attention list clears without tapping Fix or Discard on each entry.
 
 ## Platform picker fixes (2026-11)
 ### Fixed

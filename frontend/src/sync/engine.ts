@@ -1,6 +1,6 @@
 import { api, ApiError, isUnauthorized, TimeoutError } from '../lib/api'
 import { db, getMeta, setMeta } from '../data/db'
-import { pendingOps, setClockOffset } from '../data/outbox'
+import { pendingOps, repairRejectedDeals, setClockOffset } from '../data/outbox'
 import type { Deal, Mediator, OutboxOp } from '../data/types'
 
 export type SyncState = 'synced' | 'syncing' | 'pending' | 'offline' | 'waking' | 'attention'
@@ -63,7 +63,7 @@ export class SyncEngine {
     window.addEventListener('offline', this.onOnline)
     document.addEventListener('visibilitychange', this.onVisible)
     this.interval = setInterval(() => { if (document.visibilityState === 'visible') void this.sync() }, this.opts.intervalMs)
-    void this.sync()
+    void repairRejectedDeals().catch(() => []).then(() => this.sync())
   }
 
   stop() {

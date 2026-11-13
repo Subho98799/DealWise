@@ -1,6 +1,7 @@
 // Every write: apply locally first, queue an outbox op, poke the sync engine. Never waits on the network.
 import { db, local } from './db'
 import { enqueue, nowIso, uuid } from './outbox'
+import { dealSnapshot } from './snapshot'
 import { applyAction, type Action } from '../lib/rules'
 import { fromPaise, toPaise } from '../lib/money'
 import type { Deal, Mediator } from './types'
@@ -30,11 +31,6 @@ async function mediatorFor(name: string | null | undefined): Promise<Mediator | 
 
 const tables = () => [db.deals, db.mediators, db.outbox]
 
-// Every upsert carries the whole deal (minus server-owned columns) so a missing or rejected
-// earlier op can never leave the server with a partial record it refuses to create.
-const SERVER_FIELDS = new Set(['id', 'client_id', 'created_at', 'updated_at', 'refund_amount'])
-const snapshot = (deal: Deal) => Object.fromEntries(Object.entries(deal).filter(([key]) => !SERVER_FIELDS.has(key)))
-
 export async function createDeal(draft: DealDraft): Promise<Deal> {
   const id = uuid()
   const deal = await db.transaction('rw', tables(), async () => {
@@ -43,7 +39,7 @@ export async function createDeal(draft: DealDraft): Promise<Deal> {
     const d: Deal = { ...DEFAULTS, ...draft, mediator_id: m?.id ?? null, mediator_name: m?.name ?? null, id, client_id: id, created_at: now, updated_at: now }
     d.refund_amount = fromPaise(toPaise(d.amount_paid) - toPaise(d.less_amount) + toPaise(d.commission))
     await db.deals.put(d)
-    await enqueue({ type: 'deal', op: 'upsert', id, client_id: id, data: snapshot(d), label: d.product })
+    await enqueue({ type: 'deal', op: 'upsert', id, client_id: id, data: dealSnapshot(d), label: d.product })
     return d
   })
   if (draft.platform) local.set('last_platform', draft.platform)
@@ -65,7 +61,7 @@ export async function updateDeal(id: string, patch: Partial<Deal>): Promise<void
     const updated = { ...cur, ...changes, updated_at: nowIso() }
     updated.refund_amount = fromPaise(toPaise(updated.amount_paid) - toPaise(updated.less_amount) + toPaise(updated.commission))
     await db.deals.put(updated)
-    await enqueue({ type: 'deal', op: 'upsert', id, ...(cur.client_id ? { client_id: cur.client_id } : {}), data: snapshot(updated), label: updated.product })
+    await enqueue({ type: 'deal', op: 'upsert', id, ...(cur.client_id ? { client_id: cur.client_id } : {}), data: dealSnapshot(updated), label: updated.product })
   })
   engine.poke()
 }

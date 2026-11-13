@@ -88,6 +88,7 @@ class Deal(Base):
     commission: Mapped[Decimal] = mapped_column(server_default="0")
     review_deadline: Mapped[date | None]
     refund_form_deadline: Mapped[date | None]
+    refund_form_filled_on: Mapped[date | None]
     review_status: Mapped[str] = mapped_column(server_default="pending")
     form_status: Mapped[str] = mapped_column(server_default="pending")
     payment_status: Mapped[str] = mapped_column(server_default="pending")

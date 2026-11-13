@@ -1,5 +1,15 @@
 # Changelog
 
+## Dates, labels and visual polish (2026-11)
+### Added
+- Editable record dates: the deal form exposes **Payment date** (`payment_received_on`, enabled once payment status is Received) and **Form filled** (new `refund_form_filled_on`, enabled once the refund form is submitted). The `form_submitted` action stamps the filled date with today, `reopen_form` clears it, and validation rejects a filled date before the purchase date or after the payment date. Migration `0007` adds the nullable column; import mapping accepts `Form filled on` headers; sync, Dexie defaults, deal detail, and expanded cards show both dates.
+- The test database can be a separate Neon branch even when its database is still named `neondb`: the pytest guard and `dt check` accept a URL whose host differs from `DATABASE_URL`, and docs describe branch setup. `check_setup` also normalises the migration URL to the psycopg 3 driver, fixing a `psycopg2` import error during checks.
+- Deal detail lists Form filled and Paid on rows, and the expanded deal card shows Form filled and Paid on.
+
+### Changed
+- Platform and filter labels are never cut mid-word: the Deals status and platform filter chips now wrap onto multiple lines, the sort button shows its full label, and the platform combobox sits on its own full-width form row with whole-word option labels.
+- Visual polish using existing tokens only: soft brand wash behind the app frame, layered card shadows with a gentle hover lift on pointer devices, hero sheen on the refund cards, brand-tinted focus rings for inputs and the platform field, brand-glow primary buttons and the nav + button, richer progress fill, and a pill toast. Dark mode keeps flat surfaces.
+
 ## Theme, platform and mobile pass (2026-11)
 ### Changed
 - Added the Sky (light blue) theme and made it the default on new devices; Indigo, Forest, and Saffron remain selectable in Settings and follow light, dark, and system appearance.

@@ -18,6 +18,7 @@ os.chdir(BACKEND)
 from pydantic import ValidationError  # noqa: E402
 
 from app.config import Settings, db_name, explain, normalize_pg_url  # noqa: E402
+from tests.safety import is_separate_database  # noqa: E402
 
 REQUIRED = ["ENV", "DATABASE_URL", "MIGRATION_DATABASE_URL", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET",
             "SESSION_SECRET", "FRONTEND_URL", "TEST_DATABASE_URL"]
@@ -49,7 +50,7 @@ if settings:
             migration_url = env("MIGRATION_DATABASE_URL")
             if migration_url:
                 migration_engine = sa.create_engine(
-                    migration_url, connect_args={"prepare_threshold": None}
+                    normalize_pg_url(migration_url), connect_args={"prepare_threshold": None}
                 )
                 try:
                     with migration_engine.connect() as migration_connection:
@@ -101,10 +102,13 @@ if settings:
 
 test_url = env("TEST_DATABASE_URL")
 if test_url:
-    name = db_name(normalize_pg_url(test_url))
-    same = settings is not None and normalize_pg_url(test_url) == settings.DATABASE_URL
-    check("test" in name.lower() and not same,
-          f"TEST_DATABASE_URL points at a database whose name contains 'test' (got {name!r})")
+    normalized_test = normalize_pg_url(test_url)
+    name = db_name(normalized_test)
+    same = settings is not None and normalized_test == settings.DATABASE_URL
+    separate = is_separate_database(normalized_test, env("DATABASE_URL"))
+    check(("test" in name.lower() or separate) and not same,
+          f"TEST_DATABASE_URL is a separate test database (got {name!r}; "
+          f"{'different host' if separate else 'name contains test'})")
 
 gid = env("GOOGLE_CLIENT_ID") or ""
 check(gid.endswith(".apps.googleusercontent.com") and len(gid) > 40,

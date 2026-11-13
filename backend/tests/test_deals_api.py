@@ -135,7 +135,8 @@ def test_actions_and_invalid_transitions(api):
     assert r.status_code == 409 and r.json()["error"]["code"] == "invalid_transition"
     assert act("review_done").json()["review_status"] == "done"
     assert act("review_done").status_code == 409
-    assert act("form_submitted").json()["form_status"] == "submitted"
+    assert act("form_submitted").json()["refund_form_filled_on"] == "2026-06-10"
+    assert act("form_submitted").status_code == 409
     paid = act("payment_received").json()
     assert paid["payment_status"] == "received" and paid["payment_received_on"] == "2026-06-10"
     assert act("bogus").status_code == 422

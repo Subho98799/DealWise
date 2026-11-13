@@ -5,7 +5,7 @@ import { AlertTriangle, Circle, CircleCheck, Clock3, X, type LucideIcon } from '
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const buttonVariants: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-primary-ink shadow-card hover:brightness-105',
+  primary: 'bg-primary text-primary-ink ui-primary-button hover:brightness-105',
   secondary: 'border border-line bg-surface text-ink hover:bg-surface-2',
   ghost: 'bg-transparent text-ink hover:bg-surface-2',
   danger: 'bg-danger-soft text-danger hover:brightness-95',
@@ -150,7 +150,7 @@ export function PageTitle({ children, right }: { children: ReactNode; right?: Re
 }
 
 export const btn = {
-  primary: 'ui-button bg-primary text-primary-ink shadow-card',
+  primary: 'ui-button bg-primary text-primary-ink ui-primary-button',
   ghost: 'ui-button border border-line bg-surface text-ink',
   danger: 'ui-button bg-danger-soft text-danger',
   secondary: 'ui-button border border-line bg-surface text-ink',

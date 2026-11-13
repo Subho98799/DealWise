@@ -100,6 +100,8 @@ export function DealCard({ deal, number }: { deal: Deal; number: number }) {
         <div><dt>Taken</dt><dd>{formatShort(deal.date_taken)}</dd></div>
         <div><dt>Review due</dt><dd>{formatShort(deal.review_deadline) || '—'}</dd></div>
         <div><dt>Form due</dt><dd>{formatShort(deal.refund_form_deadline) || '—'}</dd></div>
+        <div><dt>Form filled</dt><dd>{formatShort(deal.refund_form_filled_on) || '—'}</dd></div>
+        <div><dt>Paid on</dt><dd>{formatShort(deal.payment_received_on) || '—'}</dd></div>
       </dl>
       <p data-testid="deal-card-next" className="deal-progress-next">{nextLabel ? <>Next: <strong>{nextLabel}</strong></> : <strong>All steps complete</strong>}</p>
       <div className="deal-card-actions">

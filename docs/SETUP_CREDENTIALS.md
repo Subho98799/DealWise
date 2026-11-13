@@ -31,9 +31,9 @@
 | `MIGRATION_DATABASE_URL` | local `backend/.env` and migration tooling only; never Render |
 
 ## 2. Test database (TEST_DATABASE_URL, TEST_MIGRATION_DATABASE_URL)
-Tests refuse any database whose name does not contain `test`. `TEST_MIGRATION_DATABASE_URL` is required: pytest uses it for migrations and migration-revision checks, while the application tests continue to connect as `app_user`.
-1. Neon → **Databases** → **New database** → name `dealbook_test`, owner `neondb_owner`. (Or create a **branch** named `test` and a database `dealbook_test` in it.)
-2. **Connect** → database `dealbook_test`, owner, pooling OFF → `TEST_MIGRATION_DATABASE_URL=postgresql+psycopg://neondb_owner:FAKEpass123@ep-cool-name-123456.ap-southeast-1.aws.neon.tech/dealbook_test?sslmode=require`
+Tests refuse the app database. A test database is accepted when its name contains `test` **or** it lives on a separate host from `DATABASE_URL` (for example a different Neon branch served from its own endpoint, even if the database inside the branch is still named `neondb`). `TEST_MIGRATION_DATABASE_URL` is required: pytest uses it for migrations and migration-revision checks, while the application tests continue to connect as `app_user`.
+1. Neon → **Branch** → create a branch (for example `test`); the database inside it keeps the branch default name, or name a new database `dealbook_test`.
+2. **Connect** → that branch's database, owner, pooling OFF → `TEST_MIGRATION_DATABASE_URL=postgresql+psycopg://neondb_owner:FAKEpass123@ep-cool-name-123456.ap-southeast-1.aws.neon.tech/dealbook_test?sslmode=require`
 3. Grant `app_user` on it: bash `scripts/dt.sh create-role-test` · PowerShell `.\scripts\dt.ps1 create-role-test` (same app_user password).
 4. Migrate it: `dt migrate-test`.
 5. `TEST_DATABASE_URL=postgresql+psycopg://app_user:FAKEappPass456@ep-cool-name-123456-pooler.ap-southeast-1.aws.neon.tech/dealbook_test?sslmode=require`

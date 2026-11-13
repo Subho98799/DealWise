@@ -103,6 +103,7 @@ class _DealFields(Strict):
     commission: Money | None = None
     review_deadline: date | None = None
     refund_form_deadline: date | None = None
+    refund_form_filled_on: date | None = None
     review_status: Literal["pending", "done"] | None = None
     form_status: Literal["pending", "submitted"] | None = None
     payment_status: Literal["pending", "received", "disputed"] | None = None
@@ -140,6 +141,7 @@ class DealOut(BaseModel):
     commission: MoneyOut
     review_deadline: date | None
     refund_form_deadline: date | None
+    refund_form_filled_on: date | None
     review_status: str
     form_status: str
     payment_status: str
@@ -247,7 +249,7 @@ class SummaryOut(BaseModel):
 
 IMPORT_FIELDS = {
     "product", "platform", "mediator", "deal_type", "date_taken", "amount_paid", "less_amount",
-    "refund_amount", "commission", "review_deadline", "refund_form_deadline", "review_status",
+    "refund_amount", "commission", "review_deadline", "refund_form_deadline", "refund_form_filled_on", "review_status",
     "form_status", "payment_status", "payment_received_on", "notes",
 }
 

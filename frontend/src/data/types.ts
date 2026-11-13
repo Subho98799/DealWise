@@ -18,6 +18,7 @@ export type Deal = {
   commission: string
   review_deadline: string | null
   refund_form_deadline: string | null
+  refund_form_filled_on: string | null
   review_status: ReviewStatus
   form_status: FormStatus
   payment_status: PaymentStatus

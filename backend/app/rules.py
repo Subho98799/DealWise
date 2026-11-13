@@ -68,12 +68,14 @@ def validate_deal(state: dict) -> None:
     if amount_paid is not None and less_amount is not None and less_amount > amount_paid:
         raise RuleError("validation_error", "Less cannot be more than the amount paid.")
     taken = state.get("date_taken")
-    for field in ("review_deadline", "refund_form_deadline"):
+    for field in ("review_deadline", "refund_form_deadline", "refund_form_filled_on"):
         d = state.get(field)
         if d and taken and d < taken:
             raise RuleError("validation_error", f"{field} cannot be before date_taken")
     if state.get("payment_received_on") and state.get("payment_status") != "received":
         raise RuleError("validation_error", "payment_received_on requires payment_status 'received'")
+    if state.get("refund_form_filled_on") and state.get("form_status") != "submitted":
+        raise RuleError("validation_error", "refund_form_filled_on requires form_status 'submitted'")
 
 
 def apply_action(state: dict, action: str, today: date, received_on: date | None = None) -> dict:
@@ -92,7 +94,7 @@ def apply_action(state: dict, action: str, today: date, received_on: date | None
             bad("Refund form is already submitted.")
         if rs != "done":
             bad("Mark the review done before submitting the refund form.")
-        return {"form_status": "submitted"}
+        return {"form_status": "submitted", "refund_form_filled_on": today}
     if action == "payment_received":
         if ps == "received":
             bad("Payment is already received.")
@@ -110,7 +112,7 @@ def apply_action(state: dict, action: str, today: date, received_on: date | None
             bad("Refund form is not submitted.")
         if ps == "received":
             bad("Reopen the payment first.")
-        return {"form_status": "pending"}
+        return {"form_status": "pending", "refund_form_filled_on": None}
     if action == "reopen_payment":
         if ps != "received":
             bad("Payment is not received.")

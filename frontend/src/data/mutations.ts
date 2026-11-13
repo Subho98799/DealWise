@@ -11,7 +11,7 @@ export type DealDraft = Partial<Omit<Deal, 'id' | 'client_id' | 'created_at' | '
 const DEFAULTS = {
   platform: null, mediator_id: null, mediator_name: null, deal_type: 'review', amount_paid: '0.00',
   less_amount: '0.00', refund_amount: '0.00',
-  commission: '0.00', review_deadline: null, refund_form_deadline: null, review_status: 'pending', form_status: 'pending',
+  commission: '0.00', review_deadline: null, refund_form_deadline: null, refund_form_filled_on: null, review_status: 'pending', form_status: 'pending',
   payment_status: 'pending', payment_received_on: null, notes: null,
 } as const
 

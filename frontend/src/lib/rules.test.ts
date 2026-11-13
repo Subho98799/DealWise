@@ -8,7 +8,7 @@ const T = '2026-06-10'
 const deal = (p: Partial<Deal> = {}): Deal => ({
   id: 'd', client_id: 'd', product: 'x', platform: null, mediator_id: null, mediator_name: null, deal_type: 'review',
   date_taken: '2026-06-01', amount_paid: '0.00', less_amount: '0.00', refund_amount: '0.00', commission: '0.00', review_deadline: null,
-  refund_form_deadline: null, review_status: 'pending', form_status: 'pending', payment_status: 'pending',
+  refund_form_deadline: null, refund_form_filled_on: null, review_status: 'pending', form_status: 'pending', payment_status: 'pending',
   payment_received_on: null, notes: null, created_at: '', updated_at: '', ...p,
 })
 
@@ -46,9 +46,13 @@ describe('actions', () => {
     const d = deal()
     expect(nextAction(d)).toBe('review_done')
     expect(() => applyAction(d, 'payment_received', T)).toThrow(RuleError)
+    expect(applyAction({ ...d, review_status: 'done' }, 'form_submitted', T))
+      .toEqual({ form_status: 'submitted', refund_form_filled_on: T })
     expect(applyAction({ ...d, review_status: 'done', form_status: 'submitted' }, 'payment_received', T))
       .toEqual({ payment_status: 'received', payment_received_on: T })
     expect(() => applyAction({ ...d, review_status: 'done', form_status: 'submitted' }, 'reopen_review', T)).toThrow('Reopen the refund form first.')
+    expect(applyAction({ ...d, review_status: 'done', form_status: 'submitted' }, 'reopen_form', T))
+      .toEqual({ form_status: 'pending', refund_form_filled_on: null })
   })
 })
 

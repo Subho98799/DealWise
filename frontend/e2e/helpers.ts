@@ -6,7 +6,12 @@ import type { BrowserContext } from '@playwright/test'
 
 const url = process.env.E2E_DATABASE_URL
 if (!url) throw new Error('E2E_DATABASE_URL is not set (app_user URL of the TEST database the backend uses).')
-if (!new URL(url).pathname.toLowerCase().includes('test')) throw new Error('E2E_DATABASE_URL must point at a database whose name contains "test".')
+const sameDbName = new URL(url).pathname.toLowerCase().includes('test')
+const separateHost = !!process.env.E2E_APP_DATABASE_URL
+  && new URL(url).hostname.replace('-pooler.', '.') !== new URL(process.env.E2E_APP_DATABASE_URL).hostname.replace('-pooler.', '.')
+if (!sameDbName && !separateHost) {
+  throw new Error('E2E_DATABASE_URL must point at a database whose name contains "test", or a separate host from E2E_APP_DATABASE_URL.')
+}
 
 export const pool = new pg.Pool({ connectionString: url })
 const SESSION_COOKIE = 'dt_session' // backend app/config.py SESSION_COOKIE
@@ -27,8 +32,7 @@ export async function useSession(ctx: BrowserContext, baseURL: string, token: st
 }
 
 /** Reads a user's deals through RLS, as the app does. */
-export async function serverDeals(userId: string) {
-  const c = await pool.connect()
+export async function serverDeals(userId: string) {  const c = await pool.connect()
   try {
     await c.query('BEGIN')
     await c.query("SELECT set_config('app.current_user_id', $1, true)", [userId])

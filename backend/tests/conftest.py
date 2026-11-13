@@ -19,15 +19,16 @@ def _env(name: str) -> str | None:
 
 from tests.safety import assert_test_database  # noqa: E402
 
+APP_DB = _env("DATABASE_URL")
 TEST_DB = _env("TEST_DATABASE_URL")
 if not TEST_DB:
-    raise SystemExit("TEST_DATABASE_URL is not set (app_user URL of a database whose name contains 'test').")
-assert_test_database(TEST_DB)
+    raise SystemExit("TEST_DATABASE_URL is not set (app_user URL of a database whose name contains 'test' or a separate branch).")
+assert_test_database(TEST_DB, APP_DB)
 
 TEST_MIGRATION_DB = _env("TEST_MIGRATION_DATABASE_URL")
 if not TEST_MIGRATION_DB:
     raise SystemExit("TEST_MIGRATION_DATABASE_URL is required for test migrations and revision checks (owner URL of a test database).")
-assert_test_database(TEST_MIGRATION_DB)
+assert_test_database(TEST_MIGRATION_DB, APP_DB)
 
 # The app under test must use the test database, whatever backend/.env says.
 os.environ["DATABASE_URL"] = TEST_DB
@@ -47,6 +48,8 @@ from alembic.script import ScriptDirectory  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
+from app.config import normalize_pg_url  # noqa: E402
+
 CSRF = {"X-Requested-With": "dealbook"}
 
 
@@ -62,7 +65,7 @@ def migrated_db():
     with engine.connect() as c:
         who = c.execute(text("SELECT current_user")).scalar_one()
         app_database = c.execute(text("SELECT current_database()")).scalar_one()
-    owner_engine = create_engine(TEST_MIGRATION_DB, connect_args={"prepare_threshold": None})
+    owner_engine = create_engine(normalize_pg_url(TEST_MIGRATION_DB), connect_args={"prepare_threshold": None})
     try:
         with owner_engine.connect() as c:
             owner = c.execute(text("SELECT current_user")).scalar_one()

@@ -13,6 +13,14 @@ from tests.conftest import CSRF
 FRONTEND = "http://localhost:5173"
 
 
+def _session_count(app_engine) -> int:
+    with app_engine.connect() as c:
+        return c.execute(text(
+            "SELECT count(*) FROM sessions s JOIN users u ON u.id = s.user_id "
+            "WHERE u.google_sub LIKE 'test-%'"
+        )).scalar_one()
+
+
 def _google_userinfo(**overrides):
     info = {
         "sub": "test-google-sub-123",
@@ -85,7 +93,10 @@ def test_cookie_holds_only_opaque_token_and_db_holds_only_hash(client, mock_goog
     raw = client.cookies.get(COOKIE_NAME)
     assert len(raw) >= 43 and "asha" not in raw.lower()
     with app_engine.connect() as c:
-        stored = c.execute(text("SELECT token_hash FROM sessions")).scalars().all()
+        stored = c.execute(text(
+            "SELECT s.token_hash FROM sessions s JOIN users u ON u.id = s.user_id "
+            "WHERE u.google_sub LIKE 'test-%'"
+        )).scalars().all()
     assert stored == [hash_token(raw)]
 
 
@@ -131,8 +142,7 @@ def test_expired_session_returns_401(client, make_user, app_engine):
     client.cookies.set(COOKIE_NAME, raw)
     r = client.get("/api/me")
     assert r.status_code == 401
-    with app_engine.connect() as c:
-        assert c.execute(text("SELECT count(*) FROM sessions")).scalar_one() == 0
+    assert _session_count(app_engine) == 0
 
 
 def test_absolute_session_expiry_is_enforced_even_when_idle_expiry_is_future(
@@ -146,26 +156,29 @@ def test_absolute_session_expiry_is_enforced_even_when_idle_expiry_is_future(
         ), {"token_hash": hash_token(raw)})
     client.cookies.set(COOKIE_NAME, raw)
     assert client.get("/api/me").status_code == 401
-    with app_engine.connect() as connection:
-        assert connection.execute(text("SELECT count(*) FROM sessions")).scalar_one() == 0
+    assert _session_count(app_engine) == 0
 
 
 def test_sliding_expiry_touches_at_most_every_10_minutes(client, make_user, app_engine):
-    _, raw = make_user("alice")
+    uid, raw = make_user("alice")
     client.cookies.set(COOKIE_NAME, raw)
     with app_engine.connect() as c:
-        first = c.execute(text("SELECT last_seen_at FROM sessions")).scalar_one()
+        first = c.execute(text("SELECT last_seen_at FROM sessions WHERE user_id = :u"),
+                          {"u": uid}).scalar_one()
     assert client.get("/api/me").status_code == 200
     with app_engine.begin() as c:
-        assert c.execute(text("SELECT last_seen_at FROM sessions")).scalar_one() == first
+        assert c.execute(text("SELECT last_seen_at FROM sessions WHERE user_id = :u"),
+                         {"u": uid}).scalar_one() == first
         c.execute(
             text("UPDATE sessions SET last_seen_at = now() - interval '11 minutes', "
-                 "expires_at = now() + interval '1 day'")
+                 "expires_at = now() + interval '1 day' WHERE user_id = :u"),
+            {"u": uid},
         )
     r = client.get("/api/me")
     assert r.status_code == 200 and COOKIE_NAME in r.headers.get("set-cookie", "")
     with app_engine.connect() as c:
-        exp = c.execute(text("SELECT expires_at - now() FROM sessions")).scalar_one()
+        exp = c.execute(text("SELECT expires_at - now() FROM sessions WHERE user_id = :u"),
+                        {"u": uid}).scalar_one()
     assert exp > timedelta(days=29)
 
 
@@ -176,18 +189,22 @@ def test_logout_invalidates_session(client, make_user, app_engine):
     r = client.post("/api/auth/logout", headers=CSRF)
     assert r.status_code == 204
     assert COOKIE_NAME in r.headers["set-cookie"] and "Max-Age=0" in r.headers["set-cookie"]
-    with app_engine.connect() as c:
-        assert c.execute(text("SELECT count(*) FROM sessions")).scalar_one() == 0
+    assert _session_count(app_engine) == 0
     client.cookies.set(COOKIE_NAME, raw)  # replaying the old token must fail
     assert client.get("/api/me").status_code == 401
 
 
 def test_login_cleans_at_most_100_expired_sessions(client, mock_google, app_engine):
     _login(client)
-    with app_engine.connect() as connection:
+    with app_engine.begin() as connection:
         user_id = connection.execute(text(
-            "SELECT user_id FROM sessions LIMIT 1"
+            "SELECT s.user_id FROM sessions s JOIN users u ON u.id = s.user_id "
+            "WHERE u.google_sub LIKE 'test-%' LIMIT 1"
         )).scalar_one()
+        connection.execute(text(
+            "DELETE FROM sessions s USING users u WHERE u.id = s.user_id "
+            "AND u.google_sub LIKE 'test-%' AND s.expires_at < now()"
+        ))
     expired_hashes = [hash_token(f"expired-test-token-{index}") for index in range(101)]
     with app_engine.begin() as connection:
         connection.execute(text("""
@@ -211,7 +228,7 @@ def test_callback_rejects_unverified_email(client, mock_google, app_engine):
     assert r.headers["location"] == f"{FRONTEND}/login?error=email_unverified"
     assert COOKIE_NAME not in r.headers.get("set-cookie", "")
     with app_engine.connect() as c:
-        assert c.execute(text("SELECT count(*) FROM users")).scalar_one() == 0
+        assert c.execute(text("SELECT count(*) FROM users WHERE google_sub LIKE 'test-%'")).scalar_one() == 0
 
 
 def test_callback_with_bad_state_is_rejected_without_mock(client):
@@ -262,6 +279,6 @@ def test_delete_me_removes_everything(client, make_user, app_engine):
     assert r.status_code == 204
     assert "Max-Age=0" in r.headers["set-cookie"]
     with app_engine.connect() as c:
-        assert c.execute(text("SELECT count(*) FROM users")).scalar_one() == 0
+        assert c.execute(text("SELECT count(*) FROM users WHERE google_sub LIKE 'test-%'")).scalar_one() == 0
     client.cookies.set(COOKIE_NAME, raw)
     assert client.get("/api/me").status_code == 401

@@ -11,7 +11,8 @@ export type SupersededEditNotice = { product: string; dealId: string }
 type Fetcher = typeof api
 
 const DEAL_FIELDS: (keyof Deal)[] = ['id', 'client_id', 'product', 'platform', 'mediator_id', 'mediator_name', 'deal_type', 'date_taken',
-  'amount_paid', 'less_amount', 'refund_amount', 'commission', 'review_deadline', 'refund_form_deadline', 'review_status', 'form_status',
+  'amount_paid', 'less_amount', 'refund_amount', 'commission', 'review_deadline', 'refund_form_deadline',
+  'refund_form_filled_on', 'review_status', 'form_status',
   'payment_status', 'payment_received_on', 'notes', 'created_at', 'updated_at']
 const pick = (d: Deal) => Object.fromEntries(DEAL_FIELDS.map((k) => [k, d[k]])) as Deal
 // Server-side rejections that mean "the server copy wins" (last-write-wins): drop the op, re-pull.

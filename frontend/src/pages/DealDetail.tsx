@@ -31,7 +31,8 @@ export default function DealDetailPage() {
   const milestones = [
     { key: 'taken', title: 'Deal taken', done: true, date: formatShort(deal.date_taken), action: null as Action | null, hint: 'Purchase recorded' },
     { key: 'review', title: 'Review completed', done: reviewDone, date: reviewDone ? null : deal.review_deadline ? `Due ${formatShort(deal.review_deadline)}` : null, action: 'review_done' as const },
-    { key: 'form', title: 'Refund form submitted', done: formDone, date: formDone ? null : deal.refund_form_deadline ? `Due ${formatShort(deal.refund_form_deadline)}` : null, action: 'form_submitted' as const },
+    { key: 'form', title: 'Refund form submitted', done: formDone,
+      date: formDone ? (deal.refund_form_filled_on ? formatShort(deal.refund_form_filled_on) : null) : deal.refund_form_deadline ? `Due ${formatShort(deal.refund_form_deadline)}` : null, action: 'form_submitted' as const },
     { key: 'payment', title: 'Payment received', done: paymentDone, date: deal.payment_received_on ? formatShort(deal.payment_received_on) : null, action: 'payment_received' as const },
   ]
   const rows: [string, string][] = [
@@ -39,7 +40,9 @@ export default function DealDetailPage() {
     ['Amount paid', formatINR(deal.amount_paid)], ['Less', formatINR(deal.less_amount)],
     ['Commission', formatINR(deal.commission)],
     ['Review deadline', formatShort(deal.review_deadline) || '—'],
-    ['Form deadline', formatShort(deal.refund_form_deadline) || '—'], ['Payment status', deal.payment_status + (deal.payment_received_on ? ` · ${formatShort(deal.payment_received_on)}` : '')],
+    ['Form deadline', formatShort(deal.refund_form_deadline) || '—'],
+    ['Form filled', formatShort(deal.refund_form_filled_on) || '—'],
+    ['Payment status', deal.payment_status + (deal.payment_received_on ? ` · ${formatShort(deal.payment_received_on)}` : '')],
   ]
   return (
     <div data-testid="deal-detail" className="deal-detail-page">

@@ -86,18 +86,18 @@
 Deal requests use `amount_paid` (P), `less_amount` (L, default 0), and `commission` (C, default 0), with `0 ≤ L ≤ P`, `C ≥ 0`, and net refund `P - L + C`. For compatibility, POST `/api/deals`, PATCH, and `/api/sync/push` still accept the deprecated legacy `refund_amount` (R): convert to `L = max(P - R, 0)` and `C = old C + max(R - P, 0)`. When the new Less field is supplied, it takes precedence over legacy refund conversion. New clients must not send a refund amount as an input.
 
 Deal responses include decimal-string `amount_paid`, `less_amount`, `commission`, and generated `refund_amount` (the net refund); `net_amount` is `commission - less_amount` (gain/loss). Summary Paid sums amount paid; pending and received sum net refunds by payment status; Gain/loss sums commission minus less. Deal responses also include `is_urgent`, `is_overdue`, and `urgency_reason` (`review_overdue|form_overdue|review_due_soon|form_due_soon|null`).
-Action order: `review_done` → `form_submitted` (needs review done) → `payment_received` (needs form submitted; sets date = today in user tz). Reopen in reverse order only.
+Action order: `review_done` → `form_submitted` (needs review done; stamps `refund_form_filled_on` = today) → `payment_received` (needs form submitted; sets date = today in user tz). Reopen in reverse order only (`reopen_form` clears `refund_form_filled_on`, `reopen_payment` clears `payment_received_on`).
 Status filters: `open` = not completed; `payment_pending` = payment ≠ received; `completed` = review done + form submitted + payment received. `urgent_count` includes overdue.
 
 ## Database schema
-Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2), `0003_import_jobs.py` (Phase 3), `0004_deal_less_amount.py` (Less/commission net-refund model), `0005_runtime_privileges_and_timeouts.py` (runtime grants and database timeouts), `0006_deal_types.py` (Only order and Negative review deal types).
+Migrations: `0001_initial.py` (Phase 1), `0002_phase2_sync.py` (Phase 2), `0003_import_jobs.py` (Phase 3), `0004_deal_less_amount.py` (Less/commission net-refund model), `0005_runtime_privileges_and_timeouts.py` (runtime grants and database timeouts), `0006_deal_types.py` (Only order and Negative review deal types), `0007_refund_form_filled_on.py` (form filled date).
 
 | Table | RLS | Key columns / constraints | Indexes |
 |---|---|---|---|
 | users | no (auth module only) | `google_sub` unique, `role` ∈ user/admin, `alert_days` 0–14 default 2, `timezone` default Asia/Kolkata | pk, unique google_sub |
 | sessions | no (auth module only) | `token_hash` unique (SHA-256), `expires_at`, FK users cascade | user_id, expires_at |
 | mediators | ENABLE+FORCE | `name` non-blank, `updated_at` trigger, `deleted_at`, `client_updated_at`, unique `(id,user_id)` | unique `(user_id, lower(name)) WHERE deleted_at IS NULL`; `(user_id, updated_at)` |
-| deals | ENABLE+FORCE | `amount_paid`, `less_amount`, `commission` are `numeric(12,2)`; checks `amount_paid ≥ 0`, `0 ≤ less_amount ≤ amount_paid`, `commission ≥ 0`; `refund_amount` is stored generated `amount_paid - less_amount + commission`; CHECKs on deal_type/statuses; FK `(mediator_id,user_id)→mediators(id,user_id) ON DELETE SET NULL (mediator_id)`; optional composite FK `(import_job_id,user_id)→import_jobs(id,user_id)`; `mediator_name` snapshot; `updated_at` trigger; `deleted_at`; `client_updated_at` | `(user_id,payment_status)`, `(user_id,review_deadline) WHERE review pending`, `(user_id,refund_form_deadline) WHERE form pending`, `(user_id,date_taken DESC)`, unique `(user_id,client_id) WHERE client_id NOT NULL`, `(user_id,updated_at)`, `(user_id,import_job_id)`, mediator_id |
+| deals | ENABLE+FORCE | `amount_paid`, `less_amount`, `commission` are `numeric(12,2)`; checks `amount_paid ≥ 0`, `0 ≤ less_amount ≤ amount_paid`, `commission ≥ 0`; `refund_amount` is stored generated `amount_paid - less_amount + commission`; CHECKs on deal_type/statuses; `refund_form_filled_on` requires form_status `submitted` (app rule); FK `(mediator_id,user_id)→mediators(id,user_id) ON DELETE SET NULL (mediator_id)`; optional composite FK `(import_job_id,user_id)→import_jobs(id,user_id)`; `mediator_name` snapshot; `updated_at` trigger; `deleted_at`; `client_updated_at` | `(user_id,payment_status)`, `(user_id,review_deadline) WHERE review pending`, `(user_id,refund_form_deadline) WHERE form pending`, `(user_id,date_taken DESC)`, unique `(user_id,client_id) WHERE client_id NOT NULL`, `(user_id,updated_at)`, `(user_id,import_job_id)`, mediator_id |
 | sync_ops | ENABLE+FORCE | pk `(user_id, op_id)`, `record_id` — applied push ops (idempotency); old rows are opportunistically removed, up to 500 per push, after 30 days | pk |
 | import_jobs | ENABLE+FORCE | `import_id` unique per user; status, row counts, totals, options, errors, created/undone timestamps; composite unique `(id,user_id)` for deal ownership FK; jobs older than 90 days are pruned at most 100 per new import commit | `(user_id,created_at DESC)` |
 
@@ -106,6 +106,8 @@ Migration 0004 backfills Less as `greatest(amount_paid - old_refund_amount, 0)`;
 Migration 0005 revokes table privileges from `app_user` across the public schema, then grants only SELECT/INSERT/UPDATE/DELETE on the six application tables. It also removes broad default table grants for the migration role and sets role-level `statement_timeout=15s` and `idle_in_transaction_session_timeout=30s`. `get_user_db` repeats the timeouts with transaction-local `set_config` for pooled connections. The downgrade restores prior broad DML grants and resets those role settings. `users` and `sessions` remain outside RLS and accessible to the auth module; this is an accepted isolation risk.
 
 Migration 0006 replaces the `deals_deal_type_check` constraint so `deal_type` also accepts `only_order` and `negative_review`. The downgrade maps those rows to `other` before restoring the previous list.
+
+Migration 0007 adds nullable `deals.refund_form_filled_on` (the date the form was actually sent, stamped by the `form_submitted` action and editable afterwards). Downgrade drops the column.
 
 ## Money, imports, and deal numbers
 - Spreadsheet import accepts Less headers `less`, `deduction`, `discount`, `cut`, and `mediator less` (alongside the `less_amount` target) and keeps Commission. If only legacy Refund is mapped, each row derives Less and Commission by the legacy conversion rule and shows that derivation in preview. If Less is mapped, it wins; a Refund mismatch is a warning. Import reconciliation totals are Paid, Net refund, and Gain/loss.
@@ -118,7 +120,7 @@ Migration 0006 replaces the `deals_deal_type_check` constraint so `deal_type` al
 | `ENV` | yes | app | `dev` / `prod` |
 | `DATABASE_URL` | yes | app | app_user, **pooled**, `postgresql+psycopg://…?sslmode=require` |
 | `MIGRATION_DATABASE_URL` | yes (local tooling only) | alembic, create-role | owner, **direct**; never Render |
-| `TEST_DATABASE_URL` | tests | pytest | app_user, DB name contains `test` |
+| `TEST_DATABASE_URL` | tests | pytest | app_user; DB name contains `test`, or the DB lives on a separate host (Neon branch) |
 | `TEST_MIGRATION_DATABASE_URL` | pytest + migrations | pytest, migrate-test | owner, direct, same test DB as `TEST_DATABASE_URL`; used for migrations and revision checks |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | yes | app | Google OAuth web client |
 | `SESSION_SECRET` | yes | app | ≥ 32 random chars |
@@ -137,7 +139,7 @@ Migration 0006 replaces the `deals_deal_type_check` constraint so `deal_type` al
 **Add a screen:** page in `src/pages/`, route in `App.tsx`, read via `data/hooks.ts`, write via `data/mutations.ts`, `data-testid` on every control, empty/loading states.
 
 ## Testing
-- `dt test` → pytest (refuses unless `TEST_DATABASE_URL` DB name contains `test`; asserts `current_user = app_user`; deletes its `test-%` users before/after) + typecheck + Vitest.
+- `dt test` → pytest (refuses the app database unless `TEST_DATABASE_URL` names a `test` database or a separate host; asserts `current_user = app_user`; deletes its `test-%` users before/after) + typecheck + Vitest.
 - Database-backed migration and API verification requires the configured test database: upgrade, downgrade, and re-upgrade; generated-column cases; RLS and composite-FK checks; and API isolation tests. Record database-derived backfill counts when running migration 0004; counts are not available without applying it to the target database.
 - The frontend includes unit coverage for money breakdowns, Dexie upgrade conversion, and deal numbering (date/created/id ties, filtered subsets, and deletion renumbering). Run `yarn typecheck`, `yarn test`, `yarn lint`, and `yarn build` from `frontend/`.
 - Suites: `test_isolation` (RLS at SQL level), `test_deals_api` (endpoints, filters, cursor, summary fixture, isolation, tz boundary), `test_sync` (push/pull, op_id, LWW, isolation), `test_auth` (mocked Google), `test_route_auth` (every private route needs a session), `test_data_access_scan`, `test_rules`, `test_api`.

@@ -16,11 +16,17 @@ def ev(rd=None, fd=None, rs="pending", fs="pending", alert=2):
 
 
 def test_guard_refuses_non_test_database():
+    app = "postgresql://app_user:x@ep-dawn-sky-bezgmz06-pooler.c-9.us-east-2.aws.neon.tech/neondb?sslmode=require"
     with pytest.raises(UnsafeTestDatabase):
         assert_test_database("postgresql://app_user:x@localhost/dealbook")
     with pytest.raises(UnsafeTestDatabase):
         assert_test_database("postgresql+psycopg://app_user:x@ep.neon.tech/neondb?sslmode=require")
+    with pytest.raises(UnsafeTestDatabase):
+        assert_test_database(app, app)
+    with pytest.raises(UnsafeTestDatabase):
+        assert_test_database(app.replace("-pooler", ""), app)
     assert_test_database("postgresql://app_user:x@localhost/dealbook_test")
+    assert_test_database("postgresql://app_user:x@ep-ancient-moon-bebs0t2g-pooler.c-9.us-east-2.aws.neon.tech/neondb?sslmode=require", app)
 
 
 @pytest.mark.parametrize("rd,urgent,overdue,reason", [
@@ -58,7 +64,10 @@ def test_action_transitions():
     for bad in ("form_submitted", "payment_received", "reopen_review", "reopen_form", "reopen_payment", "nope"):
         with pytest.raises(rules.RuleError):
             rules.apply_action(s, bad, T)
+    s = {"review_status": "done", "form_status": "pending", "payment_status": "disputed"}
+    assert rules.apply_action(s, "form_submitted", T) == {"form_status": "submitted", "refund_form_filled_on": T}
     s = {"review_status": "done", "form_status": "submitted", "payment_status": "disputed"}
+    assert rules.apply_action(s, "reopen_form", T) == {"form_status": "pending", "refund_form_filled_on": None}
     assert rules.apply_action(s, "payment_received", T) == {"payment_status": "received", "payment_received_on": T}
     with pytest.raises(rules.RuleError, match="Reopen the refund form first"):
         rules.apply_action(s, "reopen_review", T)
@@ -99,3 +108,11 @@ def test_deadline_before_date_taken_rejected():
     with pytest.raises(rules.RuleError):
         rules.validate_deal({"date_taken": T, "review_deadline": date(2026, 6, 9)})
     rules.validate_deal({"date_taken": T, "review_deadline": T})
+
+
+def test_filled_date_requires_submitted_form_and_cannot_precede_purchase():
+    with pytest.raises(rules.RuleError, match="requires form_status"):
+        rules.validate_deal({"date_taken": T, "form_status": "pending", "refund_form_filled_on": T})
+    with pytest.raises(rules.RuleError, match="cannot be before date_taken"):
+        rules.validate_deal({"date_taken": T, "form_status": "submitted", "refund_form_filled_on": date(2026, 6, 9)})
+    rules.validate_deal({"date_taken": T, "form_status": "submitted", "refund_form_filled_on": T})

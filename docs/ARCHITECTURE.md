@@ -83,7 +83,7 @@ erDiagram
   users { uuid id PK; text google_sub UK; text email; text role; smallint alert_days; text timezone }
   sessions { uuid id PK; uuid user_id FK; text token_hash UK; timestamptz expires_at }
   mediators { uuid id PK; uuid user_id FK; text name; timestamptz updated_at; timestamptz deleted_at }
-  deals { uuid id PK; uuid user_id FK; uuid client_id; uuid mediator_id; uuid import_job_id FK; text mediator_name; date date_taken; numeric amount_paid; numeric less_amount; numeric commission; numeric refund_amount; date review_deadline; date refund_form_deadline; text review_status; text form_status; text payment_status; timestamptz created_at; timestamptz updated_at; timestamptz deleted_at }
+  deals { uuid id PK; uuid user_id FK; uuid client_id; uuid mediator_id; uuid import_job_id FK; text mediator_name; date date_taken; numeric amount_paid; numeric less_amount; numeric commission; numeric refund_amount; date review_deadline; date refund_form_deadline; date refund_form_filled_on; text review_status; text form_status; text payment_status; timestamptz created_at; timestamptz updated_at; timestamptz deleted_at }
   sync_ops { uuid user_id PK; uuid op_id PK; uuid record_id }
   import_jobs { uuid id PK; uuid user_id FK; uuid import_id; text status; int rows_imported; numeric total_paid; numeric total_refund; jsonb errors; timestamptz created_at; timestamptz undone_at }
 ```

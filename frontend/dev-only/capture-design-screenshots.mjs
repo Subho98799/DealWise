@@ -38,7 +38,7 @@ function deal(id, product, mediator, date_taken, options = {}) {
     deal_type: 'review', date_taken, amount_paid: paid, less_amount: less,
     commission, refund_amount: fromPaise(toPaise(paid) - toPaise(less) + toPaise(commission)),
     review_deadline: options.reviewDeadline ?? plusDays(today, 5),
-    refund_form_deadline: options.formDeadline ?? plusDays(today, 12), review_status: options.review ?? 'pending',
+    refund_form_deadline: options.formDeadline ?? plusDays(today, 12), refund_form_filled_on: null, review_status: options.review ?? 'pending',
     form_status: options.form ?? 'pending', payment_status: options.payment ?? 'pending',
     payment_received_on: options.receivedOn ?? null, notes: options.notes ?? null, created_at: now, updated_at: now,
   }

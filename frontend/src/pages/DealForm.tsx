@@ -10,12 +10,14 @@ import { fromPaise, isValidMoney, refundBreakdown, toPaise } from '../lib/money'
 import type { Deal } from '../data/types'
 
 type Form = Record<'product' | 'mediator_name' | 'amount_paid' | 'less_amount' | 'platform' | 'deal_type' | 'commission' | 'date_taken' |
-  'review_deadline' | 'refund_form_deadline' | 'payment_status' | 'notes', string>
+  'review_deadline' | 'refund_form_deadline' | 'payment_status' | 'payment_received_on' | 'refund_form_filled_on' | 'notes', string>
 
 const fromDeal = (d: Deal): Form => ({
   product: d.product, mediator_name: d.mediator_name ?? '', amount_paid: d.amount_paid, less_amount: d.less_amount,
   platform: d.platform ?? '', deal_type: d.deal_type, commission: d.commission, date_taken: d.date_taken,
-  review_deadline: d.review_deadline ?? '', refund_form_deadline: d.refund_form_deadline ?? '', payment_status: d.payment_status, notes: d.notes ?? '',
+  review_deadline: d.review_deadline ?? '', refund_form_deadline: d.refund_form_deadline ?? '',
+  payment_status: d.payment_status, payment_received_on: d.payment_received_on ?? '',
+  refund_form_filled_on: d.refund_form_filled_on ?? '', notes: d.notes ?? '',
 })
 
 function validate(f: Form): string | null {
@@ -26,6 +28,10 @@ function validate(f: Form): string | null {
   if (toPaise(f.less_amount) > toPaise(f.amount_paid)) return 'Less cannot be more than the amount paid.'
   if (f.review_deadline && f.review_deadline < f.date_taken) return 'Review deadline cannot be before the date taken.'
   if (f.refund_form_deadline && f.refund_form_deadline < f.date_taken) return 'Form deadline cannot be before the date taken.'
+  if (f.refund_form_filled_on && f.refund_form_filled_on < f.date_taken) return 'Form filled date cannot be before the date taken.'
+  if (f.payment_received_on && f.payment_received_on < f.date_taken) return 'Payment date cannot be before the date taken.'
+  if (f.refund_form_filled_on && f.payment_received_on && f.refund_form_filled_on > f.payment_received_on)
+    return 'Form filled date cannot be after the payment date.'
   if (f.notes.length > 2000) return 'Notes are too long (max 2000 characters).'
   return null
 }
@@ -35,18 +41,23 @@ function toDeal(f: Form): Partial<Deal> & { product: string; date_taken: string 
   const amountPaid = money(f.amount_paid)
   const lessAmount = money(f.less_amount)
   const commission = money(f.commission)
+  const filled = f.refund_form_filled_on || null
+  const receivedOn = f.payment_received_on || null
   return {
     product: f.product.trim(), mediator_name: f.mediator_name.trim() || null, amount_paid: amountPaid,
     less_amount: lessAmount, refund_amount: fromPaise(toPaise(amountPaid) - toPaise(lessAmount) + toPaise(commission)),
     commission, platform: f.platform.trim() || null,
     deal_type: f.deal_type as Deal['deal_type'], date_taken: f.date_taken, review_deadline: f.review_deadline || null,
-    refund_form_deadline: f.refund_form_deadline || null, payment_status: f.payment_status as Deal['payment_status'],
-    payment_received_on: null, notes: f.notes.trim() || null,
+    refund_form_deadline: f.refund_form_deadline || null, refund_form_filled_on: filled,
+    payment_status: f.payment_status as Deal['payment_status'],
+    payment_received_on: receivedOn, notes: f.notes.trim() || null,
   }
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="form-field"><span className="form-field-label">{label}</span>{children}</label>
+function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return <label className="form-field"><span className="form-field-label">{label}</span>{children}
+    {hint && <span className="form-field-hint">{hint}</span>}
+  </label>
 }
 
 /** Digits and a single dot, at most 8 whole digits and 2 decimals. Never negative. */
@@ -95,10 +106,12 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
   }), [mediators, lastMediator])
   const blank: Form = {
     product: '', mediator_name: lastMediator, amount_paid: '', less_amount: '', platform: local.get('last_platform') ?? '',
-    deal_type: 'review', commission: '', date_taken: today, review_deadline: '', refund_form_deadline: '', payment_status: 'pending', notes: '',
+    deal_type: 'review', commission: '', date_taken: today, review_deadline: '', refund_form_deadline: '',
+    payment_status: 'pending', payment_received_on: '', refund_form_filled_on: '', notes: '',
   }
   const [form, setForm] = useState<Form>(deal ? fromDeal(deal) : blank)
   const [more, setMore] = useState(false)
+  const formStatusEditable = deal?.form_status === 'submitted'
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<{ id: string; product: string } | null>(null)
   const on = (key: keyof Form) => (event: { target: { value: string } }) => setForm((current) => ({ ...current, [key]: event.target.value }))
@@ -110,12 +123,12 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
     setError(validation)
     if (validation) return
     const data = toDeal(form)
+    if (data.payment_status !== 'received') data.payment_received_on = null
+    else if (!deal && !data.payment_received_on) data.payment_received_on = today
     if (deal) {
-      const payment = data.payment_status === 'received' ? deal.payment_received_on ?? today : null
-      await updateDeal(deal.id, { ...data, payment_received_on: payment })
+      await updateDeal(deal.id, data)
       navigate(`/deals/${deal.id}`, { replace: true })
     } else {
-      if (data.payment_status === 'received') data.payment_received_on = today
       const created = await createDeal(data)
       setSaved({ id: created.id, product: created.product })
       setForm({ ...blank, platform: form.platform, mediator_name: form.mediator_name })
@@ -157,8 +170,8 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
       <span>{more ? 'Hide details' : 'More details'}</span><span aria-hidden="true">{more ? '−' : '+'}</span>
     </button>
     {more && <div className="more-details rise" data-testid="deal-more-section">
+      <div className="form-field"><span className="form-field-label">Platform</span><PlatformCombobox value={form.platform} onChange={(platform) => setForm((current) => ({ ...current, platform }))} /></div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="form-field"><span className="form-field-label">Platform</span><PlatformCombobox value={form.platform} onChange={(platform) => setForm((current) => ({ ...current, platform }))} /></div>
         <Field label="Date taken"><input data-testid="deal-date-input" type="date" value={form.date_taken} onChange={on('date_taken')} className={input} /></Field>
         <Field label="Deal type"><select data-testid="deal-type-select" value={form.deal_type} onChange={on('deal_type')} className={input}>
           <option value="review">Review</option><option value="rating_only">Rating only</option><option value="review_photo">Review + photo</option>
@@ -167,7 +180,20 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
         <Field label="Review deadline"><input data-testid="deal-review-deadline-input" type="date" value={form.review_deadline} onChange={on('review_deadline')} className={input} /></Field>
         <Field label="Form deadline"><input data-testid="deal-form-deadline-input" type="date" value={form.refund_form_deadline} onChange={on('refund_form_deadline')} className={input} /></Field>
       </div>
-      <Field label="Payment status"><select data-testid="deal-payment-status-select" value={form.payment_status} onChange={on('payment_status')} className={input}>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Payment date" hint={form.payment_status === 'received' ? undefined : 'Set payment status to Received to add this'}>
+          <input data-testid="deal-payment-date-input" type="date" value={form.payment_received_on} disabled={form.payment_status !== 'received'}
+            onChange={on('payment_received_on')} max={today} className={input} />
+        </Field>
+        <Field label="Form filled" hint={formStatusEditable ? undefined : 'Submit the form to add this'}>
+          <input data-testid="deal-form-filled-input" type="date" value={form.refund_form_filled_on}
+            disabled={!formStatusEditable} max={today} onChange={on('refund_form_filled_on')} className={input} />
+        </Field>
+      </div>
+      <Field label="Payment status"><select data-testid="deal-payment-status-select" value={form.payment_status}
+        onChange={(event) => setForm((current) => ({ ...current, payment_status: event.target.value,
+          payment_received_on: event.target.value === 'received' && !current.payment_received_on ? today : current.payment_received_on }))}
+        className={input}>
         <option value="pending">Pending</option><option value="received">Received</option><option value="disputed">Disputed</option>
       </select></Field>
       <Field label="Notes"><textarea data-testid="deal-notes-input" value={form.notes} onChange={on('notes')} rows={3} maxLength={2000} className={`${input} py-3`} /></Field>

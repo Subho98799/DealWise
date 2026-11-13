@@ -33,7 +33,7 @@ function makeDeal(id: string): Deal {
   return {
     id, client_id: id, product: `Deal ${id}`, platform: null, mediator_id: null, mediator_name: null,
     deal_type: 'review', date_taken: '2026-06-10', amount_paid: '1.00', less_amount: '0.00', refund_amount: '0.00', commission: '0.00',
-    review_deadline: null, refund_form_deadline: null, review_status: 'pending', form_status: 'pending',
+    review_deadline: null, refund_form_deadline: null, refund_form_filled_on: null, review_status: 'pending', form_status: 'pending',
     payment_status: 'pending', payment_received_on: null, notes: null,
     created_at: '2026-06-10T00:00:00Z', updated_at: '2026-06-10T00:00:00Z',
   }

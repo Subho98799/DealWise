@@ -20,7 +20,7 @@ COMPUTED = ("net_amount", "is_urgent", "is_overdue", "urgency_reason")
 MONEY_ADAPTER = TypeAdapter(Money)
 STATE_FIELDS = (
     "date_taken", "amount_paid", "less_amount", "review_deadline", "refund_form_deadline",
-    "payment_status", "payment_received_on",
+    "refund_form_filled_on", "payment_status", "payment_received_on",
 )
 
 
@@ -132,6 +132,8 @@ def update_deal(s: Session, deal: Deal, patch: DealPatch, written_at: datetime |
         changes.update(mediator_id=m.id if m else None, mediator_name=m.name if m else None)
     if changes.get("payment_status") and changes["payment_status"] != "received":
         changes.setdefault("payment_received_on", None)
+    if changes.get("form_status") and changes["form_status"] != "submitted":
+        changes.setdefault("refund_form_filled_on", None)
     merged = {k: changes.get(k, getattr(deal, k)) for k in STATE_FIELDS}
     _rule(rules.validate_deal, merged)
     return deals.update(deal.id, {**changes, "client_updated_at": written_at or clock.now()})

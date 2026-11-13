@@ -323,7 +323,7 @@ def normalize_import_row(
     else:
         values["refund_amount"] = None
 
-    date_fields = ("date_taken", "review_deadline", "refund_form_deadline", "payment_received_on")
+    date_fields = ("date_taken", "review_deadline", "refund_form_deadline", "refund_form_filled_on", "payment_received_on")
     for field in date_fields:
         raw = row.get(field)
         if field == "date_taken" and not _clean_text(raw):
@@ -356,7 +356,7 @@ def normalize_import_row(
 
     taken = values.get("date_taken")
     if taken:
-        for field in ("review_deadline", "refund_form_deadline"):
+        for field in ("review_deadline", "refund_form_deadline", "refund_form_filled_on"):
             deadline = values.get(field)
             if deadline and deadline < taken:
                 issue(field, f"{field} cannot be before date_taken")

@@ -1,5 +1,9 @@
 # Changelog
 
+## Platform picker fixes (2026-11)
+### Fixed
+- The add-deal platform list now shows proper 24 px platform logos instead of stretched, unreadable badges, wraps long platform names instead of cutting them mid-word, and flips above the field with a height that fits the screen so every option stays reachable.
+
 ## New app icon and logo mark (2026-11)
 ### Changed
 - Installed the new DealBook icon set (192, 512, maskable 512, apple-touch 180, favicon) behind one `LogoMark` component that renders the bundled SVG mark in the top bar, on the login page, on the splash screen, and in the centre of the Home refund ring.

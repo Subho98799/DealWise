@@ -1,5 +1,12 @@
 # Changelog
 
+## Indigo landing redesign and install name (2026-11)
+### Changed
+- The landing page is now a shorter indigo-first layout: hero with sign-in, four compact feature cards, and one privacy band. The duplicated problem, how-it-works, FAQ and final-CTA sections are gone, so the page is about a third of its old length.
+- Indigo is now the default color theme on new devices in light and dark mode; Sky, Forest and Saffron remain selectable in Settings.
+### Fixed
+- The installed app and iOS home-screen label now read DealBook instead of Deals.
+
 ## Stuck "Changes needing attention" fixed (2026-11)
 ### Fixed
 - A deal whose first sync was rejected could never be saved again: every later edit sent only the changed fields, and the server answered `product: Field required`. Every deal upsert now carries the full record (plus `client_id`), so saving a deal recreates it on the server, and a successful push clears older rejected changes for that deal. A bare patch for a missing record now says `missing: the server has no copy of this deal; open it and save again`.

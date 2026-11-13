@@ -30,12 +30,12 @@ export function readAppearance(): Appearance {
 
 export function readColorTheme(): ColorTheme {
   const saved = readStoredValue(COLOR_THEME_KEY)
-  return THEMES.includes(saved as ColorTheme) ? saved as ColorTheme : 'sky'
+  return THEMES.includes(saved as ColorTheme) ? saved as ColorTheme : 'indigo'
 }
 
 export function applyAppearance(mode: Appearance, theme: ColorTheme = readColorTheme()) {
   const root = document.documentElement
-  root.setAttribute('data-theme', THEMES.includes(theme) ? theme : 'sky')
+  root.setAttribute('data-theme', THEMES.includes(theme) ? theme : 'indigo')
   if (mode === 'system') root.removeAttribute('data-mode')
   else root.setAttribute('data-mode', mode === 'dark' ? 'dark' : 'light')
 }
@@ -46,7 +46,7 @@ export function saveAppearance(mode: Appearance) {
 }
 
 export function saveColorTheme(theme: ColorTheme) {
-  const next = THEMES.includes(theme) ? theme : 'sky'
+  const next = THEMES.includes(theme) ? theme : 'indigo'
   saveStoredValue(COLOR_THEME_KEY, next)
   applyAppearance(readAppearance(), next)
 }

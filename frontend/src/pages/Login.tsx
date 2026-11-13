@@ -1,5 +1,5 @@
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
-import { CalendarClock, FileSpreadsheet, LockKeyhole, ShieldCheck, Trash2, Wallet, WifiOff } from 'lucide-react'
+import { CalendarClock, Check, FileSpreadsheet, LockKeyhole, ShieldCheck, Sparkles, Trash2, Wallet, WifiOff } from 'lucide-react'
 import { googleLoginHref, useMe } from '../lib/auth'
 import { safeReturnPath } from '../lib/returnPath'
 import { APP_NAME, CONTACT_EMAIL } from '../config/app'
@@ -7,7 +7,6 @@ import { LoginInstallLink } from '../components/InstallPrompt'
 import { GoogleSignInButton } from '../components/GoogleSignIn'
 import { LandingPreview } from '../components/LandingPreview'
 import { LogoMark } from '../components/LogoMark'
-import { Card } from '../components/ui'
 import { usePageMeta } from '../lib/pageMeta'
 
 const ERRORS: Record<string, string> = {
@@ -19,24 +18,18 @@ const ERRORS: Record<string, string> = {
 const META_DESCRIPTION = 'Every review deal, refund form and deadline in one private place. Sign in with Google, track every mediator and see what is still pending.'
 
 const FEATURES = [
-  { icon: CalendarClock, title: 'Never miss a deadline', body: 'Home shows what is due soon and what is already overdue, based on the alert window you choose.' },
-  { icon: Wallet, title: 'Every mediator and rupee in one place', body: 'See what each mediator still owes, what you paid, and the net refund on every deal.' },
-  { icon: WifiOff, title: 'Works offline, syncs when you are back', body: 'Add and edit deals without a connection. Changes sync to your private account when you reconnect.' },
-  { icon: FileSpreadsheet, title: 'Import your old Excel or CSV', body: 'Bring past deals in, review every row before saving, and undo an import if something looks wrong.' },
+  { icon: CalendarClock, title: 'Deadlines on time', body: 'Due-soon and overdue deals, based on the alert window you pick.' },
+  { icon: Wallet, title: 'Every rupee back', body: 'Net refund per mediator, with what is paid, pending and received.' },
+  { icon: WifiOff, title: 'Works offline', body: 'Add and edit without a signal. Changes sync when you return.' },
+  { icon: FileSpreadsheet, title: 'Bring your sheet', body: 'Import Excel or CSV, review each row, undo if it looks wrong.' },
 ]
+
+const ASSURANCES = ['Private to your account', 'Works offline', 'Installs on your phone']
 
 const TRUST = [
-  { icon: ShieldCheck, title: 'Only you see your deals', body: 'Every account is scoped in the database itself with row-level security, not just hidden in the screen.' },
-  { icon: LockKeyhole, title: 'Sign in with Google only', body: 'There is no password to create, reuse or leak. Google handles the sign-in.' },
-  { icon: Trash2, title: 'Delete your account and data any time', body: 'Open Settings and delete your account, deals and mediators in one step.' },
-]
-
-const FAQ = [
-  { question: 'Is my data private?', answer: 'Yes. Only the Google account you sign in with can see your deals. The database enforces that rule for every query.' },
-  { question: 'Do I need a password?', answer: 'No. You sign in with Google, so there is no password for us to create or store.' },
-  { question: 'Does it work offline?', answer: 'Yes, after the first load. You can add and edit deals without a connection, and changes sync when you are back online.' },
-  { question: 'Can I import my old spreadsheet?', answer: 'Yes. Import an Excel or CSV file, review the rows before saving, and undo the import if something looks wrong.' },
-  { question: 'How do I delete my account?', answer: 'Open Settings and choose Delete my account and all my data. That removes your account, deals and mediators.' },
+  { icon: ShieldCheck, title: 'Only you see your deals', body: 'Row-level security scopes every database query to your account.' },
+  { icon: LockKeyhole, title: 'Google sign-in only', body: 'No password to create, reuse or leak.' },
+  { icon: Trash2, title: 'Delete any time', body: 'Remove your account, deals and mediators in one step.' },
 ]
 
 export default function LoginPage() {
@@ -58,14 +51,14 @@ export default function LoginPage() {
           <span>{APP_NAME}</span>
         </Link>
         <nav aria-label="Landing page">
-          <a href="#how-it-works" className="landing-topbar-link">How it works</a>
+          <a href="#features" className="landing-topbar-link">What you get</a>
         </nav>
       </header>
 
       <main className="landing-shell">
         <section className="landing-hero" aria-labelledby="landing-title">
           <div className="landing-hero-copy">
-            <p className="landing-eyebrow">Built for review deals</p>
+            <p className="landing-badge"><Sparkles size={14} aria-hidden="true" />Built for review deals</p>
             <h1 id="landing-title" data-testid="login-title" className="landing-title">
               Every refund.<br />Every deadline.<br /><span className="landing-title-accent">One place.</span>
             </h1>
@@ -84,107 +77,47 @@ export default function LoginPage() {
               <LoginInstallLink />
             </div>
             <p className="landing-fineprint">Sign in with Google. No password needed.</p>
+
+            <ul className="landing-assurances" aria-label="What you get">
+              {ASSURANCES.map((item) => (
+                <li key={item}><Check size={14} aria-hidden="true" />{item}</li>
+              ))}
+            </ul>
           </div>
 
           <LandingPreview />
         </section>
 
-        <section className="landing-problem" aria-labelledby="problem-title">
-          <div className="landing-section-inner">
-            <p className="landing-eyebrow">The problem</p>
-            <h2 id="problem-title" className="landing-statement">
-              <span>Forgotten reviews.</span>
-              <span>Closed refund forms. Messy Excel.</span>
-            </h2>
-            <p className="landing-section-copy">
-              The order is only half the deal. The money is not really back until the review is done, the form is in, and the refund lands.
-            </p>
-          </div>
-        </section>
-
-        <section className="landing-section" aria-labelledby="features-title">
+        <section id="features" className="landing-features" aria-labelledby="features-title">
           <div className="landing-section-head">
-            <p className="landing-eyebrow">What it does</p>
-            <h2 id="features-title" className="landing-heading">Everything between the order and the refund.</h2>
+            <p className="landing-eyebrow">What you get</p>
+            <h2 id="features-title" className="landing-heading">From order to refund, without the spreadsheet.</h2>
           </div>
           <div className="landing-feature-grid">
             {FEATURES.map(({ icon: Icon, title, body }) => (
-              <Card key={title} className="landing-feature">
-                <span className="landing-feature-icon" aria-hidden="true"><Icon size={20} /></span>
+              <article key={title} className="landing-feature">
+                <span className="landing-feature-icon" aria-hidden="true"><Icon size={18} /></span>
                 <h3>{title}</h3>
                 <p>{body}</p>
-              </Card>
+              </article>
             ))}
           </div>
         </section>
 
-        <section id="how-it-works" className="landing-section landing-how" aria-labelledby="how-title">
-          <div className="landing-section-head">
-            <p className="landing-eyebrow">How it works</p>
-            <h2 id="how-title" className="landing-heading">Three steps, then you are done.</h2>
+        <section className="landing-private" aria-labelledby="private-title">
+          <div className="landing-private-copy">
+            <p className="landing-eyebrow">Private by design</p>
+            <h2 id="private-title" className="landing-heading">Your deals stay yours.</h2>
+            <p>The rules that keep your data private live in the database and in the app, not in a promise.</p>
           </div>
-          <ol className="landing-step-list">
-            <li>
-              <span className="landing-step-number" aria-hidden="true">1</span>
-              <h3>Add the deal in 15 seconds</h3>
-              <p>Product, mediator, amounts and deadlines. That is all it takes to start tracking.</p>
-            </li>
-            <li>
-              <span className="landing-step-number" aria-hidden="true">2</span>
-              <h3>Tick off the review and form</h3>
-              <p>One tap when each step is done. The deal timeline shows what comes next.</p>
-            </li>
-            <li>
-              <span className="landing-step-number" aria-hidden="true">3</span>
-              <h3>Track the refund until it lands</h3>
-              <p>See what is pending with each mediator and mark the money received when it arrives.</p>
-            </li>
-          </ol>
-        </section>
-
-        <section className="landing-trust" aria-labelledby="trust-title">
-          <div className="landing-section-inner">
-            <p className="landing-eyebrow">Trust</p>
-            <h2 id="trust-title" className="landing-heading">Private by design, not by promise.</h2>
-            <p className="landing-section-copy">
-              Your deals are yours. The rules that keep them private live in the database and in the app.
-            </p>
-            <ul className="landing-trust-list">
-              {TRUST.map(({ icon: Icon, title, body }) => (
-                <li key={title}>
-                  <span className="landing-trust-icon" aria-hidden="true"><Icon size={19} /></span>
-                  <div><h3>{title}</h3><p>{body}</p></div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        <section id="faq" className="landing-section" aria-labelledby="faq-title">
-          <div className="landing-section-head">
-            <p className="landing-eyebrow">FAQ</p>
-            <h2 id="faq-title" className="landing-heading">Questions, answered.</h2>
-          </div>
-          <div className="landing-faq-list">
-            {FAQ.map(({ question, answer }) => (
-              <details key={question} className="landing-faq-item">
-                <summary>{question}</summary>
-                <p>{answer}</p>
-              </details>
+          <ul className="landing-private-list">
+            {TRUST.map(({ icon: Icon, title, body }) => (
+              <li key={title}>
+                <span className="landing-private-icon" aria-hidden="true"><Icon size={17} /></span>
+                <div><h3>{title}</h3><p>{body}</p></div>
+              </li>
             ))}
-          </div>
-        </section>
-
-        <section className="landing-final" aria-labelledby="final-title">
-          <div className="landing-final-inner">
-            <p className="landing-eyebrow">Start today</p>
-            <h2 id="final-title" className="landing-heading">Keep every rupee in view.</h2>
-            <p>Sign in with Google, add your first deal, and let the app watch the dates.</p>
-            <div className="landing-actions">
-              <GoogleSignInButton href={googleLoginHref(next)} testId="login-google-button-final" />
-              <LoginInstallLink testId="login-install-link-final" />
-            </div>
-          </div>
+          </ul>
         </section>
       </main>
 

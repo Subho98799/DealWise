@@ -2,7 +2,7 @@
   const root = document.documentElement
   const themes = ['sky', 'indigo', 'forest', 'saffron']
   let mode = 'system'
-  let theme = 'sky'
+  let theme = 'indigo'
 
   try {
     const savedMode = localStorage.getItem('dealbook:appearance')

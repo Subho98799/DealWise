@@ -100,7 +100,12 @@ def _apply_deal(s: Session, op: SyncOp, ctx: svc.Ctx) -> SyncResult:
         svc.delete_deal(s, rec, op.client_updated_at)
         return SyncResult(op_id=op.op_id, status="applied", id=rec.id)
     if rec is None:
-        data = DealIn.model_validate({**op.data, "client_id": op.client_id or op.id})
+        # A full snapshot can create the row (e.g. an earlier create was rejected); a partial
+        # edit for a row the server never got is reported as missing instead of a schema error.
+        try:
+            data = DealIn.model_validate({**op.data, "client_id": op.client_id or op.id})
+        except ValidationError:
+            return _rejected(op, "missing: the server has no copy of this deal; open it and save again")
         deal, _ = svc.create_deal(s, data, ctx, id=op.id, written_at=op.client_updated_at)
         return SyncResult(op_id=op.op_id, status="applied", id=deal.id)
     if (bad := _stale(op, rec)) is not None:

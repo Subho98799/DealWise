@@ -1,5 +1,9 @@
 # Changelog
 
+## Stuck "Changes needing attention" fixed (2026-11)
+### Fixed
+- A deal whose first sync was rejected could never be saved again: every later edit sent only the changed fields, and the server answered `product: Field required`. Every deal upsert now carries the full record (plus `client_id`), so saving a deal recreates it on the server, and a successful push clears older rejected changes for that deal. A bare patch for a missing record now says `missing: the server has no copy of this deal; open it and save again`.
+
 ## Platform picker fixes (2026-11)
 ### Fixed
 - The add-deal platform list now shows proper 24 px platform logos instead of stretched, unreadable badges, wraps long platform names instead of cutting them mid-word, and flips above the field with a height that fits the screen so every option stays reachable.

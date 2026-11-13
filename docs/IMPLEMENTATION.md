@@ -89,6 +89,8 @@ Deal responses include decimal-string `amount_paid`, `less_amount`, `commission`
 Action order: `review_done` → `form_submitted` (needs review done; keeps a filled date the user already entered, otherwise stamps today) → `payment_received` (needs form submitted; keeps an entered received date, otherwise today in user tz). Reopen in reverse order only on the latest completed step (`reopen_form` clears `refund_form_filled_on`, `reopen_payment` clears `payment_received_on`); the deal detail timeline shows an Undo button for that step.
 
 The refund-form filled date (`refund_form_filled_on`) is free to edit on any deal, not only submitted forms; it must not be before `date_taken` and should not be after `payment_received_on`.
+
+Sync push ops are full snapshots: every deal upsert carries the whole record (minus server-owned columns) plus `client_id`, so the server can create a deal it never received instead of rejecting a partial edit. When a newer op for a deal applies, the client drops older rejected ops for the same deal. A bare patch for a missing record is rejected as `missing: …`.
 Status filters: `open` = not completed; `payment_pending` = payment ≠ received; `completed` = review done + form submitted + payment received. `urgent_count` includes overdue.
 
 ## Database schema

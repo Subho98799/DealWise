@@ -48,7 +48,9 @@ describe('outbox', () => {
     const ops = await pendingOps()
     expect(ops.map((o) => `${o.type}:${o.op}`)).toEqual(['mediator:upsert', 'deal:upsert', 'deal:upsert'])
     expect(new Set(ops.map((o) => o.op_id)).size).toBe(3)
-    expect(ops[2].data).toEqual({ product: 'Second' })
+    expect(ops[2].data).toMatchObject({ product: 'Second', date_taken: '2026-06-10', review_status: 'pending' })
+    expect(ops[2].data).not.toHaveProperty('refund_amount')
+    expect(ops[2].client_id).toBe(d.client_id)
     expect((await db.deals.get(d.id))?.product).toBe('Second') // applied locally first
   })
 })
@@ -88,6 +90,24 @@ describe('sync engine', () => {
     await engine.sync()
     expect(await db.outbox.count()).toBe(0)
     expect(engine.status.state).toBe('synced')
+  })
+
+  it('a re-saved deal snapshot clears older rejected edits for the same deal', async () => {
+    const srv = fakeServer()
+    const engine = new SyncEngine(srv.fetcher as never)
+    await enqueue({ type: 'deal', op: 'upsert', id: 'a', data: { review_status: 'done' } })
+    srv.state.rejectNext = 'missing: the server has no copy of this deal; open it and save again'
+    await engine.sync()
+    expect(engine.status).toMatchObject({ state: 'attention', rejected: 1 })
+
+    await db.deals.put(makeDeal('a'))
+    await updateDeal('a', { product: 'Horlicks' })
+    await engine.sync()
+
+    expect(await db.outbox.count()).toBe(0)
+    expect(engine.status).toMatchObject({ state: 'synced', rejected: 0 })
+    const pushed = srv.calls.filter((call) => call.path === '/api/sync/push').at(-1)!.init!.json!.ops.filter((o) => o.id === 'a')
+    expect(pushed.at(-1)!.data).toMatchObject({ product: 'Horlicks', date_taken: '2026-06-10', amount_paid: '1.00' })
   })
 
   it('notifies the user when a stale offline deal edit loses to the server', async () => {

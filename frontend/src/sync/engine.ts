@@ -160,6 +160,8 @@ export class SyncEngine {
         }
         await db.outbox.delete(op.seq!)
         if (r.status === 'rejected') resync = true
+        // A newer deal op landed, so older rejected edits for the same deal are superseded by this snapshot.
+        else if (op.type === 'deal') await db.outbox.where('id').equals(op.id).filter((o) => o.status === 'rejected').delete()
         if (r.status === 'duplicate' && r.reason === 'name_exists' && r.id && r.id !== op.id) {
           await db.mediators.delete(op.id)  // same name created on another device: adopt the server's id
           await db.deals.where('mediator_id').equals(op.id).modify({ mediator_id: r.id })

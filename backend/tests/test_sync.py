@@ -36,6 +36,23 @@ def test_push_creates_with_client_ids_and_op_id_is_idempotent(api):
     assert items[0]["mediator_name"] == "Ravi"
 
 
+def test_full_snapshot_upsert_creates_a_missing_row_and_partial_edits_report_missing(api):
+    """A re-saved full record repairs a deal the server never received; a bare patch says so clearly."""
+    a, _ = api("alice")
+    did, cid = uuid.uuid4(), uuid.uuid4()
+    snapshot = {"product": "Horlicks", "deal_type": "review", "date_taken": "2026-11-01",
+                "amount_paid": "199.00", "less_amount": "0.00", "commission": "0.00",
+                "review_status": "done", "form_status": "pending", "payment_status": "pending"}
+    applied = push(a, op(id=did, client_id=cid, data=snapshot))
+    assert applied[0]["status"] == "applied"
+    saved = a.get(f"/api/deals/{did}").json()
+    assert saved["client_id"] == str(cid) and saved["product"] == "Horlicks" and saved["review_status"] == "done"
+
+    partial = push(a, op(id=uuid.uuid4(), data={"review_status": "done"}))
+    assert partial[0]["status"] == "rejected"
+    assert partial[0]["reason"].startswith("missing: ")
+
+
 def test_sync_push_persists_components_and_converts_legacy_refund_on_real_schema(api):
     a, _ = api("alice")
     component_id = uuid.uuid4()

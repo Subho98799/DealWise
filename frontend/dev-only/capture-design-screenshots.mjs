@@ -108,6 +108,7 @@ try {
     if (path) await page.goto(new URL(path, baseURL).toString(), { waitUntil: 'domcontentloaded' })
     if (setup) await setup()
     if (name === 'home') await page.locator('[data-testid="summary-pending"][data-animation-done="true"]').waitFor()
+    await page.waitForFunction(() => !document.querySelector('[data-testid="skeleton"]'), null, { timeout: 15_000 })
     await shot(page, mode, name)
   }
 

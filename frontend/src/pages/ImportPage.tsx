@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Check, FileSpreadsheet } from 'lucide-react'
 import { api, apiBlob } from '../lib/api'
 import { useDeals, useUser } from '../data/hooks'
 import { btn, input, PageTitle } from '../components/ui'
@@ -449,45 +450,54 @@ export default function ImportPage() {
   return (
     <div data-testid="import-page" className="import-page">
       <PageTitle right={<Link to="/settings" className="text-sm font-bold text-primary">Settings</Link>}>Import deals</PageTitle>
-      <p className="-mt-3 text-sm text-muted">Bring in your past deals from a spreadsheet. Your file is read on this device; only mapped cell values are sent for preview.</p>
+      {step === 'upload' && <p className="-mt-3 text-sm text-muted">Bring in your past deals from a spreadsheet. Your file is read on this device; only mapped cell values are sent for preview.</p>}
       {!online && <p data-testid="import-offline-notice" role="status" className="rounded-sm bg-danger-soft p-3 text-sm font-semibold text-danger">You are offline. You can choose a file, but preview and import need a connection.</p>}
       {pageError && <p role="alert" data-testid="import-error" className="rounded-sm bg-danger-soft p-3 text-sm font-semibold text-danger">{pageError}</p>}
 
       {step !== 'result' && <StepBar step={step} />}
       {(step === 'upload' || step === 'sheet') && <section data-testid="import-upload-step" className="import-stage-card">
         <h2 className="text-lg font-bold">{step === 'upload' ? '1. Choose a spreadsheet' : '2. Choose worksheet and header row'}</h2>
-        <label className="block text-sm font-semibold">
+        {step === 'upload' && <label className="block text-sm font-semibold">
           Excel or CSV file (up to 5 MB)
-          <input data-testid="import-file-input" className={`${input} mt-2`} type="file" accept=".xlsx,.xls,.csv" onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; void chooseFile(file) }} />
-        </label>
+          <input data-testid="import-file-input" className={`${input} import-file-input mt-2`} type="file" accept=".xlsx,.xls,.csv" onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; void chooseFile(file) }} />
+        </label>}
+        {step === 'sheet' && <div data-testid="import-file-chip" className="import-file-chip">
+          <FileSpreadsheet size={18} aria-hidden="true" />
+          <span className="import-file-chip-name">{fileName ?? 'Spreadsheet'}</span>
+          <button type="button" className="import-file-change" onClick={() => setStep('upload')}>Change</button>
+        </div>}
         {workerBusy && <div role="status" className="flex items-center gap-2 text-sm text-muted">
           <span>Reading this file in the browser…</span>
           <button type="button" data-testid="import-cancel-read" className={btn.ghost} onClick={() => stopWorker('File reading cancelled.')}>Cancel</button>
         </div>}
         {fileError && <p data-testid="import-file-error" role="alert" className="text-sm font-semibold text-danger">{fileError}</p>}
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className={btn.ghost} onClick={downloadXlsxTemplate}>Download .xlsx template</button>
-          <button type="button" className={btn.ghost} onClick={downloadCsvTemplate}>Download .csv template</button>
-        </div>
+        {step === 'upload' && <div className="import-template-links">
+          <button type="button" className="import-template-link" onClick={downloadXlsxTemplate}>Download .xlsx template</button>
+          <span aria-hidden="true">·</span>
+          <button type="button" className="import-template-link" onClick={downloadCsvTemplate}>Download .csv template</button>
+        </div>}
         {step === 'sheet' && rows.length > 0 && <div className="space-y-4 border-t border-line pt-4">
           <label className="block text-sm font-semibold">Worksheet
             <select data-testid="import-sheet-select" className={`${input} mt-1`} value={sheetName} onChange={(event) => chooseSheet(event.target.value)}>
               {sheets.map((sheet) => <option key={sheet.name} value={sheet.name}>{sheet.name}</option>)}
             </select>
           </label>
-          <div className="overflow-x-auto rounded-sm border border-line">
-            <table className="min-w-full text-left text-xs">
-              <caption className="sr-only">First five rows of the selected worksheet</caption>
-              <tbody>{visibleRows.map((row, rowIndex) => <tr key={rowIndex} className={rowIndex === headerIndex ? 'bg-primary/10' : 'border-t border-line'}>
-                <th className="whitespace-nowrap p-2 font-semibold text-muted">{rowIndex + 1}</th>
-                <td className="p-2"><button type="button" data-testid={`import-header-row-${rowIndex + 1}`} onClick={() => setHeaderIndex(rowIndex)} className="font-bold text-primary">{rowIndex === headerIndex ? 'Header row' : 'Use as header'}</button></td>
-                {row.slice(0, 5).map((cell, index) => <td key={index} className="max-w-32 truncate p-2" title={cell.slice(0, 200)}>{cell.slice(0, 120) || '—'}</td>)}
-              </tr>)}</tbody>
-            </table>
+          <div className="import-sheet-rows">
+            <p className="sr-only">First five rows of the selected worksheet</p>
+            {visibleRows.map((row, rowIndex) => <div key={rowIndex} className={`import-sheet-row ${rowIndex === headerIndex ? 'is-header' : ''}`}>
+              <div className="import-sheet-meta">
+                <span>Row {rowIndex + 1}</span>
+                <button type="button" data-testid={`import-header-row-${rowIndex + 1}`} onClick={() => setHeaderIndex(rowIndex)} className="import-sheet-header-button">
+                  {rowIndex === headerIndex && <Check size={14} aria-hidden="true" />}
+                  {rowIndex === headerIndex ? 'Header row' : 'Use as header'}
+                </button>
+              </div>
+              <div className="import-sheet-cells">{row.slice(0, 4).map((cell, index) => <span key={index} className="import-sheet-cell" title={cell.slice(0, 200)}>{cell.slice(0, 60) || '—'}</span>)}</div>
+            </div>)}
           </div>
           <p data-testid="import-row-count" className="text-sm text-muted">{countDataRows(rows, headerIndex).toLocaleString('en-IN')} deal rows found.</p>
           {(countDataRows(rows, headerIndex) > MAX_IMPORT_ROWS) && <p role="alert" className="text-sm font-semibold text-danger">This file has more than 5,000 deal rows. Split it into smaller files.</p>}
-          <div className="flex gap-2"><button type="button" className={btn.ghost} onClick={() => setStep('upload')}>Back</button><button type="button" data-testid="import-continue-map" className={btn.primary} disabled={workerBusy || countDataRows(rows, headerIndex) < 1 || countDataRows(rows, headerIndex) > MAX_IMPORT_ROWS} onClick={loadMappingForHeader}>Continue to column mapping</button></div>
+          <div className="import-actions"><button type="button" className={btn.ghost} onClick={() => setStep('upload')}>Back</button><button type="button" data-testid="import-continue-map" className={btn.primary} disabled={workerBusy || countDataRows(rows, headerIndex) < 1 || countDataRows(rows, headerIndex) > MAX_IMPORT_ROWS} onClick={loadMappingForHeader}>Continue to column mapping</button></div>
         </div>}
       </section>}
 
@@ -503,13 +513,13 @@ export default function ImportPage() {
             </select>
           </label>)}
         </div>
-        <div className="flex gap-2"><button type="button" className={btn.ghost} onClick={() => setStep('sheet')}>Back</button><button type="button" data-testid="import-continue-fix" className={btn.primary} disabled={!mappedRequiredFields} onClick={() => setStep('fix')}>Continue to values</button></div>
+        <div className="import-actions"><button type="button" className={btn.ghost} onClick={() => setStep('sheet')}>Back</button><button type="button" data-testid="import-continue-fix" className={btn.primary} disabled={!mappedRequiredFields} onClick={() => setStep('fix')}>Continue to values</button></div>
       </section>}
 
       {step === 'fix' && <section data-testid="import-fix-step" className="import-stage-card">
         <div><h2 className="text-lg font-bold">4. Check dates and values</h2><p className="text-sm text-muted">The server validates these values when it previews and commits your import.</p></div>
         <fieldset className="space-y-2"><legend className="text-sm font-bold">Date order</legend>
-        <div className="flex gap-2"><button type="button" data-testid="import-date-order-dmy" aria-pressed={dateOrder === 'dmy'} className={`${btn.ghost} flex-1 ${dateOrder === 'dmy' ? 'border-primary text-primary' : ''}`} onClick={() => { setPendingImportId(null); setDateOrder('dmy') }}>Day first (DD/MM/YYYY)</button><button type="button" data-testid="import-date-order-mdy" aria-pressed={dateOrder === 'mdy'} className={`${btn.ghost} flex-1 ${dateOrder === 'mdy' ? 'border-primary text-primary' : ''}`} onClick={() => { setPendingImportId(null); setDateOrder('mdy') }}>Month first (MM/DD/YYYY)</button></div>
+        <div className="import-choice-group"><button type="button" data-testid="import-date-order-dmy" aria-pressed={dateOrder === 'dmy'} className={`import-choice-option ${dateOrder === 'dmy' ? 'is-selected' : ''}`} onClick={() => { setPendingImportId(null); setDateOrder('dmy') }}><span className="import-choice"><b>Day first</b><span>DD/MM/YYYY</span></span></button><button type="button" data-testid="import-date-order-mdy" aria-pressed={dateOrder === 'mdy'} className={`import-choice-option ${dateOrder === 'mdy' ? 'is-selected' : ''}`} onClick={() => { setPendingImportId(null); setDateOrder('mdy') }}><span className="import-choice"><b>Month first</b><span>MM/DD/YYYY</span></span></button></div>
         </fieldset>
         {mapping.date_taken === null && <label className="block text-sm font-semibold">Default date taken (required because no date column is mapped)<input data-testid="import-default-date" type="date" className={`${input} mt-1`} value={defaults.date_taken} onChange={(event) => setDefault('date_taken', event.target.value)} /></label>}
         <div className="rounded-sm border border-line p-3"><h3 className="text-sm font-bold">Parsed date preview</h3>
@@ -535,7 +545,7 @@ export default function ImportPage() {
           return next
         }) }} />
         {previewError && <div data-testid="import-preview-error" role="alert" className="space-y-2 text-sm font-semibold text-danger"><p>{previewError}</p><button type="button" className="font-bold underline" disabled={!online || previewBusy} onClick={() => setPreviewReload((value) => value + 1)}>Retry preview</button></div>}
-        <div className="flex gap-2"><button type="button" className={btn.ghost} onClick={() => setStep('map')}>Back</button><button type="button" data-testid="import-continue-review" className={btn.primary} disabled={!online || previewBusy || !preview || (!!(mapping.date_taken === null && !defaults.date_taken))} onClick={() => { setPreviewTab('ok'); setPreviewPage(0); setStep('review') }}>Review validation</button></div>
+        <div className="import-actions"><button type="button" className={btn.ghost} onClick={() => setStep('map')}>Back</button><button type="button" data-testid="import-continue-review" className={btn.primary} disabled={!online || previewBusy || !preview || (!!(mapping.date_taken === null && !defaults.date_taken))} onClick={() => { setPreviewTab('ok'); setPreviewPage(0); setStep('review') }}>Review validation</button></div>
       </section>}
 
       {step === 'review' && <section data-testid="import-review-step" className="import-stage-card">
@@ -550,20 +560,20 @@ export default function ImportPage() {
             <Summary label="Errors" value={preview.counts.errors} />
           </div>
           <label className="flex items-center gap-3 rounded-sm border border-line p-3 text-sm font-semibold"><input data-testid="import-duplicate-policy" type="checkbox" checked={duplicatePolicy === 'import'} onChange={(event) => { setPendingImportId(null); setDuplicatePolicy(event.target.checked ? 'import' : 'skip') }} />Import duplicate rows too</label>
-          <div className="grid gap-3 sm:grid-cols-3"><MoneySummary label="Paid" value={preview.reconciliation.total_paid} /><MoneySummary label="Net refund" value={preview.reconciliation.total_refund} /><MoneySummary label="Gain/loss" value={preview.reconciliation.total_gain_loss} /></div>
+          <div className="import-money-list"><MoneySummary label="Paid" value={preview.reconciliation.total_paid} /><MoneySummary label="Net refund" value={preview.reconciliation.total_refund} /><MoneySummary label="Gain/loss" value={preview.reconciliation.total_gain_loss} /></div>
           <div className="grid gap-3 sm:grid-cols-2">
             <ListSummary title="Mediators to create" items={preview.mediators_to_create} empty="No new mediators." />
             <ListSummary title="Matching existing mediators" items={preview.existing_mediators.map((item) => `${item.input_name} → ${item.existing_name}`)} empty="No existing matches." />
           </div>
-          <div className="flex gap-2 overflow-x-auto" role="tablist" aria-label="Preview results">
-            {([['ok', 'Will import', preview.counts.will_import], ['duplicate', 'Duplicates', preview.counts.duplicates], ['error', 'Errors', preview.counts.errors]] as const).map(([tab, label, count]) => <button key={tab} role="tab" aria-selected={previewTab === tab} data-testid={`import-tab-${tab}`} className={`${btn.ghost} shrink-0 ${previewTab === tab ? 'border-primary text-primary' : ''}`} onClick={() => { setPreviewTab(tab); setPreviewPage(0) }}>{label} ({count})</button>)}
+          <div className="import-tabs" role="tablist" aria-label="Preview results">
+            {([['ok', 'Ready', preview.counts.will_import], ['duplicate', 'Duplicates', preview.counts.duplicates], ['error', 'Errors', preview.counts.errors]] as const).map(([tab, label, count]) => <button key={tab} role="tab" aria-selected={previewTab === tab} data-testid={`import-tab-${tab}`} className={`import-tab ${previewTab === tab ? 'is-selected' : ''}`} onClick={() => { setPreviewTab(tab); setPreviewPage(0) }}><span>{label}</span><span className="import-tab-count">{count}</span></button>)}
           </div>
           <div className="space-y-2" data-testid="import-preview-rows">
             {pageRows.length === 0 ? <p className="rounded-sm border border-dashed border-line p-4 text-center text-sm text-muted">No rows in this tab.</p> : pageRows.map((row) => {
               const existingNumber = row.existing_deal_id ? numbering?.byId.get(row.existing_deal_id) : undefined
               return <article key={row.row_number} className="rounded-sm border border-line p-3 text-sm">
                 <div className="flex items-start justify-between gap-2"><b>Row {sourceLines[row.row_number - 1] ?? row.row_number}</b><span className="rounded-pill bg-surface-2 px-2 py-1 text-xs font-bold">{row.status === 'ok' ? 'Ready' : row.status}</span></div>
-                <p className="mt-1 truncate font-semibold">{String(row.values.product ?? 'Unnamed product')} · {inr(String(row.values.amount_paid ?? 0))} · {String(row.values.date_taken ?? 'No date')}</p>
+                <p className="import-preview-line mt-1 font-semibold">{String(row.values.product ?? 'Unnamed product')} · {inr(String(row.values.amount_paid ?? 0))} · {String(row.values.date_taken ?? 'No date')}</p>
                 {row.duplicate_reason && <p className="mt-1 text-muted">{row.duplicate_reason}</p>}
                 {row.existing_deal_id && <p className="mt-1 text-muted">
                   {existingNumber ? <Link to={`/deals/${row.existing_deal_id}`} className="font-semibold text-primary">Existing deal #{existingNumber}</Link> : 'Existing deal (not on this device)'}
@@ -572,9 +582,9 @@ export default function ImportPage() {
               </article>
             })}
           </div>
-          <div className="flex items-center justify-between text-sm"><span>Page {previewPage + 1} of {pageCount} · 50 rows per page</span><div className="flex gap-2"><button type="button" className={btn.ghost} disabled={!previewPage} onClick={() => setPreviewPage((page) => Math.max(0, page - 1))}>Previous</button><button type="button" className={btn.ghost} disabled={previewPage + 1 >= pageCount} onClick={() => setPreviewPage((page) => Math.min(pageCount - 1, page + 1))}>Next</button></div></div>
+          <div className="import-pagination"><span>Page {previewPage + 1} of {pageCount} · 50 rows per page</span><div className="import-pagination-actions"><button type="button" className={btn.ghost} disabled={!previewPage} onClick={() => setPreviewPage((page) => Math.max(0, page - 1))}>Previous</button><button type="button" className={btn.ghost} disabled={previewPage + 1 >= pageCount} onClick={() => setPreviewPage((page) => Math.min(pageCount - 1, page + 1))}>Next</button></div></div>
         </>}
-        <div className="flex gap-2"><button type="button" className={btn.ghost} onClick={() => setStep('fix')}>Back</button><button type="button" data-testid="import-commit-button" className={btn.primary} disabled={!online || previewBusy || !preview || (preview.counts.will_import === 0 && preview.counts.errors === 0) || committing} onClick={() => void doCommit()}>{committing ? 'Importing…' : preview?.counts.will_import ? `Import ${preview.counts.will_import} deals` : 'Save error report'}</button></div>
+        <div className="import-actions"><button type="button" className={btn.ghost} onClick={() => setStep('fix')}>Back</button><button type="button" data-testid="import-commit-button" className={btn.primary} disabled={!online || previewBusy || !preview || (preview.counts.will_import === 0 && preview.counts.errors === 0) || committing} onClick={() => void doCommit()}>{committing ? 'Importing…' : preview?.counts.will_import ? `Import ${preview.counts.will_import} deals` : 'Save error report'}</button></div>
         {committing && <p data-testid="import-progress" role="status" className="text-sm text-muted">Saving deals in the background… Keep this page open.</p>}
       </section>}
 
@@ -582,7 +592,7 @@ export default function ImportPage() {
         {job ? <>
           <div><h2 className="text-lg font-bold">{job.status === 'undone' ? 'Import undone' : job.status === 'failed' ? 'Import finished with errors' : 'Import complete'}</h2><p className="text-sm text-muted">{job.filename || 'Spreadsheet import'} · {new Date(job.created_at).toLocaleString('en-IN')}</p></div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4"><Summary label="Imported" value={job.rows_imported} /><Summary label="Duplicates skipped" value={job.rows_skipped_duplicate} /><Summary label="Rows with errors" value={job.rows_failed} /><Summary label="Mediators created" value={job.mediators_created} /></div>
-          <div className="grid gap-3 sm:grid-cols-2"><MoneySummary label="Paid" value={job.total_paid} /><MoneySummary label="Net refund" value={job.total_refund} /></div>
+          <div className="import-money-list"><MoneySummary label="Paid" value={job.total_paid} /><MoneySummary label="Net refund" value={job.total_refund} /></div>
           {undoResult && <p data-testid="import-undo-result" role="status" className="rounded-sm bg-primary/10 p-3 text-sm">Removed {undoResult.deleted_deals} deals and {undoResult.deleted_mediators} mediators. {undoResult.warning}</p>}
           <div className="flex flex-col gap-2 sm:flex-row">
             {job.errors.length > 0 && <button type="button" data-testid="import-download-errors" className={btn.ghost} disabled={!online} title={!online ? 'Connect to download the report.' : undefined} onClick={() => void downloadErrors(job)}>Download error report</button>}
@@ -600,9 +610,12 @@ export default function ImportPage() {
 }
 
 function StepBar({ step }: { step: Step }) {
-  const items: [Step, string][] = [['upload', 'Upload'], ['sheet', 'Sheet'], ['map', 'Map'], ['fix', 'Fix values'], ['review', 'Preview']]
+  const items: [Step, string][] = [['upload', 'Choose file'], ['sheet', 'Worksheet'], ['map', 'Match columns'], ['fix', 'Check values'], ['review', 'Preview']]
   const current = items.findIndex(([id]) => id === step)
-  return <div className="import-stepper-scroll"><ol aria-label="Import steps" className="import-stepper">{items.map(([id, label], index) => <li key={id} aria-current={id === step ? 'step' : undefined} className={`import-step ${index === current ? 'is-current' : index < current ? 'is-complete' : ''}`}><span>{index < current ? '✓' : index + 1}</span>{label}</li>)}</ol></div>
+  return <div className="import-progress">
+    <ol aria-label="Import steps" className="import-progress-track">{items.map(([id, label], index) => <li key={id} aria-current={id === step ? 'step' : undefined} className={index === current ? 'is-current' : index < current ? 'is-complete' : ''}><span className="sr-only">{label}</span></li>)}</ol>
+    <p className="import-progress-label">Step {current + 1} of {items.length} · <b>{items[current][1]}</b></p>
+  </div>
 }
 
 function TextDefault({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
@@ -620,7 +633,7 @@ function Summary({ label, value }: { label: string; value: number }) {
 }
 
 function MoneySummary({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-sm border border-line p-3"><p className="text-xs text-muted">{label}</p><p className="font-extrabold">{inr(value)}</p></div>
+  return <div className="import-money-row"><span>{label}</span><b>{inr(value)}</b></div>
 }
 
 function ListSummary({ title, items, empty }: { title: string; items: string[]; empty: string }) {

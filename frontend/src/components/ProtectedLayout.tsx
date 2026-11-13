@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { isUnauthorized } from '../lib/api'
@@ -18,7 +18,8 @@ import { AccountButton } from './AccountButton'
 import { Skeleton } from './ui'
 import type { Me } from '../data/types'
 import { APP_NAME } from '../config/app'
-import DealFormPage from '../pages/DealForm'
+
+const DealFormPage = lazy(() => import('../pages/DealForm'))
 
 export function ProtectedLayout({ quickAddModal = false }: { quickAddModal?: boolean }) {
   const me = useMe()
@@ -88,11 +89,11 @@ function Shell({ me, quickAddModal }: { me: Me; quickAddModal: boolean }) {
             <AccountButton name={me.name} url={me.avatar_url} />
           </header>
           <main className="flex-1 px-gutter pb-[calc(var(--nav-height)+env(safe-area-inset-bottom)+24px)] pt-3">
-            <div key={location.pathname} className="page-transition"><Outlet /></div>
+            <div key={location.pathname} className="page-transition"><Suspense fallback={<Skeleton rows={3} />}><Outlet /></Suspense></div>
           </main>
           <BottomNav alertCount={alertCount} />
         </div>
-        {quickAddModal && <DealFormPage modal onClose={() => navigate(-1)} />}
+        {quickAddModal && <Suspense fallback={null}><DealFormPage modal onClose={() => navigate(-1)} /></Suspense>}
         </div>
       </ToastProvider>
     </UserContext.Provider>

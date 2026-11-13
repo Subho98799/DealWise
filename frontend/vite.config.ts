@@ -56,6 +56,11 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
+          // A waiting worker never takes over on its own when the register script is injected, so new deploys
+          // stayed stuck behind the old cached shell. Claim clients immediately; main.tsx reloads once on
+          // controllerchange.
+          skipWaiting: true,
+          clientsClaim: true,
           // App shell only. The service worker never caches /api responses or serves the SPA fallback for them,
           // so OAuth redirects and /api/me always hit the network.
           globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],

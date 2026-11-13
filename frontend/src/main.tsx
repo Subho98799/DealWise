@@ -6,10 +6,12 @@ import App from './App'
 import { isUnauthorized } from './lib/api'
 import { ME_KEY } from './lib/auth'
 import { applyAppearance, readAppearance, readColorTheme } from './lib/appearance'
+import { watchServiceWorkerUpdates } from './lib/pwa'
 import { PwaInstallProvider } from './lib/usePwaInstall'
 import './index.css'
 
 applyAppearance(readAppearance(), readColorTheme())
+watchServiceWorkerUpdates()
 const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
 const syncThemeColor = () => {
   const color = getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim()

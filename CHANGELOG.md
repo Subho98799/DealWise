@@ -1,5 +1,13 @@
 # Changelog
 
+## App updates, compact filters and mobile import (2026-11)
+### Fixed
+- New deployments now reach installed apps. The service worker claims clients on install and the page reloads once when control changes, so a release no longer sits behind the cached shell until the user forces a refresh. The app also checks for a new version when the tab becomes visible or the network returns.
+### Changed
+- The Deals filters take one short row: status chips scroll horizontally with their counts, and the platform filter is a chip that opens a bottom sheet instead of a second wrapped row.
+- The app shell is lighter: deal detail, add/edit deal, mediators, settings and import load on demand, the shared bundle is about 45 KB smaller, and the sticky top bar, bottom nav and form footer no longer use backdrop blur, so scrolling stays smooth on mid-range phones.
+- The import wizard is built for phones: a five-segment progress bar replaces the labelled stepper, worksheet rows are cards with a whole-row header choice, primary actions stack above Back, date order is a two-card choice, preview tabs fit one row, money totals are compact rows, and the file picker shows a filename chip with Change plus text template links.
+
 ## Indigo landing redesign and install name (2026-11)
 ### Changed
 - The landing page is now a shorter indigo-first layout: hero with sign-in, four compact feature cards, and one privacy band. The duplicated problem, how-it-works, FAQ and final-CTA sections are gone, so the page is about a third of its old length.

@@ -1,6 +1,6 @@
-﻿import { useMemo, useState } from 'react'
+﻿import { useDeferredValue, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowUpDown, Check, Search, X } from 'lucide-react'
+import { ArrowUpDown, Check, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useDeals, useToday, useUser } from '../data/hooks'
 import { DealCard } from '../components/DealCard'
 import { PlatformBadge } from '../components/PlatformBadge'
@@ -34,11 +34,13 @@ export default function DealsPage() {
   const deals = useDeals()
   const [params, setParams] = useSearchParams()
   const [sortOpen, setSortOpen] = useState(false)
+  const [platformOpen, setPlatformOpen] = useState(false)
   const chip = (params.get('chip') as Chip) || 'all'
   const sortParam = params.get('sort') as Sort | null
   const sort = sortParam && VALID_SORTS.has(sortParam) ? sortParam : savedSort() ?? 'needs_action'
   const platform = params.get('platform') ?? ''
   const q = params.get('q') ?? ''
+  const deferredQ = useDeferredValue(q)
   const set = (key: string, value: string) => {
     const next = new URLSearchParams(params)
     if (value) next.set(key, value)
@@ -54,7 +56,7 @@ export default function DealsPage() {
   const numbering = useMemo(() => deals ? numberDeals(deals) : undefined, [deals])
   const list = useMemo(() => {
     if (!deals) return undefined
-    const needle = q.trim().toLowerCase()
+    const needle = deferredQ.trim().toLowerCase()
     const numberQuery = /^#?\d+$/.test(needle) ? Number(needle.replace(/^#/, '')) : null
     const filtered = deals.filter((deal) => numberQuery !== null
       ? numbering?.byId.get(deal.id) === numberQuery
@@ -62,7 +64,7 @@ export default function DealsPage() {
         (!platform || platformSlug(deal.platform ?? '') === platform) &&
         (!needle || deal.product.toLowerCase().includes(needle) || (deal.notes ?? '').toLowerCase().includes(needle)))
     return sortDeals(filtered, sort)
-  }, [deals, numbering, chip, sort, platform, q, today, me.alert_days])
+  }, [deals, numbering, chip, sort, platform, deferredQ, today, me.alert_days])
   const counts = useMemo(() => new Map(CHIPS.map(([id]) => [id, deals?.filter((deal) => matchesChip(deal, id, today, me.alert_days)).length ?? 0])), [deals, today, me.alert_days])
   const platforms = useMemo(() => {
     if (!deals) return []
@@ -78,6 +80,7 @@ export default function DealsPage() {
     return [...map.entries()].map(([slug, entry]) => ({ slug, ...entry })).sort((a, b) => a.name.localeCompare(b.name))
   }, [deals])
   const currentSort = SORTS.find((option) => option.value === sort)?.label ?? SORTS[0].label
+  const activePlatform = platforms.find((item) => item.slug === platform)
   const isFiltered = chip !== 'all' || !!q.trim() || !!platform
 
   return <div data-testid="deals-page" className="deals-page">
@@ -98,19 +101,18 @@ export default function DealsPage() {
         </button>
       </div>
       <div className="deals-filter-row" role="group" aria-label="Filter deals">
+        {platforms.length > 0 && <button type="button" data-testid="deals-platform-button" aria-haspopup="dialog"
+          aria-expanded={platformOpen} aria-label={activePlatform ? `Platform filter: ${activePlatform.name}` : 'Filter by platform'}
+          onClick={() => setPlatformOpen(true)} className={`filter-chip deals-platform-chip ${activePlatform ? 'is-active' : ''}`}>
+          {activePlatform ? <PlatformBadge platform={activePlatform.name} size={18} /> : <SlidersHorizontal size={15} aria-hidden="true" />}
+          <span>{activePlatform?.name ?? 'Platform'}</span>
+          {activePlatform && <span className="filter-chip-count">{activePlatform.count}</span>}
+        </button>}
         {CHIPS.map(([id, label]) => <button key={id} data-testid={`chip-${id}`} aria-pressed={chip === id}
           onClick={() => set('chip', id === 'all' ? '' : id)} className={`filter-chip ${chip === id ? 'is-active' : ''}`}>
           <span>{label}</span><span className="filter-chip-count">{counts.get(id) ?? 0}</span>
         </button>)}
       </div>
-      {platforms.length > 0 && <div className="deals-filter-row platform-filter-row" role="group" aria-label="Filter by platform">
-        <button data-testid="platform-filter-all" aria-pressed={!platform} onClick={() => set('platform', '')}
-          className={`filter-chip ${!platform ? 'is-active' : ''}`}><span>All platforms</span></button>
-        {platforms.map((item) => <button key={item.slug} data-testid={`platform-filter-${item.slug}`} aria-pressed={platform === item.slug}
-          onClick={() => set('platform', platform === item.slug ? '' : item.slug)} className={`filter-chip ${platform === item.slug ? 'is-active' : ''}`}>
-          <PlatformBadge platform={item.name} size={20} /><span>{item.name}</span><span className="filter-chip-count">{item.count}</span>
-        </button>)}
-      </div>}
     </div>
 
     <div className="mt-4 space-y-3" data-testid="deals-list">
@@ -128,6 +130,27 @@ export default function DealsPage() {
         {sort === option.value && <Check size={18} aria-hidden="true" />}
       </button>)}</div>
       <Button variant="secondary" className="mt-4 w-full" onClick={() => setSortOpen(false)}>Done</Button>
+    </Sheet>
+
+    <Sheet open={platformOpen} onClose={() => setPlatformOpen(false)} title="Filter by platform">
+      <div className="platform-sheet-list">
+        <button type="button" data-testid="platform-filter-all" aria-pressed={!platform}
+          onClick={() => { set('platform', ''); setPlatformOpen(false) }}
+          className={`platform-sheet-row ${!platform ? 'is-selected' : ''}`}>
+          <span className="platform-sheet-name">All platforms</span>
+          <span className="filter-chip-count">{deals?.length ?? 0}</span>
+          {!platform && <Check size={18} aria-hidden="true" />}
+        </button>
+        {platforms.map((item) => <button key={item.slug} type="button" data-testid={`platform-filter-${item.slug}`}
+          aria-pressed={platform === item.slug}
+          onClick={() => { set('platform', platform === item.slug ? '' : item.slug); setPlatformOpen(false) }}
+          className={`platform-sheet-row ${platform === item.slug ? 'is-selected' : ''}`}>
+          <PlatformBadge platform={item.name} size={24} />
+          <span className="platform-sheet-name">{item.name}</span>
+          <span className="filter-chip-count">{item.count}</span>
+          {platform === item.slug && <Check size={18} aria-hidden="true" />}
+        </button>)}
+      </div>
     </Sheet>
   </div>
 }

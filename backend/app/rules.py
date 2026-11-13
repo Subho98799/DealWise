@@ -74,8 +74,6 @@ def validate_deal(state: dict) -> None:
             raise RuleError("validation_error", f"{field} cannot be before date_taken")
     if state.get("payment_received_on") and state.get("payment_status") != "received":
         raise RuleError("validation_error", "payment_received_on requires payment_status 'received'")
-    if state.get("refund_form_filled_on") and state.get("form_status") != "submitted":
-        raise RuleError("validation_error", "refund_form_filled_on requires form_status 'submitted'")
 
 
 def apply_action(state: dict, action: str, today: date, received_on: date | None = None) -> dict:
@@ -94,13 +92,15 @@ def apply_action(state: dict, action: str, today: date, received_on: date | None
             bad("Refund form is already submitted.")
         if rs != "done":
             bad("Mark the review done before submitting the refund form.")
-        return {"form_status": "submitted", "refund_form_filled_on": today}
+        return {"form_status": "submitted",
+                "refund_form_filled_on": state.get("refund_form_filled_on") or today}
     if action == "payment_received":
         if ps == "received":
             bad("Payment is already received.")
         if fs != "submitted":
             bad("Submit the refund form before marking payment received.")
-        return {"payment_status": "received", "payment_received_on": received_on or today}
+        return {"payment_status": "received",
+                "payment_received_on": received_on or state.get("payment_received_on") or today}
     if action == "reopen_review":
         if rs != "done":
             bad("Review is not done.")

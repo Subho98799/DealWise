@@ -110,9 +110,17 @@ def test_deadline_before_date_taken_rejected():
     rules.validate_deal({"date_taken": T, "review_deadline": T})
 
 
-def test_filled_date_requires_submitted_form_and_cannot_precede_purchase():
-    with pytest.raises(rules.RuleError, match="requires form_status"):
-        rules.validate_deal({"date_taken": T, "form_status": "pending", "refund_form_filled_on": T})
+def test_filled_date_is_free_to_edit_but_cannot_precede_purchase():
+    rules.validate_deal({"date_taken": T, "form_status": "pending", "refund_form_filled_on": T})
     with pytest.raises(rules.RuleError, match="cannot be before date_taken"):
         rules.validate_deal({"date_taken": T, "form_status": "submitted", "refund_form_filled_on": date(2026, 6, 9)})
     rules.validate_deal({"date_taken": T, "form_status": "submitted", "refund_form_filled_on": T})
+
+
+def test_actions_keep_a_date_the_user_already_typed():
+    state = {"review_status": "done", "form_status": "pending", "payment_status": "pending",
+             "refund_form_filled_on": date(2026, 6, 2)}
+    assert rules.apply_action(state, "form_submitted", T)["refund_form_filled_on"] == date(2026, 6, 2)
+    state = {**state, "form_status": "submitted", "payment_status": "pending",
+             "payment_received_on": date(2026, 6, 5)}
+    assert rules.apply_action(state, "payment_received", T)["payment_received_on"] == date(2026, 6, 5)

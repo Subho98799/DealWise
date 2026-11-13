@@ -140,7 +140,8 @@ def update_deal(s: Session, deal: Deal, patch: DealPatch, written_at: datetime |
 
 
 def deal_action(s: Session, deal: Deal, action: str, ctx: Ctx, received_on: date | None) -> Deal:
-    state = {k: getattr(deal, k) for k in ("review_status", "form_status", "payment_status")}
+    state = {k: getattr(deal, k) for k in ("review_status", "form_status", "payment_status",
+                                           "refund_form_filled_on", "payment_received_on")}
     changes = _rule(rules.apply_action, state, action, ctx.today, received_on)
     return DealRepo(s).update(deal.id, {**changes, "client_updated_at": clock.now()})
 

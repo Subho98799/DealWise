@@ -49,11 +49,11 @@ export function applyAction(d: Deal, action: Action, today: string): Partial<Dea
     case 'form_submitted':
       if (d.form_status !== 'pending') bad('Refund form is already submitted.')
       if (d.review_status !== 'done') bad('Mark the review done before submitting the refund form.')
-      return { form_status: 'submitted', refund_form_filled_on: today }
+      return { form_status: 'submitted', refund_form_filled_on: d.refund_form_filled_on ?? today }
     case 'payment_received':
       if (d.payment_status === 'received') bad('Payment is already received.')
       if (d.form_status !== 'submitted') bad('Submit the refund form before marking payment received.')
-      return { payment_status: 'received', payment_received_on: today }
+      return { payment_status: 'received', payment_received_on: d.payment_received_on ?? today }
     case 'reopen_review':
       if (d.review_status !== 'done') bad('Review is not done.')
       if (d.form_status === 'submitted') bad('Reopen the refund form first.')

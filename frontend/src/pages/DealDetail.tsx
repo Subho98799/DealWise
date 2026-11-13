@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Check, ChevronDown, Circle, CircleCheck, Clock3, LockKeyhole, PencilLine, Trash2 } from 'lucide-react'
+import { Check, ChevronDown, Circle, CircleCheck, CircleDot, Clock3, LockKeyhole, PencilLine, RotateCcw, Trash2 } from 'lucide-react'
 import { useDeal, useDeals, useToday, useUser } from '../data/hooks'
 import { dealAction, deleteDeal, updateDeal } from '../data/mutations'
 import { useToast } from '../components/Toast'
@@ -28,6 +28,15 @@ export default function DealDetailPage() {
   const reviewDone = deal.review_status === 'done'
   const formDone = deal.form_status === 'submitted'
   const paymentDone = deal.payment_status === 'received'
+  const latestDone = paymentDone ? 'payment' : formDone ? 'form' : reviewDone ? 'review' : null
+  const reopenAction: Action | null = latestDone === 'payment' ? 'reopen_payment'
+    : latestDone === 'form' ? 'reopen_form' : latestDone === 'review' ? 'reopen_review' : null
+  const nextLabel = next === 'review_done' ? 'Review' : next === 'form_submitted' ? 'Form' : 'Payment'
+  const run = async (action: Action) => {
+    const previous = await dealAction(deal, action, today)
+    if ('vibrate' in navigator) navigator.vibrate?.(10)
+    toast({ message: ACTION_LABEL[action], action: { label: action.startsWith('reopen') ? 'Redo' : 'Undo', run: () => void updateDeal(deal.id, previous) } })
+  }
   const milestones = [
     { key: 'taken', title: 'Deal taken', done: true, date: formatShort(deal.date_taken), action: null as Action | null, hint: 'Purchase recorded' },
     { key: 'review', title: 'Review completed', done: reviewDone, date: reviewDone ? null : deal.review_deadline ? `Due ${formatShort(deal.review_deadline)}` : null, action: 'review_done' as const },
@@ -54,7 +63,12 @@ export default function DealDetailPage() {
         <span className="deal-detail-platform"><PlatformBadge platform={deal.platform} size={24} /><span>{deal.platform || 'No platform'}</span></span>
       </div>}
       <section className="deal-detail-hero" aria-label="Deal net refund summary">
-        <span className="section-eyebrow">Net refund</span>
+        <div className="deal-detail-hero-top">
+          <span className="section-eyebrow">Net refund</span>
+          <span className={`deal-detail-state ${next ? 'is-pending' : 'is-done'}`}>
+            {next ? <><CircleDot size={12} aria-hidden="true" />Next: {nextLabel}</> : <><CircleCheck size={12} aria-hidden="true" />Complete</>}
+          </span>
+        </div>
         <strong data-testid="deal-refund-breakdown" className="deal-detail-net money">{formatINR(deal.refund_amount)}</strong>
         <div className="deal-detail-amounts">
           <span>Paid <b className="money">{formatINR(deal.amount_paid)}</b></span>
@@ -68,23 +82,29 @@ export default function DealDetailPage() {
         <ol className="deal-timeline">
           {milestones.map((step, index) => {
             const isNext = step.action !== null && next === step.action
+            const canUndo = step.done && step.key === latestDone && reopenAction !== null
             const lockReason = step.key === 'payment'
               ? deal.review_status === 'pending' ? 'Complete the review first' : 'Submit the refund form first'
               : 'Complete the review first'
-            const Icon = step.done ? CircleCheck : Circle
+            const Icon = step.done ? CircleCheck : isNext ? CircleDot : Circle
             const actionLabel = step.key === 'review' ? 'Mark review done' : step.key === 'form' ? 'Mark form submitted' : 'Mark payment received'
-            return <li key={step.key} className={`deal-timeline-step ${step.done ? 'is-done' : ''} ${index === milestones.length - 1 ? 'is-last' : ''}`}>
+            return <li key={step.key} className={`deal-timeline-step ${step.done ? 'is-done' : ''} ${isNext ? 'is-next' : ''} ${index === milestones.length - 1 ? 'is-last' : ''}`}>
               <span className="deal-timeline-marker"><Icon size={19} aria-hidden="true" /></span>
               <div className="deal-timeline-content">
                 <div className="deal-timeline-heading"><strong>{step.title}</strong>{step.date && <span>{step.date}</span>}</div>
-                {step.done ? <p>Marked complete</p> : isNext ? <p>Next valid step</p> : <p className="deal-timeline-lock"><LockKeyhole size={14} aria-hidden="true" />{lockReason}</p>}
-                {isNext && <button type="button" data-testid={`deal-action-${step.action}`}
+                {step.done
+                  ? <div className="deal-timeline-done">
+                    <p>Completed</p>
+                    {canUndo && reopenAction && <button type="button" data-testid={`deal-action-${reopenAction}`}
+                      className="deal-timeline-action is-reopen" onClick={() => void run(reopenAction)}>
+                      <RotateCcw size={14} aria-hidden="true" />Undo
+                    </button>}
+                  </div>
+                  : isNext ? <p className="deal-timeline-next">Next step</p>
+                  : <p className="deal-timeline-lock"><LockKeyhole size={14} aria-hidden="true" />{lockReason}</p>}
+                {isNext && step.action && <button type="button" data-testid={`deal-action-${step.action}`}
                   className="deal-timeline-action"
-                  onClick={async () => {
-                    const prev = await dealAction(deal, step.action!, today)
-                    if ('vibrate' in navigator) navigator.vibrate?.(10)
-                    toast({ message: ACTION_LABEL[step.action!], action: { label: 'Undo', run: () => void updateDeal(deal.id, prev) } })
-                  }}>{actionLabel}<Check size={15} aria-hidden="true" /></button>}
+                  onClick={() => void run(step.action!)}>{actionLabel}<Check size={15} aria-hidden="true" /></button>}
               </div>
             </li>
           })}

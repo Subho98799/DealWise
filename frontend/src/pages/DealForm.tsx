@@ -111,7 +111,6 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
   }
   const [form, setForm] = useState<Form>(deal ? fromDeal(deal) : blank)
   const [more, setMore] = useState(false)
-  const formStatusEditable = deal?.form_status === 'submitted'
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<{ id: string; product: string } | null>(null)
   const on = (key: keyof Form) => (event: { target: { value: string } }) => setForm((current) => ({ ...current, [key]: event.target.value }))
@@ -185,9 +184,9 @@ function DealForm({ deal, modal = false, onClose }: { deal: Deal | null; modal?:
           <input data-testid="deal-payment-date-input" type="date" value={form.payment_received_on} disabled={form.payment_status !== 'received'}
             onChange={on('payment_received_on')} max={today} className={input} />
         </Field>
-        <Field label="Form filled" hint={formStatusEditable ? undefined : 'Submit the form to add this'}>
+        <Field label="Form filled" hint="Date the refund form was filled and sent">
           <input data-testid="deal-form-filled-input" type="date" value={form.refund_form_filled_on}
-            disabled={!formStatusEditable} max={today} onChange={on('refund_form_filled_on')} className={input} />
+            max={today} onChange={on('refund_form_filled_on')} className={input} />
         </Field>
       </div>
       <Field label="Payment status"><select data-testid="deal-payment-status-select" value={form.payment_status}

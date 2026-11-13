@@ -1,8 +1,15 @@
 # Changelog
 
+## Clearer deal cards, undo and progress (2026-11)
+### Changed
+- Deal cards are now a compact summary: product, three-step progress bars, the next step, a due countdown, the net refund, and the one-tap action. The tall expanded card is gone — the chevron, the product name, or a swipe opens the deal detail page for everything else.
+- The deal detail timeline marks each step as completed, next, or locked, highlights the next step, and adds Undo on the latest completed step, so a mistaken Done can be reverted without hunting through menus. The refund hero also shows Complete or Next: step.
+- Payment actions use the rupee icon; the dollar sign is gone.
+- The form-filled date is free to edit on every deal, and marking the form submitted keeps a date you already typed instead of always overwriting it with today.
+
 ## Dates, labels and visual polish (2026-11)
 ### Added
-- Editable record dates: the deal form exposes **Payment date** (`payment_received_on`, enabled once payment status is Received) and **Form filled** (new `refund_form_filled_on`, enabled once the refund form is submitted). The `form_submitted` action stamps the filled date with today, `reopen_form` clears it, and validation rejects a filled date before the purchase date or after the payment date. Migration `0007` adds the nullable column; import mapping accepts `Form filled on` headers; sync, Dexie defaults, deal detail, and expanded cards show both dates.
+- Editable record dates: the deal form exposes **Payment date** (`payment_received_on`, enabled once payment status is Received) and **Form filled** (`refund_form_filled_on`, free to edit). The `form_submitted` action keeps an entered filled date (otherwise today), `reopen_form` clears it, and validation rejects a filled date before the purchase date or after the payment date. Migration `0007` adds the nullable column; import mapping accepts `Form filled on` headers; sync, Dexie defaults, and the deal detail show both dates.
 - The test database can be a separate Neon branch even when its database is still named `neondb`: the pytest guard and `dt check` accept a URL whose host differs from `DATABASE_URL`, and docs describe branch setup. `check_setup` also normalises the migration URL to the psycopg 3 driver, fixing a `psycopg2` import error during checks.
 - Deal detail lists Form filled and Paid on rows, and the expanded deal card shows Form filled and Paid on.
 

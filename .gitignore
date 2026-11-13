@@ -36,5 +36,8 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/e2e-qa/
 
+# Downloaded platform artwork (runtime icons live in frontend/src/assets/platforms)
+docs/logos/
+
 # Bundled repository archaeology
 *.bundle

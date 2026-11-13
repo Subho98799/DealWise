@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const frontend = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const tokenFile = resolve(frontend, 'src/styles/tokens.css')
+const brandArtwork = new Set(['src/assets/dealbook-logo-mark.svg', 'public/favicon.svg'].map((path) => resolve(frontend, path)))
 const sourceExtensions = new Set(['.css', '.html', '.js', '.jsx', '.json', '.mjs', '.svg', '.ts', '.tsx'])
 const hash = String.fromCharCode(35)
 const colorPattern = new RegExp(`${hash}(?:[\\da-fA-F]{3}|[\\da-fA-F]{4}|[\\da-fA-F]{6}|[\\da-fA-F]{8})\\b`, 'g')
@@ -25,7 +26,7 @@ async function scan(path) {
 }
 
 async function inspect(path) {
-  if (resolve(path) === tokenFile) return
+  if (resolve(path) === tokenFile || brandArtwork.has(resolve(path))) return
   const source = await readFile(path, 'utf8').catch(() => null)
   if (source === null) return
   for (const match of source.matchAll(colorPattern)) {

@@ -4,7 +4,7 @@ import { ArrowRight, CircleCheck, Layers, Wallet } from 'lucide-react'
 import { DealCard } from '../components/DealCard'
 import { Avatar } from '../components/Avatar'
 import { HomeInstallBanner } from '../components/InstallPrompt'
-import { AppLogo } from '../components/AppLogo'
+import { LogoMark } from '../components/LogoMark'
 import { Card, EmptyState, Skeleton, Stat } from '../components/ui'
 import { useDeals, useMediators, useSummary, useToday, useUser, mediatorStats } from '../data/hooks'
 import { evaluate, sortDeals } from '../lib/rules'
@@ -91,7 +91,7 @@ export default function HomePage() {
               <circle className="refund-ring-track" cx="60" cy="60" r="52" />
               <circle className="refund-ring-value" cx="60" cy="60" r="52" style={ringStyle} />
             </svg>
-            <span className="refund-ring-logo" aria-hidden="true"><AppLogo size={44} /></span>
+            <span className="refund-ring-logo" aria-hidden="true"><LogoMark size={44} /></span>
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold opacity-90">Refund pending</p>

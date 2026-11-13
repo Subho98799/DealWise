@@ -1,5 +1,9 @@
 # Changelog
 
+## New app icon and logo mark (2026-11)
+### Changed
+- Installed the new DealBook icon set (192, 512, maskable 512, apple-touch 180, favicon) behind one `LogoMark` component that renders the bundled SVG mark in the top bar, on the login page, on the splash screen, and in the centre of the Home refund ring.
+
 ## Clearer deal cards, undo and progress (2026-11)
 ### Changed
 - Deal cards are now a compact summary: product, three-step progress bars, the next step, a due countdown, the net refund, and the one-tap action. The tall expanded card is gone — the chevron, the product name, or a swipe opens the deal detail page for everything else.

@@ -6,7 +6,7 @@ import { APP_NAME, CONTACT_EMAIL } from '../config/app'
 import { LoginInstallLink } from '../components/InstallPrompt'
 import { GoogleSignInButton } from '../components/GoogleSignIn'
 import { LandingPreview } from '../components/LandingPreview'
-import { AppLogo } from '../components/AppLogo'
+import { LogoMark } from '../components/LogoMark'
 import { Card } from '../components/ui'
 import { usePageMeta } from '../lib/pageMeta'
 
@@ -54,7 +54,7 @@ export default function LoginPage() {
     <div className="landing-page">
       <header className="landing-topbar landing-shell">
         <Link to="/login" className="landing-brand" aria-label={`${APP_NAME} home`}>
-          <AppLogo size={34} className="landing-logo-img" />
+          <LogoMark size={34} className="landing-logo-img" />
           <span>{APP_NAME}</span>
         </Link>
         <nav aria-label="Landing page">
@@ -191,7 +191,7 @@ export default function LoginPage() {
       <footer className="landing-footer">
         <div className="landing-footer-inner landing-shell">
           <div className="landing-footer-brand">
-            <AppLogo size={28} className="landing-logo-img" />
+            <LogoMark size={28} className="landing-logo-img" />
             <span>{APP_NAME}</span>
           </div>
           <nav aria-label="Legal and contact" className="landing-footer-nav">

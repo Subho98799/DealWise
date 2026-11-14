@@ -6,12 +6,12 @@ import PrivacyPage from './pages/Privacy'
 import TermsPage from './pages/Terms'
 import HomePage from './pages/Home'
 import DealsPage from './pages/Deals'
+import DealFormPage from './pages/DealForm'
+import DealDetailPage from './pages/DealDetail'
+import { MediatorDetailPage, MediatorsPage } from './pages/Mediators'
+import SettingsPage from './pages/Settings'
 
-const DealFormPage = lazy(() => import('./pages/DealForm'))
-const DealDetailPage = lazy(() => import('./pages/DealDetail'))
-const MediatorsPage = lazy(() => import('./pages/Mediators').then((module) => ({ default: module.MediatorsPage })))
-const MediatorDetailPage = lazy(() => import('./pages/Mediators').then((module) => ({ default: module.MediatorDetailPage })))
-const SettingsPage = lazy(() => import('./pages/Settings'))
+// Only the import wizard is split out: it cannot do anything offline, and its parser and xlsx worker already load separately.
 const ImportPage = lazy(() => import('./pages/ImportPage'))
 
 export default function App() {

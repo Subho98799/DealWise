@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { isUnauthorized } from '../lib/api'
@@ -18,8 +18,7 @@ import { AccountButton } from './AccountButton'
 import { Skeleton } from './ui'
 import type { Me } from '../data/types'
 import { APP_NAME } from '../config/app'
-
-const DealFormPage = lazy(() => import('../pages/DealForm'))
+import DealFormPage from '../pages/DealForm'
 
 export function ProtectedLayout({ quickAddModal = false }: { quickAddModal?: boolean }) {
   const me = useMe()
@@ -93,7 +92,7 @@ function Shell({ me, quickAddModal }: { me: Me; quickAddModal: boolean }) {
           </main>
           <BottomNav alertCount={alertCount} />
         </div>
-        {quickAddModal && <Suspense fallback={null}><DealFormPage modal onClose={() => navigate(-1)} /></Suspense>}
+        {quickAddModal && <DealFormPage modal onClose={() => navigate(-1)} />}
         </div>
       </ToastProvider>
     </UserContext.Provider>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { APP_NAME, CONTACT_EMAIL } from '../config/app'
+import { BRAND_NAME, BRAND_URL } from '../config/seo'
 
 export function LegalShell({ title, updated, children }: { title: string; updated: string; children: ReactNode }) {
   return <div className="legal-page">
@@ -21,7 +22,7 @@ export function LegalShell({ title, updated, children }: { title: string; update
     </main>
     <footer className="legal-footer">
       <div className="legal-footer-inner landing-shell">
-        <p>© {new Date().getFullYear()} {APP_NAME}</p>
+        <p>© {new Date().getFullYear()} {APP_NAME}. Built by <a href={BRAND_URL} rel="noopener">{BRAND_NAME}</a>.</p>
         <nav aria-label="Legal and contact" className="landing-footer-nav">
           <Link to="/privacy">Privacy Policy</Link>
           <Link to="/terms">Terms</Link>

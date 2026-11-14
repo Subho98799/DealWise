@@ -44,6 +44,9 @@
 | `backend/app/clock.py` | single `now()` (tests monkeypatch) |
 | `backend/scripts/` | `create_role.py`, `check_setup.py`, `check_docs.py` |
 | `frontend/src/config/app.ts` | naming + timeouts |
+| `frontend/src/config/seo.ts` | site URL, title, description, keywords, social image, FAQ copy, JSON-LD builders |
+| `frontend/public/robots.txt`, `frontend/public/sitemap.xml` | crawl rules and public URL list |
+| `frontend/dev-only/` | design screenshot and social card capture scripts (refuse to run in production) |
 | `frontend/src/lib/` | `api.ts` fetch wrapper (same-origin, CSRF, 70 s timeout), `money.ts`, `dates.ts`, `rules.ts`, `dealNumbers.ts`, `auth.ts`, `usePwaInstall.tsx` (shared prompt, detection, dismissal, copy link) |
 | `frontend/src/components/InstallPrompt.tsx` | Shared Home banner, Settings row, Login link, and platform-specific install sheet |
 | `frontend/src/data/` | `db.ts` Dexie + wipe/openFor, `outbox.ts`, `mutations.ts` (all writes), `hooks.ts` (all reads), `types.ts` |
@@ -117,6 +120,12 @@ Migration 0007 adds nullable `deals.refund_form_filled_on` (the date the form wa
 - Spreadsheet import accepts Less headers `less`, `deduction`, `discount`, `cut`, and `mediator less` (alongside the `less_amount` target) and keeps Commission. If only legacy Refund is mapped, each row derives Less and Commission by the legacy conversion rule and shows that derivation in preview. If Less is mapped, it wins; a Refund mismatch is a warning. Import reconciliation totals are Paid, Net refund, and Gain/loss.
 - Dexie schema version 2 upgrades stored deals and queued upsert payloads from legacy `refund_amount` to `less_amount` and `commission` using the same conversion. This preserves queued offline edits; `op_id` idempotency and sync behavior are unchanged.
 - Deal number N is computed locally over the complete non-deleted deal list ordered by `date_taken`, then `created_at`, then `id`. Filters never renumber results; `12` and `#12` search for deal 12. The number can shift when a deal is deleted or its date changes.
+
+## SEO and sharing
+- `frontend/src/config/seo.ts` is the single source for the site URL, title, description, keywords, social card, FAQ copy and JSON-LD. `frontend/index.html` holds `%SEO_*%` tokens that the `site-html` Vite plugin fills at build time (`order: 'pre'`, so no token reaches Vite's URL handling).
+- The static head carries the Organization (Vfinite), WebSite and WebApplication graph plus canonical, hreflang, Open Graph and Twitter tags, so crawlers that never run JavaScript still get the full picture. `usePageMeta` rewrites canonical, social tags, robots and optional structured data on client-side navigation; the landing adds an FAQPage node only there, so the markup never ships on pages without the answers.
+- `robots.txt` allows the public pages and disallows the authenticated app routes; `sitemap.xml` lists `/`, `/privacy` and `/terms`. `vercel.json` excludes both files (and other static assets) from the SPA rewrite.
+- The 1200 x 630 social card is `frontend/public/og-cover.png`; regenerate it with `node dev-only/capture-og-image.mjs` from `frontend/` (needs Playwright Chromium). Update `SITE_URL` in `seo.ts` if the domain changes.
 
 ## Environment variables
 | Var | Required | Used by | Value |

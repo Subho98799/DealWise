@@ -1,0 +1,10 @@
+# DealBook by Vfinite — review deal management app
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /deals
+Disallow: /mediators
+Disallow: /settings
+Disallow: /import
+
+Sitemap: https://dealbook.vfinite.com/sitemap.xml

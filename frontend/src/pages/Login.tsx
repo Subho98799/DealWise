@@ -3,6 +3,7 @@ import { CalendarClock, Check, FileSpreadsheet, LockKeyhole, ShieldCheck, Sparkl
 import { googleLoginHref, useMe } from '../lib/auth'
 import { safeReturnPath } from '../lib/returnPath'
 import { APP_NAME, CONTACT_EMAIL } from '../config/app'
+import { BRAND_NAME, BRAND_URL, FAQ, SITE_DESCRIPTION, SITE_TITLE, faqJsonLd } from '../config/seo'
 import { LoginInstallLink } from '../components/InstallPrompt'
 import { GoogleSignInButton } from '../components/GoogleSignIn'
 import { LandingPreview } from '../components/LandingPreview'
@@ -15,8 +16,6 @@ const ERRORS: Record<string, string> = {
   oauth_failed: 'Sign-in could not be completed. Please try again.',
 }
 
-const META_DESCRIPTION = 'Every review deal, refund form and deadline in one private place. Sign in with Google, track every mediator and see what is still pending.'
-
 const FEATURES = [
   { icon: CalendarClock, title: 'Deadlines on time', body: 'Due-soon and overdue deals, based on the alert window you pick.' },
   { icon: Wallet, title: 'Every rupee back', body: 'Net refund per mediator, with what is paid, pending and received.' },
@@ -25,6 +24,8 @@ const FEATURES = [
 ]
 
 const ASSURANCES = ['Private to your account', 'Works offline', 'Installs on your phone']
+
+const FAQ_JSON_LD = faqJsonLd()
 
 const TRUST = [
   { icon: ShieldCheck, title: 'Only you see your deals', body: 'Row-level security scopes every database query to your account.' },
@@ -39,7 +40,7 @@ export default function LoginPage() {
   const next = safeReturnPath((location.state as { next?: unknown } | null)?.next)
   const error = params.get('error')
 
-  usePageMeta({ title: `${APP_NAME} — Every refund. Every deadline. One place.`, description: META_DESCRIPTION, path: '/' })
+  usePageMeta({ title: SITE_TITLE, description: SITE_DESCRIPTION, path: '/', jsonLd: FAQ_JSON_LD })
 
   if (me.isSuccess) return <Navigate to={next} replace />
 
@@ -52,6 +53,7 @@ export default function LoginPage() {
         </Link>
         <nav aria-label="Landing page">
           <a href="#features" className="landing-topbar-link">What you get</a>
+          <a href="#faq" className="landing-topbar-link">FAQ</a>
         </nav>
       </header>
 
@@ -63,7 +65,7 @@ export default function LoginPage() {
               Every refund.<br />Every deadline.<br /><span className="landing-title-accent">One place.</span>
             </h1>
             <p data-testid="login-tagline" className="landing-subhead">
-              Track every review deal, refund form and mediator payment, so no rupee slips through.
+              The review deal management app by {BRAND_NAME}. Track every deal, refund form and mediator payment, so no rupee slips through.
             </p>
 
             {error && (
@@ -104,6 +106,23 @@ export default function LoginPage() {
           </div>
         </section>
 
+        <section className="landing-explain" aria-labelledby="explain-title">
+          <div className="landing-section-head">
+            <p className="landing-eyebrow">Review deal management</p>
+            <h2 id="explain-title" className="landing-heading">A deals management app built for review deals, not generic tasks.</h2>
+          </div>
+          <p className="landing-explain-copy">
+            {APP_NAME} by {BRAND_NAME} is a review deal app for people who buy products on marketplaces, review them as agreed,
+            and wait for a mediator to release the refund. Instead of another spreadsheet, you get one review deal tracker
+            that shows every refund form, mediator payment and deadline in a single list, on your phone, even offline.
+          </p>
+          <ul className="landing-explain-list">
+            <li><h3>Review deals</h3><p>Product, platform, mediator, deal type, amount paid and commission on one card.</p></li>
+            <li><h3>Refund forms</h3><p>Form deadline and filled date, with due-soon and overdue alerts.</p></li>
+            <li><h3>Mediator payments</h3><p>Expected, pending and received refunds, mediator by mediator.</p></li>
+          </ul>
+        </section>
+
         <section className="landing-private" aria-labelledby="private-title">
           <div className="landing-private-copy">
             <p className="landing-eyebrow">Private by design</p>
@@ -119,6 +138,21 @@ export default function LoginPage() {
             ))}
           </ul>
         </section>
+
+        <section id="faq" className="landing-faq" aria-labelledby="faq-title">
+          <div className="landing-section-head">
+            <p className="landing-eyebrow">Questions</p>
+            <h2 id="faq-title" className="landing-heading">DealBook, answered.</h2>
+          </div>
+          <div className="landing-faq-list" data-testid="landing-faq">
+            {FAQ.map(([question, answer]) => (
+              <details key={question} className="landing-faq-item">
+                <summary>{question}</summary>
+                <p>{answer}</p>
+              </details>
+            ))}
+          </div>
+        </section>
       </main>
 
       <footer className="landing-footer">
@@ -132,7 +166,7 @@ export default function LoginPage() {
             <Link to="/terms">Terms</Link>
             <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
           </nav>
-          <p className="landing-footer-copy">© {new Date().getFullYear()} {APP_NAME}. Built for review deals in India.</p>
+          <p className="landing-footer-copy">© {new Date().getFullYear()} {APP_NAME}. Built by <a href={BRAND_URL} className="landing-brand-link" data-testid="landing-built-by" rel="noopener">{BRAND_NAME}</a>. Built for review deals in India.</p>
         </div>
       </footer>
     </div>

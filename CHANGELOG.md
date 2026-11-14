@@ -1,5 +1,11 @@
 # Changelog
 
+## Search visibility and Vfinite branding (2026-11)
+### Added
+- The marketing site now targets the searches people actually use: DealBook by Vfinite, review deal app, review deal management app, review deal tracker, deals management app, refund tracker and mediator payment tracker. The static HTML carries a keyword-led title and description, canonical and hreflang links, a 1200 × 630 social card, and a schema.org graph for Vfinite, DealBook and the web app. The landing page adds a short "review deal management" explainer and a compact FAQ whose answers are also published as FAQPage structured data.
+- `robots.txt`, `sitemap.xml` and per-page canonical, Open Graph and Twitter tags: public pages stay indexable, the signed-in app routes stay out of search results.
+- The landing and legal footers carry a small `Built by Vfinite` credit that links to the brand site.
+
 ## App updates, compact filters and mobile import (2026-11)
 ### Fixed
 - New deployments now reach installed apps. The service worker claims clients on install and the page reloads once when control changes, so a release no longer sits behind the cached shell until the user forces a refresh. The app also checks for a new version when the tab becomes visible or the network returns.

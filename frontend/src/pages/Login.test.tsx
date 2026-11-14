@@ -65,6 +65,8 @@ describe('Login landing page', () => {
     expect(screen.getByRole('link', { name: 'Privacy Policy' }).getAttribute('href')).toBe('/privacy')
     expect(screen.getByRole('link', { name: 'Terms' }).getAttribute('href')).toBe('/terms')
     expect(screen.getByRole('link', { name: CONTACT_EMAIL }).getAttribute('href')).toBe(`mailto:${CONTACT_EMAIL}`)
+    expect(screen.getByTestId('landing-built-by').getAttribute('href')).toBe('https://vfinite.com')
+    expect(screen.getByTestId('landing-faq').querySelectorAll('details').length).toBeGreaterThan(4)
   })
 
   it('redirects a logged-in user to Home', () => {
